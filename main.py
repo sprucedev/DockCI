@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from yaml import safe_load as yaml_load
 
 app = Flask(__name__)
@@ -9,9 +9,18 @@ app = Flask(__name__)
 def root():
     return render_template('index.html', jobs=list(all_jobs()))
 
-@app.route('/jobs/<slug>')
+@app.route('/jobs/<slug>', methods=('GET', 'POST'))
 def job(slug):
-    return render_template('job.html', job=Job(slug))
+    job = Job(slug)
+
+    if request.method == 'POST':
+        job.name = request.form['name']
+
+    return render_template('job.html', job=job)
+
+@app.route('/jobs/<slug>/edit', methods=('GET',))
+def job_edit(slug):
+    return render_template('job_edit.html', job=Job(slug))
 
 def load_on_access(var_name):
     """
