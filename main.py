@@ -14,7 +14,9 @@ def job(slug):
     job = Job(slug)
 
     if request.method == 'POST':
-        job.name = request.form['name']
+        for att in ('name', 'repo'):
+            setattr(job, att, request.form[att])
+
         job.save()
 
     return render_template('job.html', job=job)
@@ -44,6 +46,7 @@ class Job(object):
     def __init__(self, slug=None):
         self.slug = slug
 
+    repo = load_on_access('_repo')
     name = load_on_access('_name')
 
     def load(self):
@@ -52,6 +55,7 @@ class Job(object):
         """
         with open('data/jobs/%s.yaml' % self.slug) as fh:
             data = yaml_load(fh)
+            self.repo = data.get('repo', None)
             self.name = data.get('name', self.slug)
 
     def save(self):
@@ -66,7 +70,7 @@ class Job(object):
         """
         Serialize to dict
         """
-        return {att: getattr(self, att) for att in ('name',)}
+        return {att: getattr(self, att) for att in ('name', 'repo')}
 
 def all_jobs():
     """
