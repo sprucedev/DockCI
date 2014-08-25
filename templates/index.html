@@ -1,30 +1,8 @@
-<!doctype html>
-
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-
-  <title>DockCI - Docker CI</title>
-  <meta name="author" content="Ricky Cook">
-
-  <link rel="stylesheet" href="static/lib/bootstrap.min.css">
-  <link rel="stylesheet" href="static/lib/bootstrap-theme.min.css">
-</head>
-
-<body>
-  <!-- Fixed navbar -->
-  <div class="navbar navbar-inverse" role="navigation">
-    <div class="container">
-      <div class="navbar-header">
-        <a class="navbar-brand" href="#">DockCI</a>
-      </div>
-    </div>
-  </div>
-  <div class="container" role="main">
-    <h1>Jobs</h1>
-    <table class="table table-striped">
-        {% for job in jobs %}<tr><td>{{ job.name }}</tr></td>{% endfor %}
-    </table>
-  </div>
-</body>
-</html>
+{% extends "_base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<h1>Jobs</h1>
+<table class="table table-striped">
+  {% for job in jobs %}<tr><td><a href="/jobs/{{ job.slug }}">{{ job.name }}</a></tr></td>{% endfor %}
+</table>
+{% endblock %}
