@@ -1,7 +1,7 @@
 import os
 
 from flask import Flask, render_template, request
-from yaml import safe_load as yaml_load
+from yaml import safe_load as yaml_load, dump as yaml_dump
 
 app = Flask(__name__)
 
@@ -15,6 +15,7 @@ def job(slug):
 
     if request.method == 'POST':
         job.name = request.form['name']
+        job.save()
 
     return render_template('job.html', job=job)
 
@@ -53,6 +54,20 @@ class Job(object):
             data = yaml_load(fh)
             self.name = data.get('name', self.slug)
 
+    def save(self):
+        """
+        Save the job data
+        """
+        yaml_data = yaml_dump(self.as_dict(), default_flow_style=True)
+        with open('data/jobs/%s.yaml' % self.slug, 'w') as fh:
+            fh.write(yaml_data)
+
+    def as_dict(self):
+        """
+        Serialize to dict
+        """
+        return {att: getattr(self, att) for att in ('name',)}
+
 def all_jobs():
     """
     Get the list of jobs
@@ -70,4 +85,4 @@ def setup_data():
 
 if __name__ == "__main__":
     setup_data()
-    app.run()
+    app.run(debug=True)
