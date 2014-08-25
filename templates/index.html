@@ -21,6 +21,10 @@
     </div>
   </div>
   <div class="container" role="main">
+    <h1>Jobs</h1>
+    <table class="table table-striped">
+        {% for job in jobs %}<tr><td>{{ job.name }}</tr></td>{% endfor %}
+    </table>
   </div>
 </body>
 </html>
