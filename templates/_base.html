@@ -1,0 +1,27 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>DockCI - {% block title %}{% endblock %}</title>
+  <meta name="author" content="Ricky Cook">
+
+  <link rel="stylesheet" href="/static/lib/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/lib/bootstrap-theme.min.css">
+</head>
+
+<body>
+  <!-- Fixed navbar -->
+  <div class="navbar navbar-inverse" role="navigation">
+    <div class="container">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">DockCI</a>
+      </div>
+    </div>
+  </div>
+  <div class="container" role="main">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

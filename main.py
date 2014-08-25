@@ -9,6 +9,10 @@ app = Flask(__name__)
 def root():
     return render_template('index.html', jobs=list(all_jobs()))
 
+@app.route('/jobs/<slug>')
+def job(slug):
+    return render_template('job.html', job=Job(slug))
+
 def load_on_access(var_name):
     """
     Property that tries to call .load if the value is not set
