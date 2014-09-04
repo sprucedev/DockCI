@@ -67,17 +67,25 @@ class Model(object, metaclass=ModelMeta):
         # Used for LoadOnAccess
         self._lazy_vals = {}
 
-    def _data_name(self):
+    @classmethod
+    def _data_name(cls):
         """
         Get the data name associated with this model type
         """
-        return '%ss' % self.__class__.__name__.lower()
+        return '%ss' % cls.__name__.lower()
+
+    @classmethod
+    def data_dir_path(cls):
+        """
+        Path parts used to create the data directory
+        """
+        return ['data', cls._data_name()]
 
     def data_file_path(self):
         """
         Path parts used to create the data filename
         """
-        return ['data', self._data_name(), '%s.yaml' % self.slug]
+        return self.__class__.data_dir_path() + ['%s.yaml' % self.slug]
 
     def load(self):
         """
