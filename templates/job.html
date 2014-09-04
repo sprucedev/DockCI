@@ -6,4 +6,8 @@
 </div>
 <h1>{{ job.name }}</h1>
 
+<table class="table table-striped">
+{% for build in job.builds %}<tr><td>{{ build.slug }}</td></tr>{% endfor %}
+</table>
+
 {% endblock %}
