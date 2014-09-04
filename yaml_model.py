@@ -1,3 +1,5 @@
+import os
+
 from yaml import safe_load as yaml_load, dump as yaml_dump
 
 class OnAccess(object):
@@ -71,17 +73,18 @@ class Model(object, metaclass=ModelMeta):
         """
         return '%ss' % self.__class__.__name__.lower()
 
-    def data_file(self):
+    def data_file_path(self):
         """
-        Get the data file associated with this model object
+        Path parts used to create the data filename
         """
-        return 'data/%s/%s.yaml' % (self._data_name(), self.slug)
+        return ['data', self._data_name(), '%s.yaml' % self.slug]
 
     def load(self):
         """
         Fill the object from the job file
         """
-        with open(self.data_file()) as fh:
+        data_file = os.path.join(*self.data_file_path())
+        with open(data_file) as fh:
             data = yaml_load(fh)
             for var_name in self._load_on_access:
                 setattr(self, var_name, data.get(var_name, None))
@@ -90,8 +93,14 @@ class Model(object, metaclass=ModelMeta):
         """
         Save the job data
         """
+        data_file_path = self.data_file_path()
+        data_file = os.path.join(*data_file_path)
+
+        # Make the dir first
+        os.makedirs(os.path.join(*data_file_path[0:-1]), exist_ok=True)
+
         yaml_data = yaml_dump(self.as_dict(), default_flow_style=True)
-        with open(self.data_file(), 'w') as fh:
+        with open(data_file, 'w') as fh:
             fh.write(yaml_data)
 
     def as_dict(self):
