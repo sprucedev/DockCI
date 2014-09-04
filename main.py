@@ -38,17 +38,14 @@ def all_jobs():
     """
     Get the list of jobs
     """
-    for fn in os.listdir('data/jobs'):
-        if os.path.isfile('data/jobs/%s' % fn) and fn.endswith('.yaml'):
-            job = Job(fn[:-5])
-            yield job
+    try:
+        for fn in os.listdir('data/jobs'):
+            if os.path.isfile('data/jobs/%s' % fn) and fn.endswith('.yaml'):
+                job = Job(fn[:-5])
+                yield job
 
-def setup_data():
-    """
-    Setup the data dirs for storing jobs/etc
-    """
-    os.makedirs('data/jobs', exist_ok=True)
+    except FileNotFoundError:
+        return
 
 if __name__ == "__main__":
-    setup_data()
     app.run(debug=True)
