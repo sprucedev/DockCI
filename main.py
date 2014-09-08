@@ -5,24 +5,40 @@ from uuid import uuid1
 
 from flask import Flask, render_template, request
 
-from yaml_model import Model, OnAccess, LoadOnAccess
+from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
 app = Flask(__name__)
+
+
+def request_fill(model_obj, fill_atts, save=True):
+    """
+    Fill given model attrs from a POST request (and ignore other requests).
+    Will save only if the save flag is True
+    """
+    if request.method == 'POST':
+        for att in fill_atts:
+            setattr(model_obj, att, request.form[att])
+
+        if save:
+            model_obj.save()
+
 
 @app.route('/')
 def root():
     return render_template('index.html', jobs=list(all_jobs()))
 
 
+@app.route('/config', methods=('GET', 'POST'))
+def config():
+    config = Config()
+    request_fill(config, ('docker_host',))
+
+    return render_template('config.html', config=config)
+
 @app.route('/jobs/<slug>', methods=('GET', 'POST'))
 def job(slug):
     job = Job(slug)
-
-    if request.method == 'POST':
-        for att in ('name', 'repo'):
-            setattr(job, att, request.form[att])
-
-        job.save()
+    request_fill(job, ('name', 'repo'))
 
     return render_template('job.html', job=job)
 
@@ -30,6 +46,7 @@ def job(slug):
 @app.route('/jobs/<slug>/edit', methods=('GET',))
 def job_edit(slug):
     return render_template('job_edit.html', job=Job(slug))
+
 
 @app.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
 def build(job_slug, build_slug):
@@ -98,6 +115,11 @@ class Build(Model):
         data_file_path = super(Build, self).data_file_path()
         data_file_path.insert(-1, self.job_slug)
         return data_file_path
+
+
+class Config(SingletonModel):
+    # TODO docker_hosts
+    docker_host = LoadOnAccess(default=lambda _: 'unix:///var/run/docker.sock')
 
 
 def all_jobs():
