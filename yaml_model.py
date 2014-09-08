@@ -133,3 +133,12 @@ class Model(object, metaclass=ModelMeta):
         return {var_name: getattr(self, var_name, None)
                 for var_name
                 in self._load_on_access}
+
+class SingletonModel(Model):
+    @property
+    def slug(self):
+        return self.__class__._data_name()
+
+    @classmethod
+    def data_dir_path(cls):
+        return ['data']
