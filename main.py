@@ -31,6 +31,13 @@ def job(slug):
 def job_edit(slug):
     return render_template('job_edit.html', job=Job(slug))
 
+@app.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
+def build(job_slug, build_slug):
+    job = Job(slug=job_slug)
+    build = Build(job=job, slug=build_slug)
+
+    return render_template('build.html', build=build)
+
 
 def is_yaml_file(filename):
     return os.path.isfile(filename) and filename.endswith('.yaml')
@@ -70,14 +77,11 @@ class Build(Model):
     def __init__(self, job=None, slug=None):
         super(Build, self).__init__()
 
-        assert job is not None or slug is not None, \
-            "One of slug, or job is given"
+        assert job is not None, \
+            "Job is given"
 
-        if job:
-            self.job = job
-            self.job_slug = job.slug
-        else:
-            self.job_slug = None
+        self.job = job
+        self.job_slug = job.slug
 
         if slug:
             self.slug = slug
