@@ -28,10 +28,25 @@ class LoadOnAccess(OnAccess):
     Mark a field as being lazy loaded with the _load method of the model
     class
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, default=None, generate=None, *args, **kwargs):
         def loader(self_):
-            self_.load()
-            return self_._lazy_vals[self.var_name]
+            try:
+                self_.load()
+                return self_._lazy_vals[self.var_name]
+
+            except FileNotFoundError:
+                if generate:
+                    return generate(self) if callable(generate) else generate
+                elif default:
+                    return default(self) if callable(default) else default
+                else:
+                    raise
+
+            except KeyError:
+                if default:
+                    return default(self) if callable(default) else default
+                else:
+                    raise
 
         super(LoadOnAccess, self).__init__(loader, *args, **kwargs)
 
