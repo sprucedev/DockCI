@@ -9,7 +9,7 @@
 <table class="table table-striped">
 	<tr><th>Timestamp</th><th>Commit</th></tr>
 	{% for build in job.builds | sort(attribute='timestamp', reverse=True) %}<tr>
-		<td>{{ build.timestamp }}</td>
+		<td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.timestamp }}</a></td>
 		<td>{{ build.commit }}</td>
 	</tr>{% endfor %}
 </table>
