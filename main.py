@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from uuid import uuid1
 
-from flask import Flask, render_template, request
+from flask import flash, Flask, render_template, request
 
 from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
@@ -21,6 +21,8 @@ def request_fill(model_obj, fill_atts, save=True):
 
         if save:
             model_obj.save()
+            flash(u"%s saved!" % model_obj.__class__.__name__.title(),
+                  'success')
 
 
 @app.route('/')
@@ -31,9 +33,14 @@ def root():
 @app.route('/config', methods=('GET', 'POST'))
 def config():
     config = Config()
-    request_fill(config, ('docker_host',))
+    request_fill(config, ('docker_host', 'secret'))
+
+    if 'secret' in request.form:
+        flash(u"An application restart is required for some changes to take effect",
+              'warning')
 
     return render_template('config.html', config=config)
+
 
 @app.route('/jobs/<slug>', methods=('GET', 'POST'))
 def job(slug):
@@ -120,6 +127,7 @@ class Build(Model):
 class Config(SingletonModel):
     # TODO docker_hosts
     docker_host = LoadOnAccess(default=lambda _: 'unix:///var/run/docker.sock')
+    secret = LoadOnAccess(generate=lambda _: os.random(24))
 
 
 def all_jobs():
@@ -138,4 +146,6 @@ def all_jobs():
 
 
 if __name__ == "__main__":
+    config = Config()
+    app.secret_key = config.secret
     app.run(debug=True)
