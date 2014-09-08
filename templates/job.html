@@ -7,7 +7,11 @@
 <h1>{{ job.name }}</h1>
 
 <table class="table table-striped">
-{% for build in job.builds %}<tr><td>{{ build.slug }}</td></tr>{% endfor %}
+	<tr><th>Timestamp</th><th>Commit</th></tr>
+	{% for build in job.builds | sort(attribute='timestamp', reverse=True) %}<tr>
+		<td>{{ build.timestamp }}</td>
+		<td>{{ build.commit }}</td>
+	</tr>{% endfor %}
 </table>
 
 {% endblock %}

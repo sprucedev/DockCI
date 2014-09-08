@@ -1,5 +1,6 @@
 import os
 
+from datetime import datetime
 from uuid import uuid1
 
 from flask import Flask, render_template, request
@@ -84,6 +85,9 @@ class Build(Model):
     slug = OnAccess(lambda _: str(uuid1()))
     job = OnAccess(lambda self: Job(self.job_slug))
     job_slug = OnAccess(lambda self: self.job.slug)  # TODO infinite loop
+    timestamp = LoadOnAccess(generate=lambda _: datetime.now())
+    repo = LoadOnAccess(generate=lambda self: self.job.repo)
+    commit = LoadOnAccess(default=lambda _: None)
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
