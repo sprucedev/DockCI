@@ -21,6 +21,13 @@
     </div>
   </div>
   <div class="container" role="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
+      {% for category, message in messages %}
+        <div class="row">
+          <div class="col-sm-12 bg-{{ category }}">{{ message }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}{% endwith %}
     {% block content %}{% endblock %}
   </div>
 </body>
