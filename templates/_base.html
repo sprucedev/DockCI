@@ -1,4 +1,9 @@
 <!doctype html>
+{% macro header_button(img, link) -%}
+  <a class="btn btn-default btn-lg" href="{{ link }}">
+    <i class="glyphicon glyphicon-{{ img }}"></i>
+  </a>
+{%- endmacro %}
 
 <html lang="en">
 <head>
