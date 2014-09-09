@@ -1,8 +1,7 @@
 {% extends "_base.html" %}
 {% block title %}{{ build.job.name }} Build Result{% endblock %}
+{% block header %}<a href="/jobs/{{ build.job.slug }}">{{ build.job.name }}</a> <small>{{ build.timestamp }}</small>{% endblock %}
 {% block content %}
-<h1><a href="/jobs/{{ build.job.slug }}">{{ build.job.name }}</a> - {{ build.timestamp }}</h1>
-
 <div class="form-horizontal">
 	<div class="form-group">
 		<label class="col-sm-2 control-label">Repo</label>

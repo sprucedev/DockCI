@@ -13,20 +13,24 @@
 
 <body>
   <!-- Fixed navbar -->
-  <div class="navbar navbar-inverse" role="navigation">
+  <div class="navbar" role="navigation">
     <div class="container">
       <div class="navbar-header">
-        <a class="navbar-brand" href="/">DockCI</a>
+	  <a class="navbar-brand" href="/">DockCI</a>
       </div>
+      <p class="navbar-right">
+        <a class="btn btn-default navbar-btn" href="/config"><i class="glyphicon glyphicon-cog"></i></a>
+      </p>
     </div>
   </div>
   <div class="container" role="main">
+    <div class="page-header"><h1>{% block header %}{% endblock%}</h1></div>
     {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
-      {% for category, message in messages %}
-        <div class="row">
-          <div class="col-sm-12 bg-{{ category }}">{{ message }}</div>
-        </div>
-      {% endfor %}
+      <ul class="list-group">{% for category, message in messages %}
+        <li class="list-group-item list-group-item-{{ category }}" role="alert">
+          <strong>{{ category | title }}!</strong> {{ message }}
+        </li>
+      {% endfor %}</ul>
     {% endif %}{% endwith %}
     {% block content %}{% endblock %}
   </div>
