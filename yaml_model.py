@@ -122,7 +122,7 @@ class Model(object, metaclass=ModelMeta):
         # Make the dir first
         os.makedirs(os.path.join(*data_file_path[0:-1]), exist_ok=True)
 
-        yaml_data = yaml_dump(self.as_dict(), default_flow_style=True)
+        yaml_data = yaml_dump(self.as_dict(), default_flow_style=False)
         with open(data_file, 'w') as fh:
             fh.write(yaml_data)
 
