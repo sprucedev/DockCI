@@ -1,9 +1,10 @@
 import os
+import re
 
 from datetime import datetime
 from uuid import uuid1
 
-from flask import flash, Flask, render_template, request
+from flask import flash, Flask, redirect, render_template, request
 
 from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
@@ -61,6 +62,29 @@ def build(job_slug, build_slug):
     build = Build(job=job, slug=build_slug)
 
     return render_template('build.html', build=build)
+
+@app.route('/jobs/<job_slug>/builds/new', methods=('GET', 'POST'))
+def build_new(job_slug):
+    job = Job(slug=job_slug)
+
+    if request.method == 'POST':
+        build = Build(job=job)
+        build.repo = job.repo
+        build.commit = request.form['commit']
+
+        if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
+            flash(u"Invalid git commit hash", 'danger')
+            return render_template('build_new.html', build=build)
+
+        build.save()
+
+        flash(u"Build queued", 'success')
+        return redirect('/jobs/{job_slug}/builds/{build_slug}'.format(
+            job_slug=job_slug,
+            build_slug=build.slug,
+        ), 303)
+
+    return render_template('build_new.html', build=Build(job=job))
 
 
 def is_yaml_file(filename):
