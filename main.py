@@ -34,11 +34,12 @@ def root():
 @app.route('/config', methods=('GET', 'POST'))
 def config():
     config = Config()
-    request_fill(config, ('docker_host', 'secret'))
 
-    if 'secret' in request.form:
+    if 'secret' in request.form and request.form['secret'] != config.secret:
         flash(u"An application restart is required for some changes to take effect",
               'warning')
+
+    request_fill(config, ('docker_host', 'secret'))
 
     return render_template('config.html', config=config)
 
