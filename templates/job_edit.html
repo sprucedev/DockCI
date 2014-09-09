@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 {% block title %}{{ job.name }} - Edit{% endblock %}
+{% block header %}{{ job.name }} <small>Edit</small>{% endblock %}
 {% block content %}
-<h1>{{ job.name }} - Edit</h1>
 <form class="form-horizontal" role="form" action="/jobs/{{ job.slug }}" method="POST">
   <div class="form-group">
     <label class="col-sm-2 control-label">Slug</label>

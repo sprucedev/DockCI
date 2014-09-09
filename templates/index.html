@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 {% block title %}Jobs{% endblock %}
+{% block header %}Jobs{% endblock %}
 {% block content %}
-<h1>Jobs</h1>
 <table class="table table-striped">
   {% for job in jobs %}<tr><td><a href="/jobs/{{ job.slug }}">{{ job.name }}</a></tr></td>{% endfor %}
 </table>

@@ -21,7 +21,7 @@ def request_fill(model_obj, fill_atts, save=True):
 
         if save:
             model_obj.save()
-            flash(u"%s saved!" % model_obj.__class__.__name__.title(),
+            flash(u"%s saved" % model_obj.__class__.__name__.title(),
                   'success')
 
 

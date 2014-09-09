@@ -1,10 +1,12 @@
 {% extends "_base.html" %}
 {% block title %}{{ job.name }}{% endblock %}
+{% block header %}
+	{{ job.name }}
+	<a class="pull-right btn btn-default btn-lg" href="/jobs/{{ job.slug }}/edit">
+		<span class="glyphicon glyphicon-edit" />
+	</a>
+{% endblock %}
 {% block content %}
-<div class="pull-right">
-        <a class="btn btn-default btn-lg" href="/jobs/{{ job.slug }}/edit"><span class="glyphicon glyphicon-edit" /></a>
-</div>
-<h1>{{ job.name }}</h1>
 
 <table class="table table-striped">
 	<tr><th>Timestamp</th><th>Commit</th></tr>
