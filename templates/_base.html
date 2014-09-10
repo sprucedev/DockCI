@@ -33,6 +33,7 @@
 	  <a class="navbar-brand" href="/">DockCI</a>
       </div>
       <p class="navbar-right">
+        {% if not config.model.exists() %}<i class="navbar-brand glyphicon glyphicon-warning-sign" style="color:orange"></i>{% endif %}
         <a class="btn btn-default navbar-btn" href="/config"><i class="glyphicon glyphicon-cog"></i></a>
       </p>
     </div>
