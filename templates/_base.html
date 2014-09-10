@@ -4,6 +4,15 @@
     <i class="glyphicon glyphicon-{{ img }}"></i>
   </a>
 {%- endmacro %}
+{% macro build_state_glyph(state) -%}
+  <i class="glyphicon glyphicon-{%- if state == 'success' -%}thumbs-up
+                                {%- elif state == 'fail' -%}thumbs-down
+                                {%- elif state == 'error' -%}warning-sign
+                                {%- elif state == 'running' -%}play
+                                {%- elif state == 'queued' -%}time
+                                {%- else -%}question-sign
+                                {%- endif -%}" title="{{ state | title }}"></i>
+{%- endmacro %}
 
 <html lang="en">
 <head>
