@@ -36,8 +36,8 @@ def config():
     config = Config()
 
     if 'secret' in request.form and request.form['secret'] != config.secret:
-        flash(u"An application restart is required for some changes to take effect",
-              'warning')
+        flash(u"An application restart is required for some changes to take "
+              "effect", 'warning')
 
     request_fill(config, ('docker_host', 'secret'))
 
@@ -63,6 +63,7 @@ def build(job_slug, build_slug):
     build = Build(job=job, slug=build_slug)
 
     return render_template('build.html', build=build)
+
 
 @app.route('/jobs/<job_slug>/builds/new', methods=('GET', 'POST'))
 def build_new(job_slug):
