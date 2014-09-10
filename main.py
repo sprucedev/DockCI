@@ -126,8 +126,7 @@ class Build(Model):
     def __init__(self, job=None, slug=None):
         super(Build, self).__init__()
 
-        assert job is not None, \
-            "Job is given"
+        assert job is not None, "Job is given"
 
         self.job = job
         self.job_slug = job.slug
