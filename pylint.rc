@@ -1,5 +1,6 @@
 [MESSAGES CONTROL]
-disable=locally-disabled,
+disable=fixme,
+        locally-disabled,
         star-args
 
 [REPORTS]
