@@ -116,6 +116,8 @@ class Config(SingletonModel):
     """
     Global application configuration
     """
+    restart_needed = False
+
     # TODO docker_hosts
     docker_host = LoadOnAccess(default=lambda _: 'unix:///var/run/docker.sock')
     secret = LoadOnAccess(generate=lambda _: uuid4().hex)
@@ -157,6 +159,7 @@ def config_edit_view():
     View to edit global config
     """
     if 'secret' in request.form and request.form['secret'] != CONFIG.secret:
+        CONFIG.restart_needed = True
         flash(u"An application restart is required for some changes to take "
               "effect", 'warning')
 
