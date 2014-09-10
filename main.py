@@ -1,17 +1,22 @@
+"""
+DockCI - CI, but with that all important Docker twist
+"""
+
 import os
 import re
 
 from datetime import datetime
-from uuid import uuid1
+from uuid import uuid1, uuid4
 
 from flask import flash, Flask, redirect, render_template, request
 
 from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
-app = Flask(__name__)
-
 
 def is_yaml_file(filename):
+    """
+    Check if the filename provided points to a file, and ends in .yaml
+    """
     return os.path.isfile(filename) and filename.endswith('.yaml')
 
 
@@ -31,6 +36,9 @@ def request_fill(model_obj, fill_atts, save=True):
 
 
 class Job(Model):
+    """
+    A job, representing a container to be built
+    """
     def __init__(self, slug=None):
         super(Job, self).__init__()
         self.slug = slug
@@ -44,11 +52,11 @@ class Job(Model):
             my_data_dir_path.append(self.slug)
             builds = []
 
-            for fn in os.listdir(os.path.join(*my_data_dir_path)):
-                full_path = Build.data_dir_path() + [self.slug, fn]
+            for filename in os.listdir(os.path.join(*my_data_dir_path)):
+                full_path = Build.data_dir_path() + [self.slug, filename]
                 if is_yaml_file(os.path.join(*full_path)):
                     builds.append(Build(job=self,
-                                        slug=fn[:-5]))
+                                        slug=filename[:-5]))
 
             return builds
 
@@ -62,6 +70,9 @@ class Job(Model):
 
 
 class Build(Model):
+    """
+    An individual job build, and result
+    """
     def __init__(self, job=None, slug=None):
         super(Build, self).__init__()
 
@@ -84,6 +95,9 @@ class Build(Model):
 
     @property
     def state(self):
+        """
+        Current state that the build is in
+        """
         if self.complete_ts is not None:
             return 'complete'
         elif self.start_ts is not None:
@@ -99,9 +113,12 @@ class Build(Model):
 
 
 class Config(SingletonModel):
+    """
+    Global application configuration
+    """
     # TODO docker_hosts
     docker_host = LoadOnAccess(default=lambda _: 'unix:///var/run/docker.sock')
-    secret = LoadOnAccess(generate=lambda _: os.random(24))
+    secret = LoadOnAccess(generate=lambda _: uuid4().hex)
 
 
 def all_jobs():
@@ -109,57 +126,77 @@ def all_jobs():
     Get the list of jobs
     """
     try:
-        for fn in os.listdir(os.path.join(*Job.data_dir_path())):
-            full_path = Job.data_dir_path() + [fn]
+        for filename in os.listdir(os.path.join(*Job.data_dir_path())):
+            full_path = Job.data_dir_path() + [filename]
             if is_yaml_file(os.path.join(*full_path)):
-                job = Job(fn[:-5])
+                job = Job(filename[:-5])
                 yield job
 
     except FileNotFoundError:
         return
 
 
-@app.route('/')
-def root():
+APP = Flask(__name__)
+CONFIG = Config()
+
+
+@APP.route('/')
+def root_view():
+    """
+    View to display the list of all jobs
+    """
     return render_template('index.html', jobs=list(all_jobs()))
 
 
-@app.route('/config', methods=('GET', 'POST'))
-def config():
-    config = Config()
-
-    if 'secret' in request.form and request.form['secret'] != config.secret:
+@APP.route('/config', methods=('GET', 'POST'))
+def config_edit_view():
+    """
+    View to edit global config
+    """
+    if 'secret' in request.form and request.form['secret'] != CONFIG.secret:
         flash(u"An application restart is required for some changes to take "
               "effect", 'warning')
 
-    request_fill(config, ('docker_host', 'secret'))
+    request_fill(CONFIG, ('docker_host', 'secret'))
 
-    return render_template('config.html', config=config)
+    return render_template('config_edit.html', config=CONFIG)
 
 
-@app.route('/jobs/<slug>', methods=('GET', 'POST'))
-def job(slug):
+@APP.route('/jobs/<slug>', methods=('GET', 'POST'))
+def job_view(slug):
+    """
+    View to display a job
+    """
     job = Job(slug)
     request_fill(job, ('name', 'repo'))
 
     return render_template('job.html', job=job)
 
 
-@app.route('/jobs/<slug>/edit', methods=('GET',))
-def job_edit(slug):
+@APP.route('/jobs/<slug>/edit', methods=('GET',))
+def job_edit_view(slug):
+    """
+    View to edit a job
+    """
     return render_template('job_edit.html', job=Job(slug))
 
 
-@app.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
-def build(job_slug, build_slug):
+@APP.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
+def build_view(job_slug, build_slug):
+    """
+    View to display a build
+    """
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
 
     return render_template('build.html', build=build)
 
 
-@app.route('/jobs/<job_slug>/builds/new', methods=('GET', 'POST'))
-def build_new(job_slug):
+@APP.route('/jobs/<job_slug>/builds/new', methods=('GET', 'POST'))
+def build_new_view(job_slug):
+    """
+    View to create a new build
+    """
     job = Job(slug=job_slug)
 
     if request.method == 'POST':
@@ -183,6 +220,5 @@ def build_new(job_slug):
 
 
 if __name__ == "__main__":
-    config = Config()
-    app.secret_key = config.secret
-    app.run(debug=True)
+    APP.secret_key = CONFIG.secret
+    APP.run(debug=True)
