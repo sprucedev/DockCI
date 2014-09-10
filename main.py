@@ -137,9 +137,20 @@ class Build(Model):
     slug = OnAccess(lambda _: str(uuid1()))
     job = OnAccess(lambda self: Job(self.job_slug))
     job_slug = OnAccess(lambda self: self.job.slug)  # TODO infinite loop
-    timestamp = LoadOnAccess(generate=lambda _: datetime.now())
+    create_ts = LoadOnAccess(generate=lambda _: datetime.now())
+    start_ts = LoadOnAccess(default=lambda _: None)
+    complete_ts = LoadOnAccess(default=lambda _: None)
     repo = LoadOnAccess(generate=lambda self: self.job.repo)
     commit = LoadOnAccess(default=lambda _: None)
+
+    @property
+    def state(self):
+        if self.complete_ts is not None:
+            return 'complete'
+        elif self.start_ts is not None:
+            return 'running'  # TODO check if running or dead
+        else:
+            return 'queued'  # TODO check if queued or queue fail
 
     def data_file_path(self):
         # Add the job name before the build slug in the path

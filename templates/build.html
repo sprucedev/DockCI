@@ -1,6 +1,9 @@
 {% extends "_base.html" %}
 {% block title %}{{ build.job.name }} Build Result{% endblock %}
-{% block header %}<a href="/jobs/{{ build.job.slug }}">{{ build.job.name }}</a> <small>{{ build.timestamp }}</small>{% endblock %}
+{% block header %}
+	<a href="/jobs/{{ build.job.slug }}">{{ build.job.name }}</a> <small>{{ build.create_ts }}</small>
+	<span class="pull-right">{{ build_state_glyph(build.state) }}</span>
+{% endblock %}
 {% block content %}
 <div class="form-horizontal">
 	<div class="form-group">
