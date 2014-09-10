@@ -3,7 +3,10 @@
 {% block header %}Global Configuration{% endblock %}
 {% block content %}
 {% if not config.model.exists() -%}
-  <div class="alert alert-warning" role="alert">Persistent config file does not exist. These settings should be saved.</div>
+  <div class="alert alert-danger" role="alert">Persistent config file does not exist. These settings should be saved</div>
+{%- endif %}
+{% if config.model.restart_needed -%}
+  <div class="alert alert-warning" role="alert">Settings have been changed. An application restart is required</div>
 {%- endif %}
 <form class="form-horizontal" role="form" action="/config" method="POST">
   <div class="form-group">
