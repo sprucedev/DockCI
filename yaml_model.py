@@ -2,6 +2,7 @@ import os
 
 from yaml import safe_load as yaml_load, dump as yaml_dump
 
+
 class OnAccess(object):
     """
     Mark a field as having a one-time call associated with it's retrieval
@@ -155,6 +156,7 @@ class Model(object, metaclass=ModelMeta):
         return {var_name: getattr(self, var_name, None)
                 for var_name
                 in self._load_on_access}
+
 
 class SingletonModel(Model):
     @property
