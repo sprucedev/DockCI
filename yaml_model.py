@@ -140,6 +140,9 @@ class Model(object, metaclass=ModelMeta):
         return self.__class__.data_dir_path() + ['%s.yaml' % self.slug]
 
     def exists(self):
+        """
+        Check to see if the model file exists (if not, maybe it's new)
+        """
         return os.path.isfile(os.path.join(*self.data_file_path()))
 
     def load(self, data_file=None):
