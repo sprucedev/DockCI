@@ -118,6 +118,7 @@ class Job(Model):
         except FileNotFoundError:
             return []
 
+    slug = None
     repo = LoadOnAccess()
     name = LoadOnAccess()
     builds = OnAccess(_all_builds)
