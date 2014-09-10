@@ -1,0 +1,20 @@
+[MESSAGES CONTROL]
+disable=locally-disabled,
+        star-args
+
+[REPORTS]
+output-format=colorized
+reports=yes
+
+[BASIC]
+bad-functions=
+include-naming-hint=yes
+
+[FORMAT]
+max-line-length=80
+
+[DESIGN]
+max-args=8
+max-locals=20
+max-returns=10
+max-branches=12
