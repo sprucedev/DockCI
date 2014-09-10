@@ -140,6 +140,9 @@ APP = Flask(__name__)
 CONFIG = Config()
 
 
+APP.config.model = CONFIG  # For templates
+
+
 @APP.route('/')
 def root_view():
     """
@@ -159,7 +162,7 @@ def config_edit_view():
 
     request_fill(CONFIG, ('docker_host', 'secret'))
 
-    return render_template('config_edit.html', config=CONFIG)
+    return render_template('config_edit.html')
 
 
 @APP.route('/jobs/<slug>', methods=('GET', 'POST'))

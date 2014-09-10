@@ -139,6 +139,9 @@ class Model(object, metaclass=ModelMeta):
         """
         return self.__class__.data_dir_path() + ['%s.yaml' % self.slug]
 
+    def exists(self):
+        return os.path.isfile(os.path.join(*self.data_file_path()))
+
     def load(self, data_file=None):
         """
         Fill the object from the job file
