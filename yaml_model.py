@@ -102,29 +102,50 @@ class Model(object, metaclass=ModelMeta):
         """
         return self.__class__.data_dir_path() + ['%s.yaml' % self.slug]
 
-    def load(self):
+    def load(self, data_file=None):
         """
         Fill the object from the job file
         """
-        data_file = os.path.join(*self.data_file_path())
+        if data_file is None:
+            data_file = os.path.join(*self.data_file_path())
+
         with open(data_file) as fh:
             data = yaml_load(fh)
-            for var_name in self._load_on_access:
-                setattr(self, var_name, data.get(var_name, None))
+            self.from_dict(data)
 
-    def save(self):
+    def save(self, data_file=None):
         """
         Save the job data
         """
-        data_file_path = self.data_file_path()
-        data_file = os.path.join(*data_file_path)
+        if data_file is None:
+            data_file_path = self.data_file_path()
+            data_file = os.path.join(*data_file_path)
 
-        # Make the dir first
-        os.makedirs(os.path.join(*data_file_path[0:-1]), exist_ok=True)
+            # Make the dir first
+            os.makedirs(os.path.join(*data_file_path[0:-1]), exist_ok=True)
 
-        yaml_data = yaml_dump(self.as_dict(), default_flow_style=False)
+        yaml_data = self.as_yaml()
         with open(data_file, 'w') as fh:
             fh.write(yaml_data)
+
+    def from_yaml(self, data):
+        """
+        Deserialize from YAML
+        """
+        return self.from_dict(yaml_load(data))
+
+    def as_yaml(self):
+        """
+        Serialize to YAML
+        """
+        return yaml_dump(self.as_dict(), default_flow_style=False)
+
+    def from_dict(self, data):
+        """
+        Deserialize from dict
+        """
+        for var_name in self._load_on_access:
+            setattr(self, var_name, data.get(var_name, None))
 
     def as_dict(self):
         """
