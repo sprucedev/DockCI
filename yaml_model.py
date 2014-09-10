@@ -145,7 +145,8 @@ class Model(object, metaclass=ModelMeta):
         Deserialize from dict
         """
         for var_name in self._load_on_access:
-            setattr(self, var_name, data.get(var_name, None))
+            if var_name in data:
+                setattr(self, var_name, data[var_name])
 
     def as_dict(self):
         """
