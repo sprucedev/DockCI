@@ -4,6 +4,7 @@ DockCI - CI, but with that all important Docker twist
 
 import os
 import re
+import multiprocessing as mp
 
 from datetime import datetime
 from uuid import uuid1, uuid4
@@ -111,6 +112,19 @@ class Build(Model):
         data_file_path.insert(-1, self.job_slug)
         return data_file_path
 
+    def queue(self):
+        """
+        Add the build to the queue
+        """
+        APP.workers.apply_async(self._run_now)
+
+    def _run_now(self):
+        """
+        Worker func that performs the build
+        """
+        self.start_ts = datetime.now()
+        self.save()
+
 
 class Config(SingletonModel):
     """
@@ -121,6 +135,7 @@ class Config(SingletonModel):
     # TODO docker_hosts
     docker_host = LoadOnAccess(default=lambda _: 'unix:///var/run/docker.sock')
     secret = LoadOnAccess(generate=lambda _: uuid4().hex)
+    workers = LoadOnAccess(default=lambda _: 5)
 
 
 def all_jobs():
@@ -158,12 +173,16 @@ def config_edit_view():
     """
     View to edit global config
     """
-    if 'secret' in request.form and request.form['secret'] != CONFIG.secret:
+    restart_needed = any((
+        attr in request.form and request.form[attr] != getattr(CONFIG, attr)
+        for attr in ('secret', 'workers')
+    ))
+    if restart_needed:
         CONFIG.restart_needed = True
         flash(u"An application restart is required for some changes to take "
               "effect", 'warning')
 
-    request_fill(CONFIG, ('docker_host', 'secret'))
+    request_fill(CONFIG, ('docker_host', 'secret', 'workers'))
 
     return render_template('config_edit.html')
 
@@ -225,6 +244,14 @@ def build_new_view(job_slug):
     return render_template('build_new.html', build=Build(job=job))
 
 
-if __name__ == "__main__":
+def app_setup_extra():
+    """
+    Pre-run app setup
+    """
     APP.secret_key = CONFIG.secret
+    APP.workers = mp.Pool(int(CONFIG.workers))
+
+
+if __name__ == "__main__":
+    app_setup_extra()
     APP.run(debug=True)
