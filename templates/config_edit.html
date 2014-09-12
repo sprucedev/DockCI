@@ -22,6 +22,12 @@
     </div>
   </div>
   <div class="form-group">
+    <label for="inputWorkers" class="col-sm-2 control-label">Workers</label>
+    <div class="col-sm-10">
+      <input class="form-control" id="inputWorkers" name="workers" type="number" value="{{ config.model.workers or '' }}">
+    </div>
+  </div>
+  <div class="form-group">
     <div class="col-sm-2">&nbsp;</div>
     <div class="col-sm-10">
       <button type="submit" class="btn btn-primary">Save</button>
