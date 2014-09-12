@@ -2,7 +2,5 @@ language: python
 python:
   - "3.4"
 
-install: "pip install -r requirements.txt"
-script:
-  - "pep8 *.py"
-  - "pylint --rcfile=pylint.conf *.py"
+install: make deps
+script: make test
