@@ -2,9 +2,9 @@
 DockCI - CI, but with that all important Docker twist
 """
 
+import multiprocessing as mp
 import os
 import re
-import multiprocessing as mp
 
 from datetime import datetime
 from uuid import uuid1, uuid4
