@@ -15,4 +15,49 @@
 		<div class="col-sm-10"><p class="form-control-static">{{ build.commit }}</p></div>
 	</div>
 </div>
+<h2>Build Log</h2>
+<script>
+	LOG_LOAD_JOB = null
+	LOG_LOAD_LIST = []
+	function try_next_log_load_job() {
+		if (LOG_LOAD_JOB === null) {
+			LOG_LOAD_JOB = LOG_LOAD_LIST.shift()
+			LOG_LOAD_JOB()
+		}
+	}
+	function load_stage_log(url, load_badge_el, log_el) {
+		LOG_LOAD_LIST.push(function() {
+			$.get(url).done(function(log_data) {
+				load_badge_el.switchClass('label-primary', 'label-success', 1000)
+				load_badge_el.text("Loaded")
+				log_el.text(log_data)
+			}).fail(function(xhr, errorType, httpErrorText) {
+				load_badge_el.switchClass('label-primary', 'label-danger', 1000)
+				if (httpErrorText === null) {
+					load_badge_el.text(errorType)
+				} else {
+					load_badge_el.text(httpErrorText)
+				}
+			}).always(function() {
+				// Next job
+				LOG_LOAD_JOB = null
+				try_next_log_load_job()
+			})
+		})
+		try_next_log_load_job()
+	}
+</script>
+{% for stage in build.build_stages %}
+<div><h3>{{ stage.slug }}</h3></div>
+<pre class="stage-log" data-stage-slug="{{ stage.slug }}"><span class="label label-primary pull-right">LOADING</span><code></code></pre>
+{% endfor %}
+<script>$('.stage-log').each(function(idx, el) {
+	stageSlug = el.dataset.stageSlug
+	el = $(el)
+	load_stage_log(
+		'/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/stage_logs/' + stageSlug,
+		el.children('.label').first(),
+		el.children('code').first()
+	)
+})</script>
 {% endblock %}
