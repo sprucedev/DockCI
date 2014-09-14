@@ -11,7 +11,7 @@ import tempfile
 from datetime import datetime
 from uuid import uuid1, uuid4
 
-from flask import flash, Flask, redirect, render_template, request
+from flask import flash, Flask, redirect, render_template, request, Response
 
 from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
@@ -264,8 +264,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                            build=self,
                            cwd=workdir,
                            cmd_args=cmd_args)
-        stage.run()
         self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
+        self.save()
+        stage.run()
         return stage.returncode == 0
 
 
@@ -385,6 +386,32 @@ def build_new_view(job_slug):
         ), 303)
 
     return render_template('build_new.html', build=Build(job=job))
+
+
+@APP.route('/jobs/<job_slug>/builds/<build_slug>/stage_logs/<stage_slug>',
+           methods=('GET',))
+def stage_log_view(job_slug, build_slug, stage_slug):
+    """
+    View to display a build
+    """
+    job = Job(slug=job_slug)
+    build = Build(job=job, slug=build_slug)
+    stage = BuildStage(build=build, slug=stage_slug)
+
+    def loader():
+        """
+        Generator to stream the log file
+        """
+        # TODO possible security issue opending files from user input like this
+        data_file_path = os.path.join(*stage.data_file_path())
+        with open(data_file_path, 'r') as handle:
+            while True:
+                data = handle.read(1024)
+                yield data
+                if data == '':
+                    return
+
+    return Response(loader(), mimetype='text/plain')
 
 
 def app_setup_extra():
