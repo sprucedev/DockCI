@@ -2,9 +2,11 @@
 DockCI - CI, but with that all important Docker twist
 """
 
-import multiprocessing as mp
+import multiprocessing.pool
 import os
 import re
+import subprocess
+import tempfile
 
 from datetime import datetime
 from uuid import uuid1, uuid4
@@ -34,6 +36,25 @@ def request_fill(model_obj, fill_atts, save=True):
             model_obj.save()
             flash(u"%s saved" % model_obj.__class__.__name__.title(),
                   'success')
+
+
+class InvalidOperationError(Exception):
+    """
+    Raised when a call is not valid at the current time
+    """
+    pass
+
+
+class AlreadyRunError(InvalidOperationError):
+    """
+    Raised when a build or stage is attempted to be run that has already been
+    started/completed
+    """
+    runnable = None
+
+    def __init__(self, runnable):
+        super(AlreadyRunError, self).__init__()
+        self.runnable = runnable
 
 
 class Job(Model):
@@ -70,7 +91,66 @@ class Job(Model):
     builds = OnAccess(_all_builds)
 
 
-class Build(Model):
+class BuildStage(object):
+    """
+    A logged stage to a build
+    """
+    _proc = None
+
+    def __init__(self, slug, build, cwd=None, cmd_args=None):
+        self.slug = slug
+        self.build = build
+        self.cwd = cwd
+        self.cmd_args = cmd_args
+
+    def data_dir_path(self):
+        """
+        Directory that the stage stores data in
+        """
+        return self.build.data_file_path()[:-1] + [
+            '%s_output' % self.build.slug,
+        ]
+
+    def data_file_path(self):
+        """
+        File that stage output is logged to
+        """
+        return self.data_dir_path() + [self.slug]
+
+    @property
+    def returncode(self):
+        """
+        Return code for the completed process. Only available if this object
+        has been run (not available on loaded BuildStage objects)
+        """
+        if not self._proc:
+            raise InvalidOperationError(
+                self, "No process for this build object",
+            )
+
+        return self._proc.returncode
+
+    def run(self):
+        """
+        Start the child process, streaming it's output to the associated file,
+        and block until it returns
+        """
+        if self._proc is not None:
+            raise AlreadyRunError(self)
+
+        data_dir_path = os.path.join(*self.data_dir_path())
+        data_file_path = os.path.join(*self.data_file_path())
+
+        os.makedirs(data_dir_path, exist_ok=True)
+        with open(data_file_path, 'wb') as handle:
+            self._proc = subprocess.Popen(self.cmd_args,
+                                          cwd=self.cwd,
+                                          stdout=handle,
+                                          stderr=subprocess.STDOUT)
+            self._proc.wait()
+
+
+class Build(Model):  # pylint:disable=too-many-instance-attributes
     """
     An individual job build, and result
     """
@@ -91,16 +171,23 @@ class Build(Model):
     create_ts = LoadOnAccess(generate=lambda _: datetime.now())
     start_ts = LoadOnAccess(default=lambda _: None)
     complete_ts = LoadOnAccess(default=lambda _: None)
+    result = LoadOnAccess(default=lambda _: None)
     repo = LoadOnAccess(generate=lambda self: self.job.repo)
     commit = LoadOnAccess(default=lambda _: None)
+    build_stage_slugs = LoadOnAccess(default=lambda _: [])
+    build_stages = OnAccess(lambda self: [
+        BuildStage(slug=slug, build=self)
+        for slug
+        in self.build_stage_slugs
+    ])
 
     @property
     def state(self):
         """
         Current state that the build is in
         """
-        if self.complete_ts is not None:
-            return 'complete'
+        if self.result is not None:
+            return self.result
         elif self.start_ts is not None:
             return 'running'  # TODO check if running or dead
         else:
@@ -116,6 +203,9 @@ class Build(Model):
         """
         Add the build to the queue
         """
+        if self.start_ts:
+            raise AlreadyRunError(self)
+
         APP.workers.apply_async(self._run_now)
 
     def _run_now(self):
@@ -124,6 +214,59 @@ class Build(Model):
         """
         self.start_ts = datetime.now()
         self.save()
+
+        try:
+            with tempfile.TemporaryDirectory() as workdir:
+                pre_build = (stage() for stage in (
+                    lambda: self._run_git(workdir),
+                ))
+                if not all(pre_build):
+                    self.result = 'error'
+                    return False
+
+            self.result = 'success'
+            return True
+        except Exception:  # pylint:disable=broad-except
+            self.result = 'error'
+
+            # TODO report in log
+            import traceback
+            print(traceback.format_exc())
+
+            return False
+
+        finally:
+            self.complete_ts = datetime.now()
+            self.save()
+
+    def _run_git(self, workdir):
+        """
+        Clone and checkout the build
+        """
+        to_run = (stage() for stage in (
+            lambda: self._stage(
+                'git_clone', workdir,
+                ['git', 'clone', self.repo, workdir]
+            ),
+            lambda: self._stage(
+                'git_checkout', workdir,
+                ['git', 'checkout', self.commit]
+            ),
+        ))
+        return all(to_run)
+
+    def _stage(self, stage_slug, workdir, cmd_args):
+        """
+        Create and save a new build stage, running the given args and saving
+        its output
+        """
+        stage = BuildStage(slug=stage_slug,
+                           build=self,
+                           cwd=workdir,
+                           cmd_args=cmd_args)
+        stage.run()
+        self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
+        return stage.returncode == 0
 
 
 class Config(SingletonModel):
@@ -249,7 +392,7 @@ def app_setup_extra():
     Pre-run app setup
     """
     APP.secret_key = CONFIG.secret
-    APP.workers = mp.Pool(int(CONFIG.workers))
+    APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
 
 
 if __name__ == "__main__":
