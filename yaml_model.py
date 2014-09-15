@@ -8,6 +8,16 @@ import os
 from yaml import safe_load as yaml_load, dump as yaml_dump
 
 
+class NoValueError(Exception):
+    """
+    Raised when a field has no value, no generator and no default
+    """
+    def __init__(self, cls, var_name, *args):
+        super(NoValueError, self).__init__(*args)
+        self.cls = cls
+        self.var_name = var_name
+
+
 class OnAccess(object):  # pylint:disable=too-few-public-methods
     """
     Mark a field as having a one-time call associated with it's retrieval
@@ -67,13 +77,13 @@ class LoadOnAccess(OnAccess):  # pylint:disable=too-few-public-methods
                 elif default:
                     return default(self) if callable(default) else default
                 else:
-                    raise
+                    raise NoValueError(self_.__class__, self.var_name)
 
             except KeyError:
                 if default:
                     return default(self) if callable(default) else default
                 else:
-                    raise
+                    raise NoValueError(self_.__class__, self.var_name)
 
         super(LoadOnAccess, self).__init__(loader, *args, **kwargs)
 
