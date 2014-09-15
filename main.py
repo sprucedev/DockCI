@@ -174,6 +174,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     result = LoadOnAccess(default=lambda _: None)
     repo = LoadOnAccess(generate=lambda self: self.job.repo)
     commit = LoadOnAccess(default=lambda _: None)
+    version = LoadOnAccess(default=lambda _: None)
     build_stage_slugs = LoadOnAccess(default=lambda _: [])
     build_stages = OnAccess(lambda self: [
         BuildStage(slug=slug, build=self)
@@ -243,6 +244,18 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Clone and checkout the build
         """
+        saved_stages = {}
+
+        def tag_stage():
+            """
+            Wrapper to call the tag stage
+            """
+            saved_stages['git_tag'] = self._stage(
+                'git_tag', workdir,
+                ['git', 'describe', '--tags']
+            )
+            return saved_stages['git_tag']
+
         to_run = (stage() for stage in (
             lambda: self._stage(
                 'git_clone', workdir,
@@ -252,8 +265,25 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 'git_checkout', workdir,
                 ['git', 'checkout', self.commit]
             ),
+            tag_stage,
         ))
-        return all(to_run)
+        result = all((stage.returncode == 0 for stage in to_run))
+
+        try:
+            # TODO opening file to get this is kinda awful
+            data_file_path = os.path.join(
+                *saved_stages['git_tag'].data_file_path()
+            )
+            with open(data_file_path, 'r') as handle:
+                line = handle.readline().strip()
+                # TODO be more generic! GOSH
+                if re.match(r'^v\d+\.\d+\.\d+$', line):
+                    self.version = line
+                    self.save()
+        except KeyError:
+            pass
+
+        return result
 
     def _stage(self, stage_slug, workdir, cmd_args):
         """
@@ -267,7 +297,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
         self.save()
         stage.run()
-        return stage.returncode == 0
+        return stage
 
 
 class Config(SingletonModel):
