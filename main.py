@@ -141,6 +141,9 @@ class BuildStage(object):
             Run a process, streaming to the given handle and wait for it to
             exit before returning it's exit code
             """
+            # TODO escape args
+            handle.write(bytes(">CWD %s\n" % cwd, 'utf8'))
+            handle.write(bytes(">>>> %s\n" % cmd_args, 'utf8'))
             proc = subprocess.Popen(cmd_args,
                                     cwd=cwd,
                                     stdout=handle,
