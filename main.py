@@ -274,11 +274,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         to_run = (stage() for stage in (
             lambda: self._stage(
-                'git_clone', workdir,
+                'git_clone', workdir=workdir,
                 cmd_args=['git', 'clone', self.repo, workdir]
             ),
             lambda: self._stage(
-                'git_checkout', workdir,
+                'git_checkout', workdir=workdir,
                 cmd_args=['git', 'checkout', self.commit]
             ),
             tag_stage,
@@ -301,7 +301,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         return result
 
-    def _stage(self, stage_slug, workdir, cmd_args=None, runnable=None):
+    def _stage(self, stage_slug, runnable=None, workdir=None, cmd_args=None):
         """
         Create and save a new build stage, running the given args and saving
         its output
