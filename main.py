@@ -95,13 +95,12 @@ class BuildStage(object):
     """
     A logged stage to a build
     """
-    _proc = None
+    returncode = None
 
-    def __init__(self, slug, build, cwd=None, cmd_args=None):
+    def __init__(self, slug, build, runnable=None):
         self.slug = slug
         self.build = build
-        self.cwd = cwd
-        self.cmd_args = cmd_args
+        self.runnable = runnable
 
     def data_dir_path(self):
         """
@@ -117,25 +116,12 @@ class BuildStage(object):
         """
         return self.data_dir_path() + [self.slug]
 
-    @property
-    def returncode(self):
-        """
-        Return code for the completed process. Only available if this object
-        has been run (not available on loaded BuildStage objects)
-        """
-        if not self._proc:
-            raise InvalidOperationError(
-                self, "No process for this build object",
-            )
-
-        return self._proc.returncode
-
     def run(self):
         """
         Start the child process, streaming it's output to the associated file,
         and block until it returns
         """
-        if self._proc is not None:
+        if self.returncode is not None:
             raise AlreadyRunError(self)
 
         data_dir_path = os.path.join(*self.data_dir_path())
@@ -143,11 +129,26 @@ class BuildStage(object):
 
         os.makedirs(data_dir_path, exist_ok=True)
         with open(data_file_path, 'wb') as handle:
-            self._proc = subprocess.Popen(self.cmd_args,
-                                          cwd=self.cwd,
-                                          stdout=handle,
-                                          stderr=subprocess.STDOUT)
-            self._proc.wait()
+            self.returncode = self.runnable(handle)
+
+    @classmethod
+    def from_command(cls, slug, build, cwd, cmd_args):
+        """
+        Create a BuildStage object from a system command
+        """
+        def runnable(handle):
+            """
+            Run a process, streaming to the given handle and wait for it to
+            exit before returning it's exit code
+            """
+            proc = subprocess.Popen(cmd_args,
+                                    cwd=cwd,
+                                    stdout=handle,
+                                    stderr=subprocess.STDOUT)
+            proc.wait()
+            return proc.returncode
+
+        return cls(slug=slug, build=build, runnable=runnable)
 
 
 class Build(Model):  # pylint:disable=too-many-instance-attributes
@@ -252,18 +253,18 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             """
             saved_stages['git_tag'] = self._stage(
                 'git_tag', workdir,
-                ['git', 'describe', '--tags']
+                cmd_args=['git', 'describe', '--tags']
             )
             return saved_stages['git_tag']
 
         to_run = (stage() for stage in (
             lambda: self._stage(
                 'git_clone', workdir,
-                ['git', 'clone', self.repo, workdir]
+                cmd_args=['git', 'clone', self.repo, workdir]
             ),
             lambda: self._stage(
                 'git_checkout', workdir,
-                ['git', 'checkout', self.commit]
+                cmd_args=['git', 'checkout', self.commit]
             ),
             tag_stage,
         ))
@@ -285,18 +286,23 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         return result
 
-    def _stage(self, stage_slug, workdir, cmd_args):
+    def _stage(self, stage_slug, workdir, cmd_args=None, runnable=None):
         """
         Create and save a new build stage, running the given args and saving
         its output
         """
-        stage = BuildStage(slug=stage_slug,
-                           build=self,
-                           cwd=workdir,
-                           cmd_args=cmd_args)
+        if cmd_args:
+            stage = BuildStage.from_command(slug=stage_slug,
+                                            build=self,
+                                            cwd=workdir,
+                                            cmd_args=cmd_args)
+        else:
+            stage = BuildStage(slug=stage_slug, build=self, runnable=runnable)
+
         self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
         self.save()
         stage.run()
+
         return stage
 
 
