@@ -232,8 +232,20 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             self.result = 'error'
 
             # TODO report in log
+            self.build_stage_slugs.append('error')  # pylint:disable=no-member
+            self.save()
+
             import traceback
-            print(traceback.format_exc())
+            try:
+                stage = BuildStage(
+                    'error',
+                    self,
+                    lambda handle: handle.write(
+                        bytes(traceback.format_exc(), 'utf8')
+                    )
+                ).run()
+            except Exception:
+                print(traceback.format_exc())
 
             return False
 
