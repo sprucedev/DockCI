@@ -257,14 +257,14 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             import traceback
             try:
-                stage = BuildStage(
+                BuildStage(
                     'error',
                     self,
                     lambda handle: handle.write(
                         bytes(traceback.format_exc(), 'utf8')
                     )
                 ).run()
-            except Exception:
+            except Exception:  # pylint:disable=broad-except
                 print(traceback.format_exc())
 
             return False
