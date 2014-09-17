@@ -2,6 +2,7 @@
 DockCI - CI, but with that all important Docker twist
 """
 
+import json
 import multiprocessing.pool
 import os
 import re
@@ -10,6 +11,8 @@ import tempfile
 
 from datetime import datetime
 from uuid import uuid1, uuid4
+
+import docker
 
 from flask import flash, Flask, redirect, render_template, request, Response
 
@@ -198,6 +201,18 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         else:
             return 'queued'  # TODO check if queued or queue fail
 
+    _docker_client = None
+
+    @property
+    def docker_client(self):
+        """
+        Get the cached (or new) Docker Client object being used for this build
+        """
+        if not self._docker_client:
+            self._docker_client = docker.Client(base_url=CONFIG.docker_host)
+
+        return self._docker_client
+
     def data_file_path(self):
         # Add the job name before the build slug in the path
         data_file_path = super(Build, self).data_file_path()
@@ -223,7 +238,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         try:
             with tempfile.TemporaryDirectory() as workdir:
                 pre_build = (stage() for stage in (
-                    lambda: self._run_git(workdir),
+                    lambda: self._run_prep_workdir(workdir),
+                    lambda: self._run_tag_version(workdir),
+                    lambda: self._run_build(workdir),
                 ))
                 if not all(pre_build):
                     self.result = 'error'
@@ -256,22 +273,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             self.complete_ts = datetime.now()
             self.save()
 
-    def _run_git(self, workdir):
+    def _run_prep_workdir(self, workdir):
         """
         Clone and checkout the build
         """
-        saved_stages = {}
-
-        def tag_stage():
-            """
-            Wrapper to call the tag stage
-            """
-            saved_stages['git_tag'] = self._stage(
-                'git_tag', workdir,
-                cmd_args=['git', 'describe', '--tags']
-            )
-            return saved_stages['git_tag']
-
         to_run = (stage() for stage in (
             lambda: self._stage(
                 'git_clone', workdir=workdir,
@@ -281,25 +286,64 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 'git_checkout', workdir=workdir,
                 cmd_args=['git', 'checkout', self.commit]
             ),
-            tag_stage,
         ))
         result = all((stage.returncode == 0 for stage in to_run))
 
+        return result
+
+    def _run_tag_version(self, workdir):
+        """
+        Try and add a version to the build, based on git tag
+        """
+        stage = self._stage(
+            'git_tag', workdir=workdir,
+            cmd_args=['git', 'describe', '--tags']
+        )
+        if not stage.returncode == 0:
+            # TODO remove spoofed return
+            return True  # stage result is irrelevant
+
         try:
             # TODO opening file to get this is kinda awful
-            data_file_path = os.path.join(
-                *saved_stages['git_tag'].data_file_path()
-            )
+            data_file_path = os.path.join(*stage.data_file_path())
             with open(data_file_path, 'r') as handle:
                 line = handle.readline().strip()
                 # TODO be more generic! GOSH
                 if re.match(r'^v\d+\.\d+\.\d+$', line):
                     self.version = line
                     self.save()
-        except KeyError:
-            pass
+                    return True
 
-        return result
+        except KeyError:
+            # TODO remove spoofed return
+            return True  # stage result is irrelevant
+
+    def _run_build(self, workdir):
+        """
+        Tell the Docker host to build
+        """
+        def runnable(handle):
+            """
+            Tell the Docker host to build, streaming its output to file and
+            parsing to see if the container was build Successfully
+            """
+            # saved stream for debugging
+            # output = open('docker_build_stream', 'r')
+            output = self.docker_client.build(path=workdir, stream=True)
+
+            line = None
+            for line in output:
+                handle.write(bytes(line, 'utf8'))
+                handle.flush()
+
+            if line:
+                line_data = json.loads(line)
+                if 'Successfully built ' in line_data.get('stream', ()):
+                    return True
+
+            return False
+
+        return self._stage('docker_build', runnable=runnable).returncode
 
     def _stage(self, stage_slug, runnable=None, workdir=None, cmd_args=None):
         """
@@ -317,7 +361,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
         self.save()
         stage.run()
-
         return stage
 
 
@@ -370,7 +413,7 @@ def config_edit_view():
     """
     restart_needed = any((
         attr in request.form and request.form[attr] != getattr(CONFIG, attr)
-        for attr in ('secret', 'workers')
+        for attr in ('docker_host', 'secret', 'workers')
     ))
     if restart_needed:
         CONFIG.restart_needed = True
