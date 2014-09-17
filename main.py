@@ -251,7 +251,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         except Exception:  # pylint:disable=broad-except
             self.result = 'error'
 
-            # TODO report in log
             self.build_stage_slugs.append('error')  # pylint:disable=no-member
             self.save()
 
