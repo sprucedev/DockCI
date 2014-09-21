@@ -33,7 +33,11 @@
 			$(log_data.split("\n")).each(function(idx, obj_line) {
 				obj = $.parseJSON(obj_line)
 
-				if ('stream' in obj) {
+				if ('errorDetail' in obj) {
+					log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
+					load_badge_el.switchClass('label-success', 'label-danger')
+					load_badge_el.text('Build Error')
+				} else if ('stream' in obj) {
 					log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
 
 				} else if ('id' in obj) {
