@@ -1,8 +1,13 @@
 {% extends "_base.html" %}
 {% block title %}Jobs{% endblock %}
-{% block header %}Jobs{% endblock %}
+{% block header %}
+    Jobs
+    <span class="btn-group pull-right">
+        {{ header_button('plus', '/jobs/new') }}
+    </span>
+{% endblock %}
 {% block content %}
 <table class="table table-striped">
-  {% for job in jobs %}<tr><td><a href="/jobs/{{ job.slug }}">{{ job.name }}</a></tr></td>{% endfor %}
+    {% for job in jobs %}<tr><td><a href="/jobs/{{ job.slug }}">{{ job.name }}</a></tr></td>{% endfor %}
 </table>
 {% endblock %}
