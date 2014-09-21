@@ -89,8 +89,8 @@ class Job(Model):
             return []
 
     slug = None
-    repo = LoadOnAccess()
-    name = LoadOnAccess()
+    repo = LoadOnAccess(default=lambda _: '')
+    name = LoadOnAccess(default=lambda _: '')
     builds = OnAccess(_all_builds)
 
 
@@ -440,7 +440,18 @@ def job_edit_view(slug):
     """
     View to edit a job
     """
-    return render_template('job_edit.html', job=Job(slug))
+    return render_template('job_edit.html', job=Job(slug), edit_operation='edit')
+
+@APP.route('/jobs/new', methods=('GET', 'POST'))
+def job_new_view():
+    """
+    View to make a new job
+    """
+    job = Job()
+    if request.method == 'POST':
+        request_fill(job, ('slug', 'name', 'repo'))
+        return redirect('/jobs/{job_slug}'.format(job_slug=job.slug))
+    return render_template('job_edit.html', job=job, edit_operation='new')
 
 
 @APP.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
@@ -471,6 +482,7 @@ def build_new_view(job_slug):
             return render_template('build_new.html', build=build)
 
         build.save()
+        build.queue()
 
         flash(u"Build queued", 'success')
         return redirect('/jobs/{job_slug}/builds/{build_slug}'.format(

@@ -1,12 +1,33 @@
 {% extends "_base.html" %}
-{% block title %}{{ job.name }} - Edit{% endblock %}
-{% block header %}{{ job.name }} <small>Edit</small>{% endblock %}
+
+{% block title -%}
+  {% if edit_operation == 'new' %}
+    New Job
+  {% else %}
+    {{ job.name }} - {{ edit_operation }}
+  {% endif %}
+{%- endblock %}
+{% block header -%}
+  {% if edit_operation == 'new' %}
+    New Job
+  {% else %}
+    {{ job.name }} <small>{{ edit_operation }}</small>
+  {% endif %}
+{%- endblock %}
 {% block content %}
-<form class="form-horizontal" role="form" action="/jobs/{{ job.slug }}" method="POST">
+{% if edit_operation == 'new' -%}
+  <form class="form-horizontal" role="form" action="/jobs/new" method="POST">
+{%- else -%}
+  <form class="form-horizontal" role="form" action="/jobs/{{ job.slug }}" method="POST">
+{%- endif %}
   <div class="form-group">
-    <label class="col-sm-2 control-label">Slug</label>
+    <label for="inputSlug" class="col-sm-2 control-label">Slug</label>
     <div class="col-sm-10">
-      <p class="form-control-static">{{ job.slug }}</p>
+      {% if edit_operation == 'new' -%}
+        <input class="form-control" id="inputSlug" name="slug" placeholder="Slug" value="{{ job.slug or '' }}">
+      {%- else -%}
+        <p class="form-control-static">{{ job.slug }}</p>
+      {% endif %}
     </div>
   </div>
   <div class="form-group">
