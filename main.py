@@ -440,7 +440,10 @@ def job_edit_view(slug):
     """
     View to edit a job
     """
-    return render_template('job_edit.html', job=Job(slug), edit_operation='edit')
+    return render_template('job_edit.html',
+                           job=Job(slug),
+                           edit_operation='edit')
+
 
 @APP.route('/jobs/new', methods=('GET', 'POST'))
 def job_new_view():
