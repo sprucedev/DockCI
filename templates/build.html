@@ -31,39 +31,43 @@
 			load_badge_el.switchClass('label-primary', 'label-success', 1000)
 			load_badge_el.text("Loaded")
 			$(log_data.split("\n")).each(function(idx, obj_line) {
-				obj = $.parseJSON(obj_line)
-
-				if ('errorDetail' in obj) {
-					log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
-					load_badge_el.switchClass('label-success', 'label-danger')
-					load_badge_el.text('Build Error')
-				} else if ('stream' in obj) {
-					log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
-
-				} else if ('id' in obj) {
-					id_row = log_el.children('.docker-log-' + obj['id'])
-					if (id_row.length < 1) {
-						id_row = $('<div class="docker-log-' + obj['id'] + '"></div>')
-						log_el.append(id_row)
-					}
-
-					message_comps = [obj['id']]
-					if ('status' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['status'])) }
-					if ('progress' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['progress'])) }
-
-					id_row.html(message_comps.join(' | '))
-
-				} else if ('status' in obj) {
-					log_el.append('<div class="docker-log-status">' + ansi_up.ansi_to_html(obj['status']) + '</div>')
-
-				} else {
-					log_el.append('<div style="color: red">' + obj_line + '</div>')
-				}
+				handle_docker_line(obj_line, load_badge_el, log_el)
 			})
 		}
 	}
 	LOG_LOAD_JOB = null
 	LOG_LOAD_LIST = []
+	function handle_docker_line(obj_line, load_badge_el, log_el) {
+		if (obj_line.trim() == '') { return }
+		obj = $.parseJSON(obj_line)
+
+		if ('errorDetail' in obj) {
+			log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
+			load_badge_el.switchClass('label-success', 'label-danger')
+			load_badge_el.text('Build Error')
+		} else if ('stream' in obj) {
+			log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
+
+		} else if ('id' in obj) {
+			id_row = log_el.children('.docker-log-' + obj['id'])
+			if (id_row.length < 1) {
+				id_row = $('<div class="docker-log-' + obj['id'] + '"></div>')
+				log_el.append(id_row)
+			}
+
+			message_comps = [obj['id']]
+			if ('status' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['status'])) }
+			if ('progress' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['progress'])) }
+
+			id_row.html(message_comps.join(' | '))
+
+		} else if ('status' in obj) {
+			log_el.append('<div class="docker-log-status">' + ansi_up.ansi_to_html(obj['status']) + '</div>')
+
+		} else {
+			log_el.append('<div style="color: red">' + obj_line + '</div>')
+		}
+	}
 	function try_next_log_load_job() {
 		if (LOG_LOAD_JOB === null && LOG_LOAD_LIST.length > 0) {
 			LOG_LOAD_JOB = LOG_LOAD_LIST.shift()
