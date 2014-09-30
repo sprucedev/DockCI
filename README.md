@@ -1,6 +1,7 @@
+[![Build Status](https://travis-ci.org/RickyCook/DockCI.svg)](https://travis-ci.org/RickyCook/DockCI)[![Requirements Status](https://requires.io/github/RickyCook/DockCI/requirements.svg?branch=master)](https://requires.io/github/RickyCook/DockCI/requirements/?branch=master)
+
 DockCI
 ======
-
 DOCKCI IS STILL VERY ALPHA!!! It's certainly not feature complete, nor even the
 MVP (and really really hastily written). At the moment, it's less MVP and more
 TUVP: Totally un-viable product.
