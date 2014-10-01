@@ -182,6 +182,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     repo = LoadOnAccess(generate=lambda self: self.job.repo)
     commit = LoadOnAccess(default=lambda _: None)
     version = LoadOnAccess(default=lambda _: None)
+    image_id = LoadOnAccess(default=lambda _: None)
     build_stage_slugs = LoadOnAccess(default=lambda _: [])
     build_stages = OnAccess(lambda self: [
         BuildStage(slug=slug, build=self)
@@ -337,7 +338,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             if line:
                 line_data = json.loads(line)
-                if 'Successfully built ' in line_data.get('stream', ()):
+                re_match = re.search(r'Successfully built ([0-9a-f]+)',
+                                     line_data.get('stream', ''))
+                if re_match:
+                    self.image_id = re_match.group(1)
                     return True
 
             return False

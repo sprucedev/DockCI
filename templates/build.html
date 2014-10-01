@@ -18,6 +18,10 @@
 		<label class="col-sm-2 control-label">Version</label>
 		<div class="col-sm-10"><p class="form-control-static">{{ build.version }}</p></div>
 	</div>{% endif %}
+	{% if build.image_id %}<div class="form-group">
+		<label class="col-sm-2 control-label">Image ID</label>
+		<div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>
+	</div>{% endif %}
 </div>
 <h2>Build Log</h2>
 <script>
