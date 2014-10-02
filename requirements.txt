@@ -7,7 +7,7 @@ astroid==1.2.1
 docker-py==0.5.0
 gnureadline==6.3.3
 ipdb==0.8
-ipython==2.2.0
+ipython==2.3.0
 itsdangerous==0.24
 logilab-common==0.62.1
 pep8==1.5.7
