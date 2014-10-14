@@ -41,6 +41,16 @@ def request_fill(model_obj, fill_atts, save=True):
                   'success')
 
 
+def _run_build_worker(job_slug, build_slug):
+    """
+    Load and run a build's private run job. Used to trigger builds inside
+    worker threads so that data is pickled correctly
+    """
+    job = Job(job_slug)
+    build = Build(job=job, slug=build_slug)
+    build._run_now()  # pylint:disable=protected-access
+
+
 class InvalidOperationError(Exception):
     """
     Raised when a call is not valid at the current time
@@ -227,7 +237,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        APP.workers.apply_async(self._run_now)
+        APP.workers.apply_async(_run_build_worker, (self.job_slug, self.slug))
 
     def _run_now(self):
         """
