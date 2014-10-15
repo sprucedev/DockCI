@@ -332,20 +332,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Tell the Docker host to build
         """
-        def runnable(handle):
+        def on_done(line):
             """
-            Tell the Docker host to build, streaming its output to file and
-            parsing to see if the container was build Successfully
+            Check the final line for success, and image id
             """
-            # saved stream for debugging
-            # output = open('docker_build_stream', 'r')
-            output = self.docker_client.build(path=workdir, stream=True)
-
-            line = None
-            for line in output:
-                handle.write(bytes(line, 'utf8'))
-                handle.flush()
-
             if line:
                 line_data = json.loads(line)
                 re_match = re.search(r'Successfully built ([0-9a-f]+)',
@@ -356,7 +346,48 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             return False
 
-        return self._stage('docker_build', runnable=runnable).returncode
+        return self._run_docker(
+            'build',
+            # saved stream for debugging
+            # lambda: open('docker_build_stream', 'r'),
+            lambda: self.docker_client.build(path=workdir, stream=True),
+            on_done=on_done,
+        )
+
+    def _run_docker(self,
+                    docker_stage_slug,
+                    docker_command,
+                    on_line=None,
+                    on_done=None):
+        """
+        Wrapper around common Docker command process. Will send output lines to
+        file, and optionally use callbacks to notify on each line, and
+        completion
+        """
+        def runnable(handle):
+            """
+            Perform the Docker command given
+            """
+            output = docker_command()
+
+            line = None
+            for line in output:
+                handle.write(bytes(line, 'utf8'))
+                handle.flush()
+
+                if on_line:
+                    on_line(line)
+
+            if on_done:
+                return on_done(line)
+
+            elif line:
+                return True
+
+            return False
+
+        return self._stage('docker_%s' % docker_stage_slug,
+                           runnable=runnable).returncode
 
     def _stage(self, stage_slug, runnable=None, workdir=None, cmd_args=None):
         """
