@@ -10,4 +10,11 @@ styletest:  # don't install deps
 	pylint --rcfile pylint.conf *.py
 test: styletest
 
-.PHONY: htmldeps pythondeps deps styletest test
+# Container commands
+ci: test
+run:
+	@python3 /code/main.py
+sh:
+	@sh
+
+.PHONY: ci htmldeps pythondeps deps run styletest test
