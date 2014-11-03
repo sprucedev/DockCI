@@ -193,6 +193,8 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     commit = LoadOnAccess(default=lambda _: None)
     version = LoadOnAccess(default=lambda _: None)
     image_id = LoadOnAccess(default=lambda _: None)
+    container_id = LoadOnAccess(default=lambda _: None)
+    exit_code = LoadOnAccess(default=lambda _: None)
     build_stage_slugs = LoadOnAccess(default=lambda _: [])
     build_stages = OnAccess(lambda self: [
         BuildStage(slug=slug, build=self)
@@ -255,6 +257,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 ))
                 if not all(pre_build):
                     self.result = 'error'
+                    return False
+
+                if not self._run_test():
+                    self.result = 'fail'
                     return False
 
             self.result = 'success'
@@ -354,6 +360,41 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             on_done=on_done,
         )
 
+    def _run_test(self):
+        """
+        Tell the Docker host to run the CI command
+        """
+        def start_container():
+            """
+            Create a container instance, attache to its outputs and then start
+            it, returning the output stream
+            """
+            container_details = self.docker_client.create_container(
+                self.image_id, 'ci'
+            )
+            self.container_id = container_details['Id']
+            self.save()
+
+            stream = self.docker_client.attach(self.container_id, stream=True)
+            self.docker_client.start(self.container_id)
+
+            return stream
+
+        def on_done(_):
+            """
+            Check container exit code and return True on 0, or False otherwise
+            """
+            details = self.docker_client.inspect_container(self.container_id)
+            self.exit_code = details['State']['ExitCode']
+            self.save()
+            return self.exit_code == 0
+
+        return self._run_docker(
+            'test',
+            start_container,
+            on_done=on_done,
+        )
+
     def _run_docker(self,
                     docker_stage_slug,
                     docker_command,
@@ -372,7 +413,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             line = None
             for line in output:
-                handle.write(bytes(line, 'utf8'))
+                if isinstance(line, bytes):
+                    handle.write(line)
+                else:
+                    handle.write(line.encode())
+
                 handle.flush()
 
                 if on_line:

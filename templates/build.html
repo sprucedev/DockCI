@@ -22,6 +22,14 @@
 		<label class="col-sm-2 control-label">Image ID</label>
 		<div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>
 	</div>{% endif %}
+	{% if build.container_id %}<div class="form-group">
+		<label class="col-sm-2 control-label">Container ID</label>
+		<div class="col-sm-10"><p class="form-control-static">{{ build.container_id }}</p></div>
+	</div>{% endif %}
+	{% if build.exit_code %}<div class="form-group">
+		<label class="col-sm-2 control-label">Exit Code</label>
+		<div class="col-sm-10"><p class="form-control-static">{{ build.exit_code }}</p></div>
+	</div>{% endif %}
 </div>
 <h2>Build Log</h2>
 <script>
@@ -119,7 +127,7 @@
 {% for stage in build.build_stages %}
 <div><h3>{{ stage.slug }}</h3></div>
 {% set stage_log_class = '' %}
-{%- if stage.slug.startswith('docker_') %}{% set stage_log_class = 'stage-log-docker' %}{% endif %}
+{%- if stage.slug == 'docker_build' %}{% set stage_log_class = 'stage-log-docker' %}{% endif %}
 <pre class="stage-log {{ stage_log_class }}" data-stage-slug="{{ stage.slug }}"><span class="label label-primary pull-right">LOADING</span><div></div></pre>
 {% endfor %}
 <script>
