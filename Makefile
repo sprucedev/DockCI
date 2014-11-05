@@ -13,7 +13,7 @@ test: styletest
 # Container commands
 ci: test
 run:
-	@python3 /code/main.py
+	@python3 /code/main.py 0.0.0.0
 sh:
 	@sh
 

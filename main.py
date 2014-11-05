@@ -7,6 +7,7 @@ import multiprocessing.pool
 import os
 import re
 import subprocess
+import sys
 import tempfile
 
 from datetime import datetime
@@ -622,4 +623,13 @@ def app_setup_extra():
 
 if __name__ == "__main__":
     app_setup_extra()
-    APP.run(debug=True)
+
+    run_kwargs = {
+        'debug': True
+    }
+    if len(sys.argv) > 1:
+        run_kwargs.update({'host': sys.argv[1]})
+    if len(sys.argv) > 2:
+        run_kwargs.update({'port': int(sys.argv[2])})
+
+    APP.run(**run_kwargs)
