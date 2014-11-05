@@ -1,8 +1,8 @@
 htmldeps:
 	npm install
-	node_modules/bower/bin/bower install
+	node_modules/bower/bin/bower --allow-root install
 pythondeps:
-	pip install -r requirements.txt
+	pip3 install -r requirements.txt
 deps: htmldeps pythondeps
 
 styletest:  # don't install deps
