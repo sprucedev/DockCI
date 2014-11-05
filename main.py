@@ -5,12 +5,16 @@ DockCI - CI, but with that all important Docker twist
 import json
 import multiprocessing.pool
 import os
+import os.path
 import re
+import socket
+import struct
 import subprocess
 import sys
 import tempfile
 
 from datetime import datetime
+from ipaddress import ip_address
 from uuid import uuid1, uuid4
 
 import docker
@@ -40,6 +44,21 @@ def request_fill(model_obj, fill_atts, save=True):
             model_obj.save()
             flash(u"%s saved" % model_obj.__class__.__name__.title(),
                   'success')
+
+
+def default_gateway():
+    """
+    Gets the IP address of the default gateway
+    """
+    with open('/proc/net/route') as handle:
+        for line in handle:
+            fields = line.strip().split()
+            if fields[1] != '00000000' or not int(fields[3], 16) & 2:
+                continue
+
+            return ip_address(socket.inet_ntoa(
+                struct.pack("<L", int(fields[2], 16))
+            ))
 
 
 def _run_build_worker(job_slug, build_slug):
@@ -461,9 +480,23 @@ class Config(SingletonModel):
     restart_needed = False
 
     # TODO docker_hosts
-    docker_host = LoadOnAccess(default=lambda _: 'unix:///var/run/docker.sock')
+    docker_host = LoadOnAccess(default=lambda _: Config.default_docker_host())
     secret = LoadOnAccess(generate=lambda _: uuid4().hex)
     workers = LoadOnAccess(default=lambda _: 5)
+
+    @classmethod
+    def default_docker_host(cls):
+        """
+        Get a default value for the docker_host variable. This will work out
+        if DockCI is running in Docker, and try and guess the Docker IP address
+        to use for a TCP connection. Otherwise, defaults to the default
+        unix socket.
+        """
+        docker_files = ('/.dockerenv', '/.dockerinit')
+        if any(os.path.isfile(filename) for filename in docker_files):
+            return "tcp://{ip}:2375".format(ip=default_gateway())
+
+        return "unix:///var/run/docker.sock"
 
 
 def all_jobs():
