@@ -654,7 +654,10 @@ def app_setup_extra():
     APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
 
 
-if __name__ == "__main__":
+def main():
+    """
+    Setup and start the app
+    """
     app_setup_extra()
 
     run_kwargs = {
@@ -666,3 +669,7 @@ if __name__ == "__main__":
         run_kwargs.update({'port': int(sys.argv[2])})
 
     APP.run(**run_kwargs)
+
+
+if __name__ == "__main__":
+    main()
