@@ -26,6 +26,11 @@ does is pull together some ideas and technologies to help us out.
 
 Sounds great, right? And it will be! But it's not ready yet! Soooooo read on ;D
 
+Requirements
+------------
+ - Docker 1.15
+ - Python 3.4 (may work with 3.x, but untested)
+
 Contributing
 ------------
 If you want to help DockCI see the light of day, pull requests are certainly
