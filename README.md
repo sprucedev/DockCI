@@ -1,13 +1,11 @@
 [![Build Status](https://travis-ci.org/RickyCook/DockCI.svg)](https://travis-ci.org/RickyCook/DockCI)[![Requirements Status](https://requires.io/github/RickyCook/DockCI/requirements.svg?branch=master)](https://requires.io/github/RickyCook/DockCI/requirements/?branch=master)
 
-DockCI
-======
+# DockCI
 DOCKCI IS STILL VERY ALPHA!!! It's certainly not feature complete, nor even the
 MVP (and really really hastily written). At the moment, it's less MVP and more
 TUVP: Totally un-viable product.
 
-What is DockCI?
----------------
+## What is DockCI?
 DockCI aims to be one of the missing links in a full Docker CI/CD pipeline.
 Currently, most people are testing and deploying containers via build tools
 like Jenkins and Bamboo, but these tools were not made for your containerized
@@ -26,13 +24,11 @@ does is pull together some ideas and technologies to help us out.
 
 Sounds great, right? And it will be! But it's not ready yet! Soooooo read on ;D
 
-Requirements
-------------
+## Requirements
  - Docker 1.15
  - Python 3.4 (may work with 3.x, but untested)
 
-Contributing
-------------
+## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly
 accepted! You can probably find something that you can work on on the Trello
 project board: https://trello.com/b/zaFPjsli . These are listed in highest to
