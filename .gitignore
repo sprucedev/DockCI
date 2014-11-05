@@ -1,6 +1,11 @@
 bower_components/
 data/
 node_modules/
+__pycache__/
+
+/docker_build_stream
+
+.DS_Store
 
 *.pyc
 *.swp
