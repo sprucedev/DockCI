@@ -213,6 +213,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         for slug
         in self.build_stage_slugs
     ])
+    build_config = OnAccess(lambda self: BuildConfig(self))
 
     @property
     def state(self):
@@ -322,6 +323,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             ),
         ))
         result = all((stage.returncode == 0 for stage in to_run))
+
+        # check for, and load build config
+        build_config_file = os.path.join(workdir, BuildConfig.slug)
+        if os.path.isfile(build_config_file):
+            self.build_config.load(data_file=build_config_file)
+            self.build_config.save()
 
         return result
 
@@ -470,6 +477,30 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         stage.run()
         return stage
 
+
+class BuildConfig(Model):
+    """
+    Build config, loaded from the repo
+    """
+
+    slug = 'dockci.yaml'
+
+    build = OnAccess(lambda self: Build(self.build_slug))
+    build_slug = OnAccess(lambda self: self.build.slug)  # TODO infinite loop
+
+    build_output = LoadOnAccess(default=lambda _: {})
+
+    def __init__(self, build):
+        super(BuildConfig, self).__init__()
+
+        assert build is not None, "Build is given"
+
+        self.build = build
+        self.build_slug = build.slug
+
+    def data_file_path(self):
+        # Our data file path is <build output>/<slug>
+        return self.build.build_output_path() + [BuildConfig.slug]
 
 class Config(SingletonModel):
     """
