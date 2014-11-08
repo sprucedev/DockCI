@@ -135,19 +135,11 @@ class BuildStage(object):
         self.build = build
         self.runnable = runnable
 
-    def data_dir_path(self):
-        """
-        Directory that the stage stores data in
-        """
-        return self.build.data_file_path()[:-1] + [
-            '%s_output' % self.build.slug,
-        ]
-
     def data_file_path(self):
         """
         File that stage output is logged to
         """
-        return self.data_dir_path() + [self.slug]
+        return self.build.build_output_path() + [self.slug]
 
     def run(self):
         """
@@ -157,7 +149,7 @@ class BuildStage(object):
         if self.returncode is not None:
             raise AlreadyRunError(self)
 
-        data_dir_path = os.path.join(*self.data_dir_path())
+        data_dir_path = os.path.join(*self.build.build_output_path())
         data_file_path = os.path.join(*self.data_file_path())
 
         os.makedirs(data_dir_path, exist_ok=True)
@@ -251,6 +243,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         data_file_path = super(Build, self).data_file_path()
         data_file_path.insert(-1, self.job_slug)
         return data_file_path
+
+    def build_output_path(self):
+        """
+        Directory for any build output data
+        """
+        return self.data_file_path()[:-1] + ['%s_output' % self.slug]
 
     def queue(self):
         """
