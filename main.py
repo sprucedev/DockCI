@@ -60,6 +60,17 @@ def default_gateway():
                 struct.pack("<L", int(fields[2], 16))
             ))
 
+def bytes_human_readable(num, suffix='B'):
+    """
+    Gets byte size in human readable format
+    """
+    for unit in ['','K','M','G','T','P','E','Z']:
+        if abs(num) < 1000.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1000.0
+
+    return "%.1f%s%s" % (num, 'Y', suffix)
+
 
 def _run_build_worker(job_slug, build_slug):
     """
@@ -282,7 +293,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     self.result = 'fail'
                     return False
 
-            self.result = 'success'
+                self.result = 'success'
+                self.save()
+
+                # Failing this doesn't indicade build failure
+                # TODO what kind of a failure would this not working be?
+                self._run_fetch_output()
+
             return True
         except Exception:  # pylint:disable=broad-except
             self.result = 'error'
@@ -458,6 +475,46 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         return self._stage('docker_%s' % docker_stage_slug,
                            runnable=runnable).returncode
+
+    def _run_fetch_output(self):
+        """
+        Fetches any output specified in build config
+        """
+        PROGRESS_EVERY = 10 * 1000 * 1000 * 8  # 10 Megibytes
+        def runnable(handle):
+            """
+            Fetch/save the files
+            """
+            mappings = self.build_config.build_output.items()
+            for key, docker_fn in mappings:
+                resp = self.docker_client.copy(self.container_id, docker_fn)
+                if 200 <= resp.status < 300:
+                    output_path = os.path.join(
+                        *self.build_output_path() + ['%s.tar' % key]
+                    )
+                    bytes_written = 0
+                    next_progress = 0
+                    with open(output_path, 'wb') as output_fh:
+                        bytes_written = output_fh.write(resp.data)
+
+                        if bytes_written >= next_progress:
+                            handle.write(".".encode())
+                            next_progress += PROGRESS_EVERY
+
+                    handle.write(
+                        (" DONE! %s total\n" % (
+                            bytes_human_readable(bytes_written)
+                        )).encode(),
+                    )
+
+                else:
+                    handle.write(
+                        ("Couldn't retrieve file. HTTP status %d: %s\n" % (
+                            resp.status_code, resp.reason
+                        )).encode(),
+                    )
+
+        return self._stage('docker_fetch', runnable=runnable).returncode
 
     def _stage(self, stage_slug, runnable=None, workdir=None, cmd_args=None):
         """
