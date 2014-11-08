@@ -60,11 +60,12 @@ def default_gateway():
                 struct.pack("<L", int(fields[2], 16))
             ))
 
+
 def bytes_human_readable(num, suffix='B'):
     """
     Gets byte size in human readable format
     """
-    for unit in ['','K','M','G','T','P','E','Z']:
+    for unit in ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'):
         if abs(num) < 1000.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1000.0
@@ -224,6 +225,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         for slug
         in self.build_stage_slugs
     ])
+    # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
 
     @property
@@ -344,6 +346,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         # check for, and load build config
         build_config_file = os.path.join(workdir, BuildConfig.slug)
         if os.path.isfile(build_config_file):
+            # pylint:disable=no-member
             self.build_config.load(data_file=build_config_file)
             self.build_config.save()
 
@@ -480,11 +483,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Fetches any output specified in build config
         """
-        PROGRESS_EVERY = 10 * 1000 * 1000 * 8  # 10 Megibytes
+        progress_step = 10 * 1000 * 1000 * 8  # 10 Megibytes
+
         def runnable(handle):
             """
             Fetch/save the files
             """
+            # pylint:disable=no-member
             mappings = self.build_config.build_output.items()
             for key, docker_fn in mappings:
                 resp = self.docker_client.copy(self.container_id, docker_fn)
@@ -499,7 +504,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
                         if bytes_written >= next_progress:
                             handle.write(".".encode())
-                            next_progress += PROGRESS_EVERY
+                            next_progress += progress_step
 
                     handle.write(
                         (" DONE! %s total\n" % (
@@ -558,6 +563,7 @@ class BuildConfig(Model):
     def data_file_path(self):
         # Our data file path is <build output>/<slug>
         return self.build.build_output_path() + [BuildConfig.slug]
+
 
 class Config(SingletonModel):
     """
