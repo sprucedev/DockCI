@@ -3,6 +3,7 @@ DockCI - CI, but with that all important Docker twist
 """
 
 import json
+import mimetypes
 import multiprocessing.pool
 import os
 import os.path
@@ -19,7 +20,14 @@ from uuid import uuid1, uuid4
 
 import docker
 
-from flask import flash, Flask, redirect, render_template, request, Response
+from flask import (abort,
+                   flash,
+                   Flask,
+                   redirect,
+                   render_template,
+                   request,
+                   Response,
+                   )
 
 from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
@@ -151,7 +159,7 @@ class BuildStage(object):
         """
         File that stage output is logged to
         """
-        return self.build.build_output_path() + [self.slug]
+        return self.build.build_output_path() + ['%s.log' % self.slug]
 
     def run(self):
         """
@@ -712,30 +720,36 @@ def build_new_view(job_slug):
     return render_template('build_new.html', build=Build(job=job))
 
 
-@APP.route('/jobs/<job_slug>/builds/<build_slug>/stage_logs/<stage_slug>',
+@APP.route('/jobs/<job_slug>/builds/<build_slug>/output/<filename>',
            methods=('GET',))
-def stage_log_view(job_slug, build_slug, stage_slug):
+def build_output_view(job_slug, build_slug, filename):
     """
-    View to display a build
+    View to download some build output
     """
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
-    stage = BuildStage(build=build, slug=stage_slug)
+
+    # TODO possible security issue opending files from user input like this
+    data_file_path = os.path.join(*build.build_output_path() + [filename])
+    if not os.path.isfile(data_file_path):
+        abort(404)
 
     def loader():
         """
         Generator to stream the log file
         """
-        # TODO possible security issue opending files from user input like this
-        data_file_path = os.path.join(*stage.data_file_path())
-        with open(data_file_path, 'r') as handle:
+        with open(data_file_path, 'rb') as handle:
             while True:
                 data = handle.read(1024)
                 yield data
-                if data == '':
+                if len(data) == 0:
                     return
 
-    return Response(loader(), mimetype='text/plain')
+    mimetype, _ = mimetypes.guess_type(filename)
+    if mimetype is None:
+        mimetype = 'application/octet-stream'
+
+    return Response(loader(), mimetype=mimetype)
 
 
 def app_setup_extra():
@@ -744,6 +758,8 @@ def app_setup_extra():
     """
     APP.secret_key = CONFIG.secret
     APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
+
+    mimetypes.add_type('application/x-yaml', 'yaml')
 
 
 def main():

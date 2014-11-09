@@ -135,7 +135,7 @@ $('.stage-log').each(function(idx, el) {
 	stageSlug = el.dataset.stageSlug
 	el = $(el)
 	load_stage_log(
-		'/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/stage_logs/' + stageSlug,
+		'/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
 		el.children('.label').first(),
 		el.children('div').first(),
 		el[0].classList
