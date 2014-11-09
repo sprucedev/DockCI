@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 
+from contextlib import contextmanager
 from datetime import datetime
 from ipaddress import ip_address
 from uuid import uuid1, uuid4
@@ -90,6 +91,21 @@ def _run_build_worker(job_slug, build_slug):
     job = Job(job_slug)
     build = Build(job=job, slug=build_slug)
     build._run_now()  # pylint:disable=protected-access
+
+
+@contextmanager
+def stream_write_status(handle, status, success, fail):
+    """
+    Context manager to write a status, followed by success message, or fail
+    message if yield raises an exception
+    """
+    handle.write(status.encode())
+    try:
+        yield
+        handle.write((" %s\n" % success).encode())
+    except Exception:  # pylint:disable=broad-except
+        handle.write((" %s\n" % fail).encode())
+        raise
 
 
 class InvalidOperationError(Exception):
@@ -336,25 +352,17 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             return True
         except Exception:  # pylint:disable=broad-except
             self.result = 'error'
-
-            self.build_stage_slugs.append('error')  # pylint:disable=no-member
-            self.save()
-
-            import traceback
-            try:
-                BuildStage(
-                    'error',
-                    self,
-                    lambda handle: handle.write(
-                        bytes(traceback.format_exc(), 'utf8')
-                    )
-                ).run()
-            except Exception:  # pylint:disable=broad-except
-                print(traceback.format_exc())
+            self._error_stage('error')
 
             return False
 
         finally:
+            try:
+                self._run_cleanup()
+
+            except Exception:  # pylint:disable=broad-except
+                self._error_stage('cleanup_error')
+
             self.complete_ts = datetime.now()
             self.save()
 
@@ -432,7 +440,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             'build',
             # saved stream for debugging
             # lambda: open('docker_build_stream', 'r'),
-            lambda: self.docker_client.build(path=workdir, stream=True),
+            lambda: self.docker_client.build(path=workdir,
+                                             rm=True,
+                                             stream=True),
             on_done=on_done,
         )
 
@@ -551,6 +561,55 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     )
 
         return self._stage('docker_fetch', runnable=runnable).returncode
+
+    def _run_cleanup(self):
+        """
+        Clean up after the build/test
+        """
+        def cleanup_context(handle, object_type, object_id):
+            """
+            Get a stream_write_status context manager with messages set
+            correctly
+            """
+            return stream_write_status(
+                handle,
+                "Cleaning up %s '%s'..." % (object_type, object_id),
+                "DONE!",
+                "FAILED!",
+            )
+
+        def runnable(handle):
+            """
+            Do the image/container cleanup
+            """
+            if self.container_id:
+                with cleanup_context(handle, 'container', self.container_id):
+                    self.docker_client.remove_container(self.container_id)
+
+            if self.image_id:
+                with cleanup_context(handle, 'image', self.image_id):
+                    self.docker_client.remove_image(self.image_id)
+
+        return self._stage('cleanup', runnable)
+
+    def _error_stage(self, stage_slug):
+        """
+        Create an error stage and add stack trace for it
+        """
+        self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
+        self.save()
+
+        import traceback
+        try:
+            BuildStage(
+                stage_slug,
+                self,
+                lambda handle: handle.write(
+                    bytes(traceback.format_exc(), 'utf8')
+                )
+            ).run()
+        except Exception:  # pylint:disable=broad-except
+            print(traceback.format_exc())
 
     def _stage(self, stage_slug, runnable=None, workdir=None, cmd_args=None):
         """
