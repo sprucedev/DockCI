@@ -5,31 +5,57 @@
 	<span class="pull-right">{{ build_state_glyph(build.state) }}</span>
 {% endblock %}
 {% block content %}
-<div class="form-horizontal">
-	<div class="form-group">
-		<label class="col-sm-2 control-label">Repo</label>
-		<div class="col-sm-10"><p class="form-control-static">{{ build.repo }}</p></div>
+<ul class="nav nav-pills" role="tablist" style="position:absolute; right: 0; z-index: 10">
+	<li role="presentation" class="active"><a href="#build-details" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-list-alt"></i></a></li>
+	<li role="presentation"><a href="#build-output" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-save"></i></a></li>
+</ul>
+<div class="tab-content">
+	<div role="tabpanel" class="tab-pane active form-horizontal" id="build-details">
+		<div class="form-group">
+			<label class="col-sm-2 control-label">Repo</label>
+			<div class="col-sm-10"><p class="form-control-static">{{ build.repo }}</p></div>
+		</div>
+		<div class="form-group">
+			<label class="col-sm-2 control-label">Commit</label>
+			<div class="col-sm-10"><p class="form-control-static">{{ build.commit }}</p></div>
+		</div>
+		{% if build.version %}<div class="form-group">
+			<label class="col-sm-2 control-label">Version</label>
+			<div class="col-sm-10"><p class="form-control-static">{{ build.version }}</p></div>
+		</div>{% endif %}
+		{% if build.image_id %}<div class="form-group">
+			<label class="col-sm-2 control-label">Image ID</label>
+			<div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>
+		</div>{% endif %}
+		{% if build.container_id %}<div class="form-group">
+			<label class="col-sm-2 control-label">Container ID</label>
+			<div class="col-sm-10"><p class="form-control-static">{{ build.container_id }}</p></div>
+		</div>{% endif %}
+		{% if build.exit_code %}<div class="form-group">
+			<label class="col-sm-2 control-label">Exit Code</label>
+			<div class="col-sm-10"><p class="form-control-static">{{ build.exit_code }}</p></div>
+		</div>{% endif %}
 	</div>
-	<div class="form-group">
-		<label class="col-sm-2 control-label">Commit</label>
-		<div class="col-sm-10"><p class="form-control-static">{{ build.commit }}</p></div>
+	<div role="tabpanel" class="tab-pane form-horizontal" id="build-output">
+		<style>
+			.build-output-download:hover {
+				padding-right: 20px;
+			}
+			.build-output-download:hover::after {
+				content: ' - download tar';
+			}
+		</style>
+		{% for name, details in build.build_output_details.items() %}
+			<div class="form-group">
+				<label class="col-sm-2 control-label">{{ name }}</label>
+				<div class="col-sm-10"><p class="form-control-static">
+					<a href="{{ details.link }}" class="build-output-download">{{ details.size }}</a>
+				</p></div>
+			</div>
+		{% else %}
+			<div class="alert alert-info">No items!</div>
+		{% endfor %}
 	</div>
-	{% if build.version %}<div class="form-group">
-		<label class="col-sm-2 control-label">Version</label>
-		<div class="col-sm-10"><p class="form-control-static">{{ build.version }}</p></div>
-	</div>{% endif %}
-	{% if build.image_id %}<div class="form-group">
-		<label class="col-sm-2 control-label">Image ID</label>
-		<div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>
-	</div>{% endif %}
-	{% if build.container_id %}<div class="form-group">
-		<label class="col-sm-2 control-label">Container ID</label>
-		<div class="col-sm-10"><p class="form-control-static">{{ build.container_id }}</p></div>
-	</div>{% endif %}
-	{% if build.exit_code %}<div class="form-group">
-		<label class="col-sm-2 control-label">Exit Code</label>
-		<div class="col-sm-10"><p class="form-control-static">{{ build.exit_code }}</p></div>
-	</div>{% endif %}
 </div>
 <h2>Build Log</h2>
 <script>

@@ -26,6 +26,7 @@
 
   <script src="/static/lib/jquery/jquery.min.js"></script>
   <script src="/static/lib/jquery-ui/jquery-ui.min.js"></script>
+  <script src="/static/lib/bootstrap_js/tab.js"></script>
   <script src="/static/lib/ansi_up/ansi_up.js"></script>
 </head>
 
@@ -43,7 +44,7 @@
       </p>
     </div>
   </div>
-  <div class="container" role="main">
+  <div class="container" role="main" style="position: relative">
     <div class="page-header"><h1>{% block header %}{% endblock%}</h1></div>
     {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
       <ul class="list-group">{% for category, message in messages %}
