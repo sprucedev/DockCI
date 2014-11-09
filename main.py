@@ -524,7 +524,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Fetches any output specified in build config
         """
-        progress_step = 10 * 1000 * 1000 * 8  # 10 Megibytes
 
         def runnable(handle):
             """
@@ -533,19 +532,17 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             # pylint:disable=no-member
             mappings = self.build_config.build_output.items()
             for key, docker_fn in mappings:
+                handle.write(
+                    ("Fetching %s from '%s'..." % (key, docker_fn)).encode()
+                )
                 resp = self.docker_client.copy(self.container_id, docker_fn)
+
                 if 200 <= resp.status < 300:
                     output_path = os.path.join(
                         *self.build_output_path() + ['%s.tar' % key]
                     )
-                    bytes_written = 0
-                    next_progress = 0
                     with open(output_path, 'wb') as output_fh:
                         bytes_written = output_fh.write(resp.data)
-
-                        if bytes_written >= next_progress:
-                            handle.write(".".encode())
-                            next_progress += progress_step
 
                     handle.write(
                         (" DONE! %s total\n" % (
@@ -555,7 +552,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
                 else:
                     handle.write(
-                        ("Couldn't retrieve file. HTTP status %d: %s\n" % (
+                        (" FAIL! HTTP status %d: %s\n" % (
                             resp.status_code, resp.reason
                         )).encode(),
                     )
