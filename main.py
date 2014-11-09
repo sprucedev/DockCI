@@ -282,6 +282,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Details for build output artifacts
         """
+        # pylint:disable=no-member
         output_files = (
             (name, os.path.join(*self.build_output_path() + ['%s.tar' % name]))
             for name in self.build_config.build_output.keys()
@@ -297,7 +298,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             for name, path in output_files
             if os.path.isfile(path)
         }
-
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
