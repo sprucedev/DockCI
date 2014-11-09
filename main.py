@@ -27,6 +27,7 @@ from flask import (abort,
                    render_template,
                    request,
                    Response,
+                   url_for,
                    )
 
 from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
@@ -259,6 +260,28 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             self._docker_client = docker.Client(base_url=CONFIG.docker_host)
 
         return self._docker_client
+
+    @property
+    def build_output_details(self):
+        """
+        Details for build output artifacts
+        """
+        output_files = (
+            (name, os.path.join(*self.build_output_path() + ['%s.tar' % name]))
+            for name in self.build_config.build_output.keys()
+        )
+        return {
+            name: {'size': bytes_human_readable(os.path.getsize(path)),
+                   'link': url_for('build_output_view',
+                                   job_slug=self.job_slug,
+                                   build_slug=self.slug,
+                                   filename='%s.tar' % name,
+                                   ),
+                   }
+            for name, path in output_files
+            if os.path.isfile(path)
+        }
+
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
