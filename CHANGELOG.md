@@ -10,3 +10,4 @@
 - Build the Docker image
 - Run the Docker image with the `ci` command
 - Success/failed/errored/running/queued statuses
+- Build output archive/download
