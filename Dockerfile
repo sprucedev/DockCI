@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     python3 python3-pip
 RUN ln -s $(which nodejs) /usr/bin/node
 
-RUN mkdir -p /code
+RUN mkdir -p /code/data
 WORKDIR /code
 ADD Makefile /code/Makefile
 
