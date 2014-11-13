@@ -180,6 +180,7 @@ class Job(Model):
     slug = None
     repo = LoadOnAccess(default=lambda _: '')
     name = LoadOnAccess(default=lambda _: '')
+    github_secret = LoadOnAccess(default=lambda _: None)
     builds = OnAccess(_all_builds)
 
 
@@ -805,7 +806,11 @@ def build_new_view(job_slug):
         build.repo = job.repo
 
         if 'X-Github-Event' in request.headers:
-            if not is_valid_github('heythere', request):
+            if not job.github_secret:
+                logging.warn("GitHub webhook secret not setup")
+                abort(403)
+
+            if not is_valid_github(job.github_secret, request):
                 logging.warn("Invalid GitHub payload")
                 abort(403)
 
