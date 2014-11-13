@@ -520,7 +520,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             """
             output = docker_command()
 
-            line = None
+            line = ''
             for line in output:
                 if isinstance(line, bytes):
                     handle.write(line)
