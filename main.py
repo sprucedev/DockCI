@@ -756,7 +756,7 @@ def job_view(slug):
     View to display a job
     """
     job = Job(slug)
-    request_fill(job, ('name', 'repo'))
+    request_fill(job, ('name', 'repo', 'github_secret'))
 
     return render_template('job.html', job=job)
 
@@ -805,6 +805,10 @@ def build_new_view(job_slug):
         build = Build(job=job)
         build.repo = job.repo
 
+        build_url = url_for('build_view',
+                            job_slug=job_slug,
+                            build_slug=build.slug)
+
         if 'X-Github-Event' in request.headers:
             if not job.github_secret:
                 logging.warn("GitHub webhook secret not setup")
@@ -823,6 +827,11 @@ def build_new_view(job_slug):
                               request.headers['X-Github-Event'])
                 abort(501)
 
+            build.save()
+            build.queue()
+
+            return build_url, 201
+
         else:
             build.commit = request.form['commit']
 
@@ -830,14 +839,11 @@ def build_new_view(job_slug):
                 flash(u"Invalid git commit hash", 'danger')
                 return render_template('build_new.html', build=build)
 
-        build.save()
-        build.queue()
+            build.save()
+            build.queue()
 
-        flash(u"Build queued", 'success')
-        return redirect('/jobs/{job_slug}/builds/{build_slug}'.format(
-            job_slug=job_slug,
-            build_slug=build.slug,
-        ), 303)
+            flash(u"Build queued", 'success')
+            return redirect(build_url, 303)
 
     return render_template('build_new.html', build=Build(job=job))
 
