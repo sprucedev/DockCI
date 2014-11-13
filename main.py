@@ -2,6 +2,8 @@
 DockCI - CI, but with that all important Docker twist
 """
 
+import hashlib
+import hmac
 import json
 import logging
 import mimetypes
@@ -82,6 +84,25 @@ def bytes_human_readable(num, suffix='B'):
         num /= 1000.0
 
     return "%.1f%s%s" % (num, 'Y', suffix)
+
+
+def is_valid_github(secret, request):
+    """
+    Validates a GitHub hook payload
+    """
+    if 'X-Hub-Signature' not in request.headers:
+        return False
+
+    hash_type, signature = request.headers['X-Hub-Signature'].split('=')
+    if hash_type.lower() != 'sha1':
+        logging.warn("Unknown GitHub hash type: '%s'", hash_type)
+        return False
+
+    computed_signature = hmac.new(secret.encode(),
+                                  request.data,
+                                  hashlib.sha1).hexdigest()
+
+    return signature == computed_signature
 
 
 def _run_build_worker(job_slug, build_slug):
@@ -782,11 +803,27 @@ def build_new_view(job_slug):
     if request.method == 'POST':
         build = Build(job=job)
         build.repo = job.repo
-        build.commit = request.form['commit']
 
-        if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
-            flash(u"Invalid git commit hash", 'danger')
-            return render_template('build_new.html', build=build)
+        if 'X-Github-Event' in request.headers:
+            if not is_valid_github('heythere', request):
+                logging.warn("Invalid GitHub payload")
+                abort(403)
+
+            if request.headers['X-Github-Event'] == 'push':
+                push_data = request.json
+                build.commit = push_data['head_commit']['id']
+
+            else:
+                logging.debug("Unknown GitHub hook '%s'",
+                              request.headers['X-Github-Event'])
+                abort(501)
+
+        else:
+            build.commit = request.form['commit']
+
+            if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
+                flash(u"Invalid git commit hash", 'danger')
+                return render_template('build_new.html', build=build)
 
         build.save()
         build.queue()
