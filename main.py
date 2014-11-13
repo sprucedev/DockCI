@@ -3,6 +3,7 @@ DockCI - CI, but with that all important Docker twist
 """
 
 import json
+import logging
 import mimetypes
 import multiprocessing.pool
 import os
@@ -835,6 +836,9 @@ def app_setup_extra():
     """
     Pre-run app setup
     """
+    logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                        level=logging.DEBUG,
+                        )
     APP.secret_key = CONFIG.secret
     APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
 
