@@ -34,7 +34,7 @@ from flask import (abort,
                    url_for,
                    )
 
-from yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
+from dockci.yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
 
 def is_yaml_file(filename):
@@ -884,9 +884,10 @@ def app_setup_extra():
     """
     Pre-run app setup
     """
-    logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                        level=logging.DEBUG,
-                        )
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.DEBUG,
+    )
     APP.secret_key = CONFIG.secret
     APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
 
