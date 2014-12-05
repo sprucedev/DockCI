@@ -22,14 +22,14 @@ pythondeps:
 deps: htmldeps pythondeps collectstatic
 
 styletest:  # don't install deps
-	pep8 *.py
-	pylint --rcfile pylint.conf *.py
+	pep8 dockci
+	pylint --rcfile pylint.conf dockci
 test: styletest
 
 # Container commands
 ci: test
 run:
-	@python3 /code/main.py 0.0.0.0
+	@python3 /code/dockci/main.py 0.0.0.0
 sh:
 	@sh
 
