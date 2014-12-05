@@ -86,7 +86,7 @@ def bytes_human_readable(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Y', suffix)
 
 
-def is_valid_github(secret, request):
+def is_valid_github(secret):
     """
     Validates a GitHub hook payload
     """
@@ -814,7 +814,7 @@ def build_new_view(job_slug):
                 logging.warn("GitHub webhook secret not setup")
                 abort(403)
 
-            if not is_valid_github(job.github_secret, request):
+            if not is_valid_github(job.github_secret):
                 logging.warn("Invalid GitHub payload")
                 abort(403)
 
