@@ -18,7 +18,8 @@ htmldeps:
 	npm install
 	node_modules/bower/bin/bower --allow-root install
 pythondeps:
-	pip3 install -r requirements.txt
+	virtualenv -p $(shell which python3.4) python_env
+	python_env/bin/pip install -r requirements.txt
 deps: htmldeps pythondeps collectstatic
 
 styletest:  # don't install deps
@@ -29,7 +30,7 @@ test: styletest
 # Container commands
 ci: test
 run:
-	@python3 /code/dockci/main.py 0.0.0.0
+	@python_env/bin/python3 /code/dockci/main.py 0.0.0.0
 sh:
 	@sh
 
