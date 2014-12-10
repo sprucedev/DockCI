@@ -16,7 +16,7 @@ ADD Makefile /code/Makefile
 
 ADD package.json /code/package.json
 ADD bower.json /code/bower.json
-RUN make htmldeps
+RUN make htmldeps collectstatic
 
 ADD requirements.txt /code/requirements.txt
 RUN make pythondeps
