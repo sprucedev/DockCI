@@ -1,154 +1,154 @@
 {% extends "_base.html" %}
 {% block title %}{{ build.job.name }} Build Result{% endblock %}
 {% block header %}
-	<a href="/jobs/{{ build.job.slug }}">{{ build.job.name }}</a> <small>{{ build.create_ts }}</small>
-	<span class="pull-right">{{ build_state_glyph(build.state) }}</span>
+  <a href="/jobs/{{ build.job.slug }}">{{ build.job.name }}</a> <small>{{ build.create_ts }}</small>
+  <span class="pull-right">{{ build_state_glyph(build.state) }}</span>
 {% endblock %}
 {% block content %}
 <ul class="nav nav-pills" role="tablist" style="position:absolute; right: 0; z-index: 10">
-	<li role="presentation" class="active"><a href="#build-details" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-list-alt"></i></a></li>
-	<li role="presentation"><a href="#build-output" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-save"></i></a></li>
+  <li role="presentation" class="active"><a href="#build-details" role="tab" data-toggle="tab"><i class="mdi-action-list"></i></a></li>
+  <li role="presentation"><a href="#build-output" role="tab" data-toggle="tab"><i class="mdi-file-cloud-download"></i></a></li>
 </ul>
 <div class="tab-content">
-	<div role="tabpanel" class="tab-pane active form-horizontal" id="build-details">
-		<div class="form-group">
-			<label class="col-sm-2 control-label">Repo</label>
-			<div class="col-sm-10"><p class="form-control-static">{{ build.repo }}</p></div>
-		</div>
-		<div class="form-group">
-			<label class="col-sm-2 control-label">Commit</label>
-			<div class="col-sm-10"><p class="form-control-static">{{ build.commit }}</p></div>
-		</div>
-		{% if build.version %}<div class="form-group">
-			<label class="col-sm-2 control-label">Version</label>
-			<div class="col-sm-10"><p class="form-control-static">{{ build.version }}</p></div>
-		</div>{% endif %}
-		{% if build.image_id %}<div class="form-group">
-			<label class="col-sm-2 control-label">Image ID</label>
-			<div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>
-		</div>{% endif %}
-		{% if build.container_id %}<div class="form-group">
-			<label class="col-sm-2 control-label">Container ID</label>
-			<div class="col-sm-10"><p class="form-control-static">{{ build.container_id }}</p></div>
-		</div>{% endif %}
-		{% if build.exit_code %}<div class="form-group">
-			<label class="col-sm-2 control-label">Exit Code</label>
-			<div class="col-sm-10"><p class="form-control-static">{{ build.exit_code }}</p></div>
-		</div>{% endif %}
-	</div>
-	<div role="tabpanel" class="tab-pane form-horizontal" id="build-output">
-		<style>
-			.build-output-download:hover {
-				padding-right: 20px;
-			}
-			.build-output-download:hover::after {
-				content: ' - download tar';
-			}
-		</style>
-		{% for name, details in build.build_output_details.items() %}
-			<div class="form-group">
-				<label class="col-sm-2 control-label">{{ name }}</label>
-				<div class="col-sm-10"><p class="form-control-static">
-					<a href="{{ details.link }}" class="build-output-download">{{ details.size }}</a>
-				</p></div>
-			</div>
-		{% else %}
-			<div class="alert alert-info">No items!</div>
-		{% endfor %}
-	</div>
+  <div role="tabpanel" class="tab-pane active form-horizontal" id="build-details">
+    <div class="form-group">
+      <label class="col-sm-2 control-label">Repo</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.repo }}</p></div>
+    </div>
+    <div class="form-group">
+      <label class="col-sm-2 control-label">Commit</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.commit }}</p></div>
+    </div>
+    {% if build.version %}<div class="form-group">
+      <label class="col-sm-2 control-label">Version</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.version }}</p></div>
+    </div>{% endif %}
+    {% if build.image_id %}<div class="form-group">
+      <label class="col-sm-2 control-label">Image ID</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>
+    </div>{% endif %}
+    {% if build.container_id %}<div class="form-group">
+      <label class="col-sm-2 control-label">Container ID</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.container_id }}</p></div>
+    </div>{% endif %}
+    {% if build.exit_code %}<div class="form-group">
+      <label class="col-sm-2 control-label">Exit Code</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.exit_code }}</p></div>
+    </div>{% endif %}
+  </div>
+  <div role="tabpanel" class="tab-pane form-horizontal" id="build-output">
+    <style>
+      .build-output-download:hover {
+        padding-right: 20px;
+      }
+      .build-output-download:hover::after {
+        content: ' - download tar';
+      }
+    </style>
+    {% for name, details in build.build_output_details.items() %}
+      <div class="form-group">
+        <label class="col-sm-2 control-label">{{ name }}</label>
+        <div class="col-sm-10"><p class="form-control-static">
+          <a href="{{ details.link }}" class="build-output-download">{{ details.size }}</a>
+        </p></div>
+      </div>
+    {% else %}
+      <div class="alert alert-info">No items!</div>
+    {% endfor %}
+  </div>
 </div>
 <h2>Build Log</h2>
 <script>
-	STAGE_LOG_HANDLERS = {
-		_default: function(log_data, load_badge_el, log_el) {
-			load_badge_el.switchClass('label-primary', 'label-success', 1000)
-			load_badge_el.text("Loaded")
-			log_el.text(log_data)
-		},
-		docker: function(log_data, load_badge_el, log_el) {
-			load_badge_el.switchClass('label-primary', 'label-success', 1000)
-			load_badge_el.text("Loaded")
-			$(log_data.split("\n")).each(function(idx, obj_line) {
-				handle_docker_line(obj_line, load_badge_el, log_el)
-			})
-		}
-	}
-	LOG_LOAD_JOB = null
-	LOG_LOAD_LIST = []
-	function handle_docker_line(obj_line, load_badge_el, log_el) {
-		if (obj_line.trim() == '') { return }
-		obj = $.parseJSON(obj_line)
+  STAGE_LOG_HANDLERS = {
+    _default: function(log_data, load_badge_el, log_el) {
+      load_badge_el.switchClass('label-primary', 'label-success', 1000)
+      load_badge_el.text("Loaded")
+      log_el.text(log_data)
+    },
+    docker: function(log_data, load_badge_el, log_el) {
+      load_badge_el.switchClass('label-primary', 'label-success', 1000)
+      load_badge_el.text("Loaded")
+      $(log_data.split("\n")).each(function(idx, obj_line) {
+        handle_docker_line(obj_line, load_badge_el, log_el)
+      })
+    }
+  }
+  LOG_LOAD_JOB = null
+  LOG_LOAD_LIST = []
+  function handle_docker_line(obj_line, load_badge_el, log_el) {
+    if (obj_line.trim() == '') { return }
+    obj = $.parseJSON(obj_line)
 
-		if ('errorDetail' in obj) {
-			log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
-			load_badge_el.switchClass('label-success', 'label-danger')
-			load_badge_el.text('Build Error')
-		} else if ('stream' in obj) {
-			log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
+    if ('errorDetail' in obj) {
+      log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
+      load_badge_el.switchClass('label-success', 'label-danger')
+      load_badge_el.text('Build Error')
+    } else if ('stream' in obj) {
+      log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
 
-		} else if ('id' in obj) {
-			id_row = log_el.children('.docker-log-' + obj['id'])
-			if (id_row.length < 1) {
-				id_row = $('<div class="docker-log-' + obj['id'] + '"></div>')
-				log_el.append(id_row)
-			}
+    } else if ('id' in obj) {
+      id_row = log_el.children('.docker-log-' + obj['id'])
+      if (id_row.length < 1) {
+        id_row = $('<div class="docker-log-' + obj['id'] + '"></div>')
+        log_el.append(id_row)
+      }
 
-			message_comps = [obj['id']]
-			if ('status' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['status'])) }
-			if ('progress' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['progress'])) }
+      message_comps = [obj['id']]
+      if ('status' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['status'])) }
+      if ('progress' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['progress'])) }
 
-			id_row.html(message_comps.join(' | '))
+      id_row.html(message_comps.join(' | '))
 
-		} else if ('status' in obj) {
-			log_el.append('<div class="docker-log-status">' + ansi_up.ansi_to_html(obj['status']) + '</div>')
+    } else if ('status' in obj) {
+      log_el.append('<div class="docker-log-status">' + ansi_up.ansi_to_html(obj['status']) + '</div>')
 
-		} else {
-			log_el.append('<div style="color: red">' + obj_line + '</div>')
-		}
-	}
-	function try_next_log_load_job() {
-		if (LOG_LOAD_JOB === null && LOG_LOAD_LIST.length > 0) {
-			LOG_LOAD_JOB = LOG_LOAD_LIST.shift()
-			LOG_LOAD_JOB()
-		}
-	}
-	function handler_name_from_class(cls) {
-		if (cls.slice(0, 10) == 'stage-log-') {
-			return cls.slice(10)
-		} else {
-			return null
-		}
-	}
-	function load_stage_log(url, load_badge_el, log_el, classes) {
-		var handler = STAGE_LOG_HANDLERS['_default']
-		$(classes).each(function(idx, cls) {
-			handler_name = handler_name_from_class(cls)
-			if (handler_name in STAGE_LOG_HANDLERS) {
-				handler = STAGE_LOG_HANDLERS[handler_name]
-			}
-		})
-		var curried_handler = function(data) {
-			handler(data, load_badge_el, log_el)
-		}
+    } else {
+      log_el.append('<div style="color: red">' + obj_line + '</div>')
+    }
+  }
+  function try_next_log_load_job() {
+    if (LOG_LOAD_JOB === null && LOG_LOAD_LIST.length > 0) {
+      LOG_LOAD_JOB = LOG_LOAD_LIST.shift()
+      LOG_LOAD_JOB()
+    }
+  }
+  function handler_name_from_class(cls) {
+    if (cls.slice(0, 10) == 'stage-log-') {
+      return cls.slice(10)
+    } else {
+      return null
+    }
+  }
+  function load_stage_log(url, load_badge_el, log_el, classes) {
+    var handler = STAGE_LOG_HANDLERS['_default']
+    $(classes).each(function(idx, cls) {
+      handler_name = handler_name_from_class(cls)
+      if (handler_name in STAGE_LOG_HANDLERS) {
+        handler = STAGE_LOG_HANDLERS[handler_name]
+      }
+    })
+    var curried_handler = function(data) {
+      handler(data, load_badge_el, log_el)
+    }
 
-		LOG_LOAD_LIST.push(function() {
-			$.get(url).done(
-				curried_handler
-			).fail(function(xhr, errorType, httpErrorText) {
-				load_badge_el.switchClass('label-primary', 'label-danger', 1000)
-				if (httpErrorText === null) {
-					load_badge_el.text(errorType)
-				} else {
-					load_badge_el.text(httpErrorText)
-				}
-			}).always(function() {
-				// Next job
-				LOG_LOAD_JOB = null
-				try_next_log_load_job()
-			})
-		})
-		try_next_log_load_job()
-	}
+    LOG_LOAD_LIST.push(function() {
+      $.get(url).done(
+        curried_handler
+      ).fail(function(xhr, errorType, httpErrorText) {
+        load_badge_el.switchClass('label-primary', 'label-danger', 1000)
+        if (httpErrorText === null) {
+          load_badge_el.text(errorType)
+        } else {
+          load_badge_el.text(httpErrorText)
+        }
+      }).always(function() {
+        // Next job
+        LOG_LOAD_JOB = null
+        try_next_log_load_job()
+      })
+    })
+    try_next_log_load_job()
+  }
 </script>
 {% for stage in build.build_stages %}
 <div><h3>{{ stage.slug }}</h3></div>
@@ -158,14 +158,14 @@
 {% endfor %}
 <script>
 $('.stage-log').each(function(idx, el) {
-	stageSlug = el.dataset.stageSlug
-	el = $(el)
-	load_stage_log(
-		'/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
-		el.children('.label').first(),
-		el.children('div').first(),
-		el[0].classList
-	)
+  stageSlug = el.dataset.stageSlug
+  el = $(el)
+  load_stage_log(
+    '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
+    el.children('.label').first(),
+    el.children('div').first(),
+    el[0].classList
+  )
 })
 </script>
 {% endblock %}
