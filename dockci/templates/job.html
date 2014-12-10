@@ -1,21 +1,21 @@
 {% extends "_base.html" %}
 {% block title %}{{ job.name }}{% endblock %}
 {% block header %}
-	{{ job.name }}
-	<span class="btn-group pull-right">
-		{{ header_button('edit', '/jobs/%s/edit' % job.slug) }}
-		{{ header_button('play-circle', '/jobs/%s/builds/new' % job.slug) }}
-	</span>
+  {{ job.name }}
+  <span class="btn-group pull-right">
+    {{ header_button('editor-mode-edit', '/jobs/%s/edit' % job.slug) }}
+    {{ header_button('av-play-circle-outline', '/jobs/%s/builds/new' % job.slug) }}
+  </span>
 {% endblock %}
 {% block content %}
 
 <table class="table table-striped">
-	<tr><th>Created</th><th>Commit</th><th>State</th></tr>
-	{% for build in job.builds | sort(attribute='create_ts', reverse=True) %}<tr>
-		<td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.create_ts }}</a></td>
-		<td>{{ build.commit }}</td>
-		<td>{{ build_state_glyph(build.state) }}</td>
-	</tr>{% endfor %}
+  <tr><th>Created</th><th>Commit</th><th>State</th></tr>
+  {% for build in job.builds | sort(attribute='create_ts', reverse=True) %}<tr>
+    <td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.create_ts }}</a></td>
+    <td>{{ build.commit }}</td>
+    <td>{{ build_state_glyph(build.state) }}</td>
+  </tr>{% endfor %}
 </table>
 
 {% endblock %}

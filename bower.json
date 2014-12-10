@@ -9,6 +9,7 @@
   "dependencies": {
     "bootstrap": "~3.2.0",
     "jquery-ui": "~1.11.1",
-    "ansi_up": "https://github.com/drudru/ansi_up.git"
+    "ansi_up": "https://github.com/drudru/ansi_up.git",
+    "bootstrap-material-design": "~0.2.1"
   }
 }
