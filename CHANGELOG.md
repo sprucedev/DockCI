@@ -12,3 +12,4 @@
 - Success/failed/errored/running/queued statuses
 - Build output archive/download
 - GitHub push hook
+- Builds save committer/auther info
