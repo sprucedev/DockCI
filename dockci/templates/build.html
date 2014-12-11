@@ -52,8 +52,42 @@
       .build-output-download:hover::after {
         content: ' - download tar';
       }
-      .stage-log .label {
-        transition: all 0.5s;
+      .stage-panel .panel-heading {
+        transition: all 1s;
+      }
+
+      @-moz-keyframes spin {
+        from { -moz-transform: rotate(0deg); }
+        to { -moz-transform: rotate(360deg); }
+      }
+      @-webkit-keyframes spin {
+        from { -webkit-transform: rotate(0deg); }
+        to { -webkit-transform: rotate(360deg); }
+      }
+      @keyframes spin {
+        from { transform:rotate(0deg); }
+        to { transform:rotate(360deg); }
+      }
+      .spin {
+        display: inline-block;
+
+        -webkit-animation-name: spin;
+        -webkit-animation-duration: 1000ms;
+        -webkit-animation-iteration-count: infinite;
+        -webkit-animation-timing-function: linear;
+        -moz-animation-name: spin;
+        -moz-animation-duration: 1000ms;
+        -moz-animation-iteration-count: infinite;
+        -moz-animation-timing-function: linear;
+        -ms-animation-name: spin;
+        -ms-animation-duration: 1000ms;
+        -ms-animation-iteration-count: infinite;
+        -ms-animation-timing-function: linear;
+
+        animation-name: spin;
+        animation-duration: 1000ms;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
       }
     </style>
     {% for name, details in build.build_output_details.items() %}
@@ -71,29 +105,26 @@
 <h2>Build Log</h2>
 <script>
   STAGE_LOG_HANDLERS = {
-    _default: function(log_data, load_badge_el, log_el) {
-      load_badge_el.toggleClass('label-primary label-success')
-      load_badge_el.text("Loaded")
+    _default: function(log_data, panel_el, log_el) {
+      panel_el.toggleClass('panel-info panel-success')
       log_el.text(log_data)
     },
-    docker: function(log_data, load_badge_el, log_el) {
-      load_badge_el.toggleClass('label-primary label-success')
-      load_badge_el.text("Loaded")
+    docker: function(log_data, panel_el, log_el) {
+      panel_el.toggleClass('panel-info panel-success')
       $(log_data.split("\n")).each(function(idx, obj_line) {
-        handle_docker_line(obj_line, load_badge_el, log_el)
+        handle_docker_line(obj_line, panel_el, log_el)
       })
     }
   }
   LOG_LOAD_JOB = null
   LOG_LOAD_LIST = []
-  function handle_docker_line(obj_line, load_badge_el, log_el) {
+  function handle_docker_line(obj_line, panel_el, log_el) {
     if (obj_line.trim() == '') { return }
     obj = $.parseJSON(obj_line)
 
     if ('errorDetail' in obj) {
       log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
-      load_badge_el.toggleClass('label-success label-danger')
-      load_badge_el.text('Build Error')
+      panel_el.toggleClass('panel-success panel-danger')
     } else if ('stream' in obj) {
       log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
 
@@ -130,7 +161,7 @@
       return null
     }
   }
-  function load_stage_log(url, load_badge_el, log_el, classes) {
+  function load_stage_log(url, panel_el, load_badge_el, heading_el, log_el, classes) {
     var handler = STAGE_LOG_HANDLERS['_default']
     $(classes).each(function(idx, cls) {
       handler_name = handler_name_from_class(cls)
@@ -139,22 +170,23 @@
       }
     })
     var curried_handler = function(data) {
-      handler(data, load_badge_el, log_el)
+      handler(data, panel_el, log_el)
     }
 
     LOG_LOAD_LIST.push(function() {
       $.get(url).done(
         curried_handler
       ).fail(function(xhr, errorType, httpErrorText) {
-        load_badge_el.toggleClass('label-primary label-danger')
+        panel_el.toggleClass('panel-info panel-danger')
         if (httpErrorText === null) {
-          load_badge_el.text(errorType)
+          heading_el.text(heading_el.text() + errorType)
         } else {
-          load_badge_el.text(httpErrorText)
+          heading_el.text(heading_el.text() + httpErrorText)
         }
       }).always(function() {
         // Next job
         LOG_LOAD_JOB = null
+        load_badge_el.hide(1000)
         try_next_log_load_job()
       })
     })
@@ -162,20 +194,27 @@
   }
 </script>
 {% for stage in build.build_stages %}
-<div><h3>{{ stage.slug }}</h3></div>
+<div class="stage-panel panel panel-info" data-stage-slug="{{ stage.slug }}">
+  <div class="panel-heading">{{ stage.slug }}<i class="loading mdi-device-data-usage spin pull-right"></i></div>
 {% set stage_log_class = '' %}
 {%- if stage.slug == 'docker_build' %}{% set stage_log_class = 'stage-log-docker' %}{% endif %}
-<pre class="stage-log {{ stage_log_class }}" data-stage-slug="{{ stage.slug }}"><span class="label label-primary pull-right">LOADING</span><div></div></pre>
+    <pre class="panel-body stage-log {{ stage_log_class }}"></pre>
+</div>
 {% endfor %}
 <script>
-$('.stage-log').each(function(idx, el) {
+$('.stage-panel').each(function(idx, el) {
   stageSlug = el.dataset.stageSlug
   el = $(el)
+  stageLog = el.find('.stage-log').first()
+  heading = el.find('.panel-heading').first()
+  loading = el.find('.loading').first()
   load_stage_log(
     '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
-    el.children('.label').first(),
-    el.children('div').first(),
-    el[0].classList
+    el,
+    loading,
+    heading,
+    stageLog,
+    stageLog[0].classList
   )
 })
 </script>
