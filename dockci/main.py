@@ -35,7 +35,7 @@ from flask import (abort,
                    Response,
                    url_for,
                    )
-from flask_mail import Mail
+from flask_mail import Mail, Message
 
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
@@ -114,9 +114,38 @@ def _run_build_worker(job_slug, build_slug):
     Load and run a build's private run job. Used to trigger builds inside
     worker threads so that data is pickled correctly
     """
-    job = Job(job_slug)
-    build = Build(job=job, slug=build_slug)
-    build._run_now()  # pylint:disable=protected-access
+    try:
+        with APP.app_context():
+            job = Job(job_slug)
+            build = Build(job=job, slug=build_slug)
+            build_okay = build._run_now()  # pylint:disable=protected-access
+
+            # Send the failure message
+            if not build_okay:
+                recipients = []
+                if build.git_author_email:
+                    recipients.append('%s <%s>' % (
+                        build.git_author_name,
+                        build.git_author_email
+                    ))
+                if build.git_committer_email:
+                    recipients.append('%s <%s>' % (
+                        build.git_committer_name,
+                        build.git_committer_email
+                    ))
+
+                if recipients:
+                    email = Message(
+                        recipients=recipients,
+                        subject="DockCI - {job_name} {build_result}ed".format(
+                            job_name=job.name,
+                            build_result=build.result,
+                        ),
+                    )
+                    MAIL_QUEUE.put_nowait(email)
+
+    except Exception:  # pylint:disable=broad-except
+        logging.exception("Something went wrong in the build worker")
 
 
 @contextmanager
@@ -1013,7 +1042,7 @@ def init_mail_queue():
                 try:
                     MAIL.send(message)
 
-                except Exception:  # pylint:ignore=broad-except
+                except Exception:  # pylint:disable=broad-except
                     logging.exception("Couldn't send email message")
 
 
@@ -1026,7 +1055,7 @@ def app_setup_extra():
         level=logging.DEBUG,
     )
     APP.secret_key = CONFIG.secret
-    APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
+
     APP.config['MAIL_SERVER'] = CONFIG.mail_server
     APP.config['MAIL_PORT'] = CONFIG.mail_port
     APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls
@@ -1037,6 +1066,9 @@ def app_setup_extra():
 
     MAIL.init_app(APP)
     init_mail_queue()
+
+    # Pool must be started after mail is initialized
+    APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
