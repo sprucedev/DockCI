@@ -52,6 +52,9 @@
       .build-output-download:hover::after {
         content: ' - download tar';
       }
+      .stage-log .label {
+        transition: all 0.5s;
+      }
     </style>
     {% for name, details in build.build_output_details.items() %}
       <div class="form-group">
@@ -69,12 +72,12 @@
 <script>
   STAGE_LOG_HANDLERS = {
     _default: function(log_data, load_badge_el, log_el) {
-      load_badge_el.switchClass('label-primary', 'label-success', 1000)
+      load_badge_el.toggleClass('label-primary label-success')
       load_badge_el.text("Loaded")
       log_el.text(log_data)
     },
     docker: function(log_data, load_badge_el, log_el) {
-      load_badge_el.switchClass('label-primary', 'label-success', 1000)
+      load_badge_el.toggleClass('label-primary label-success')
       load_badge_el.text("Loaded")
       $(log_data.split("\n")).each(function(idx, obj_line) {
         handle_docker_line(obj_line, load_badge_el, log_el)
@@ -89,7 +92,7 @@
 
     if ('errorDetail' in obj) {
       log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
-      load_badge_el.switchClass('label-success', 'label-danger')
+      load_badge_el.toggleClass('label-success label-danger')
       load_badge_el.text('Build Error')
     } else if ('stream' in obj) {
       log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
@@ -143,7 +146,7 @@
       $.get(url).done(
         curried_handler
       ).fail(function(xhr, errorType, httpErrorText) {
-        load_badge_el.switchClass('label-primary', 'label-danger', 1000)
+        load_badge_el.toggleClass('label-primary label-danger')
         if (httpErrorText === null) {
           load_badge_el.text(errorType)
         } else {
