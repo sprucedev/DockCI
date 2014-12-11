@@ -9,22 +9,64 @@
   <div class="alert alert-warning" role="alert">Settings have been changed. An application restart is required</div>
 {%- endif %}
 <form class="form-horizontal" role="form" action="/config" method="POST">
-  <div class="form-group">
-    <label for="inputDockerHost" class="col-sm-2 control-label">Docker host</label>
-    <div class="col-sm-10">
-      <input class="form-control" id="inputDockerHost" name="docker_host" placeholder="Name" value="{{ config.model.docker_host or '' }}">
+  <div class="panel panel-default">
+    <div class="panel-heading">General</div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label for="inputDockerHost" class="col-sm-2 control-label">Docker host</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputDockerHost" name="docker_host" placeholder="Name" value="{{ config.model.docker_host or '' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="inputSecret" class="col-sm-2 control-label">Secret</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputSecret" name="secret" value="{{ config.model.secret or '' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="inputWorkers" class="col-sm-2 control-label">Workers</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputWorkers" name="workers" type="number" value="{{ config.model.workers or '' }}">
+        </div>
+      </div>
     </div>
   </div>
-  <div class="form-group">
-    <label for="inputSecret" class="col-sm-2 control-label">Secret</label>
-    <div class="col-sm-10">
-      <input class="form-control" id="inputSecret" name="secret" value="{{ config.model.secret or '' }}">
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="inputWorkers" class="col-sm-2 control-label">Workers</label>
-    <div class="col-sm-10">
-      <input class="form-control" id="inputWorkers" name="workers" type="number" value="{{ config.model.workers or '' }}">
+  <div class="panel panel-default">
+    <div class="panel-heading">Email</div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label for="inputMailSender" class="col-sm-2 control-label">From address</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputMailSender" name="mail_default_sender" type="email" value="{{ config.model.mail_default_sender or '' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="inputMailURI" class="col-sm-2 control-label">Server host</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputMailURI" name="mail_host_string" value="{{ config.model.mail_host_string or '' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="inputMailUsername" class="col-sm-2 control-label">Username</label>
+        <div class="col-sm-4">
+          <input class="form-control" id="inputMailUsername" name="mail_username" value="{{ config.model.mail_username or '' }}">
+        </div>
+        <label for="inputMailPassword" class="col-sm-2 control-label">Password</label>
+        <div class="col-sm-4">
+          <input class="form-control" id="inputMailPassword" name="mail_password" type="password" placeholder="*****">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="inputMailTLS" class="col-sm-2 control-label">TLS</label>
+        <div class="col-sm-4">
+          <input class="form-control" id="inputMailTLS" name="mail_use_tls" type="checkbox" {{ 'checked' if config.model.mail_use_tls else '' }}>
+        </div>
+        <label for="inputMailSSL" class="col-sm-2 control-label">SSL</label>
+        <div class="col-sm-4">
+          <input class="form-control" id="inputMailSSL" name="mail_use_ssl" type="checkbox" {{ 'checked' if config.model.mail_use_ssl else '' }}>
+        </div>
+      </div>
     </div>
   </div>
   <div class="form-group">
@@ -33,5 +75,6 @@
       <button type="submit" class="btn btn-primary">Save</button>
       <a class="btn btn-default" href="/">Cancel</a>
     </div>
+  </div>
 </form>
 {% endblock %}

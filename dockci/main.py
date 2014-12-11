@@ -20,6 +20,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from ipaddress import ip_address
+from urllib.parse import urlparse
 from uuid import uuid1, uuid4
 
 import docker
@@ -33,6 +34,7 @@ from flask import (abort,
                    Response,
                    url_for,
                    )
+from flask_mail import Mail
 
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
 
@@ -51,7 +53,8 @@ def request_fill(model_obj, fill_atts, save=True):
     """
     if request.method == 'POST':
         for att in fill_atts:
-            setattr(model_obj, att, request.form[att])
+            if att in request.form:
+                setattr(model_obj, att, request.form[att])
 
         if save:
             model_obj.save()
@@ -690,6 +693,38 @@ class Config(SingletonModel):
     secret = LoadOnAccess(generate=lambda _: uuid4().hex)
     workers = LoadOnAccess(default=lambda _: 5)
 
+    mail_server = LoadOnAccess(default=lambda _: "localhost")
+    mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)
+    mail_use_tls = LoadOnAccess(default=lambda _: False, input_transform=bool)
+    mail_use_ssl = LoadOnAccess(default=lambda _: False, input_transform=bool)
+    mail_username = LoadOnAccess(default=lambda _: None)
+    mail_password = LoadOnAccess(default=lambda _: None)
+    mail_default_sender = LoadOnAccess(default=lambda _: \
+                                       "dockci@%s" % socket.gethostname())
+
+    @property
+    def mail_host_string(self):
+        """
+        Get the host/port as a h:p string
+        """
+        return "{host}:{port}".format(host=self.mail_server,
+                                      port=self.mail_port)
+
+    @mail_host_string.setter
+    def mail_host_string(self, value):
+        """
+        Parse a URL string into host/port/user/pass and set the relevant attrs
+        """
+        url = urlparse('smtp://%s' % value)
+        if url.hostname:
+            self.mail_server = url.hostname
+        if url.port:
+            self.mail_port = url.port
+        if url.username:
+            self.mail_username = url.username
+        if url.password:
+            self.mail_password = url.password
+
     @classmethod
     def default_docker_host(cls):
         """
@@ -721,6 +756,7 @@ def all_jobs():
 
 
 APP = Flask(__name__)
+MAIL = Mail()
 CONFIG = Config()
 
 
@@ -740,16 +776,21 @@ def config_edit_view():
     """
     View to edit global config
     """
+    FIELDS = (
+        'docker_host', 'secret', 'workers',
+        'mail_host_string', 'mail_use_tls', 'mail_use_ssl', 'mail_username',
+        'mail_password', 'mail_default_sender'
+    )
     restart_needed = any((
         attr in request.form and request.form[attr] != getattr(CONFIG, attr)
-        for attr in ('docker_host', 'secret', 'workers')
+        for attr in FIELDS
     ))
     if restart_needed:
         CONFIG.restart_needed = True
         flash(u"An application restart is required for some changes to take "
               "effect", 'warning')
 
-    request_fill(CONFIG, ('docker_host', 'secret', 'workers'))
+    request_fill(CONFIG, FIELDS)
 
     return render_template('config_edit.html')
 
@@ -894,6 +935,15 @@ def app_setup_extra():
     )
     APP.secret_key = CONFIG.secret
     APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
+    APP.config['MAIL_SERVER'] = CONFIG.mail_server
+    APP.config['MAIL_PORT'] = CONFIG.mail_port
+    APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls
+    APP.config['MAIL_USE_SSL'] = CONFIG.mail_use_ssl
+    APP.config['MAIL_USERNAME'] = CONFIG.mail_username
+    APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
+    APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
+
+    MAIL.init_app(APP)
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
