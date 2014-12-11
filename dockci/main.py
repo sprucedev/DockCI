@@ -1,3 +1,5 @@
+# pylint:disable=too-many-lines
+# TODO ^^^ this is bad mmkay
 """
 DockCI - CI, but with that all important Docker twist
 """
@@ -7,6 +9,7 @@ import hmac
 import json
 import logging
 import mimetypes
+import multiprocessing
 import multiprocessing.pool
 import os
 import os.path
@@ -20,7 +23,6 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from ipaddress import ip_address
-from multiprocessing import Queue
 from urllib.parse import urlparse
 from uuid import uuid1, uuid4
 
@@ -326,9 +328,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     ])
     git_author_name = LoadOnAccess(default=lambda _: None)
     git_author_email = LoadOnAccess(default=lambda _: None)
-    git_committer_name = LoadOnAccess(default=lambda self: \
+    git_committer_name = LoadOnAccess(default=lambda self:
                                       self.git_author_name)
-    git_committer_email = LoadOnAccess(default=lambda self: \
+    git_committer_email = LoadOnAccess(default=lambda self:
                                        self.git_author_email)
     # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
@@ -474,7 +476,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
 
         def runnable(handle):
+            """
+            Execute git to retrieve info
+            """
             def run_proc(*args):
+                """
+                Run, and wait for a process with default args
+                """
                 proc = subprocess.Popen(args,
                                         stdout=subprocess.PIPE,
                                         stderr=handle,
@@ -496,7 +504,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 proc = run_proc('git', 'show',
                                 '-s',
                                 '--format=format:%s' % format_string,
-                                'HEAD' )
+                                'HEAD')
 
                 largest_returncode = max(largest_returncode, proc.returncode)
                 value = proc.stdout.read().decode().strip()
@@ -802,7 +810,7 @@ class Config(SingletonModel):
     mail_use_ssl = LoadOnAccess(default=lambda _: False, input_transform=bool)
     mail_username = LoadOnAccess(default=lambda _: None)
     mail_password = LoadOnAccess(default=lambda _: None)
-    mail_default_sender = LoadOnAccess(default=lambda _: \
+    mail_default_sender = LoadOnAccess(default=lambda _:
                                        "dockci@%s" % socket.gethostname())
 
     @property
@@ -860,7 +868,7 @@ def all_jobs():
 
 APP = Flask(__name__)
 MAIL = Mail()
-MAIL_QUEUE = Queue()
+MAIL_QUEUE = multiprocessing.Queue()  # pylint:disable=no-member
 CONFIG = Config()
 
 
@@ -880,21 +888,21 @@ def config_edit_view():
     """
     View to edit global config
     """
-    FIELDS = (
+    fields = (
         'docker_host', 'secret', 'workers',
         'mail_host_string', 'mail_use_tls', 'mail_use_ssl', 'mail_username',
         'mail_password', 'mail_default_sender'
     )
     restart_needed = any((
         attr in request.form and request.form[attr] != getattr(CONFIG, attr)
-        for attr in FIELDS
+        for attr in fields
     ))
     if restart_needed:
         CONFIG.restart_needed = True
         flash(u"An application restart is required for some changes to take "
               "effect", 'warning')
 
-    request_fill(CONFIG, FIELDS)
+    request_fill(CONFIG, fields)
 
     return render_template('config_edit.html')
 
