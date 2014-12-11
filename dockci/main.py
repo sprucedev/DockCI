@@ -20,6 +20,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from ipaddress import ip_address
+from multiprocessing import Queue
 from urllib.parse import urlparse
 from uuid import uuid1, uuid4
 
@@ -757,6 +758,7 @@ def all_jobs():
 
 APP = Flask(__name__)
 MAIL = Mail()
+MAIL_QUEUE = Queue()
 CONFIG = Config()
 
 
@@ -925,6 +927,23 @@ def build_output_view(job_slug, build_slug, filename):
     return Response(loader(), mimetype=mimetype)
 
 
+def init_mail_queue():
+    """
+    Start the mail queue process
+    """
+    pid = os.fork()
+    if not pid:  # child process
+        with APP.app_context():
+            logging.info("Email queue initiated")
+            while True:
+                message = MAIL_QUEUE.get()
+                try:
+                    MAIL.send(message)
+
+                except Exception:  # pylint:ignore=broad-except
+                    logging.exception("Couldn't send email message")
+
+
 def app_setup_extra():
     """
     Pre-run app setup
@@ -944,6 +963,7 @@ def app_setup_extra():
     APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
 
     MAIL.init_app(APP)
+    init_mail_queue()
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
