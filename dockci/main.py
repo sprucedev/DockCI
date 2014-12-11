@@ -227,19 +227,37 @@ class BuildStage(object):
         """
         def runnable(handle):
             """
-            Run a process, streaming to the given handle and wait for it to
-            exit before returning it's exit code
-            """
-            # TODO escape args
-            handle.write(bytes(">CWD %s\n" % cwd, 'utf8'))
-            handle.write(bytes(">>>> %s\n" % cmd_args, 'utf8'))
-            proc = subprocess.Popen(cmd_args,
-                                    cwd=cwd,
-                                    stdout=handle,
-                                    stderr=subprocess.STDOUT)
-            proc.wait()
-            return proc.returncode
+            Synchronously run one or more processes, streaming to the given
+            handle, stopping and returning the exit code if it's non-zero.
 
+            Returns 0 if all processes exit 0
+            """
+            def run_one_cmd(cmd_args_single):
+                """
+                Run a process
+                """
+                # TODO escape args
+                handle.write(bytes(">CWD %s\n" % cwd, 'utf8'))
+                handle.write(bytes(">>>> %s\n" % cmd_args_single, 'utf8'))
+                proc = subprocess.Popen(cmd_args_single,
+                                        cwd=cwd,
+                                        stdout=handle,
+                                        stderr=subprocess.STDOUT)
+                proc.wait()
+                return proc.returncode
+
+            if isinstance(cmd_args[0], (tuple, list)):
+                for cmd_args_single in cmd_args:
+                    returncode = run_one_cmd(cmd_args_single)
+                    if returncode != 0:
+                        return returncode
+
+                return 0
+
+            else:
+                return run_one_cmd(cmd_args)
+
+        assert len(cmd_args) > 0, "cmd_args are given"
         return cls(slug=slug, build=build, runnable=runnable)
 
 
@@ -397,17 +415,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Clone and checkout the build
         """
-        to_run = (stage() for stage in (
-            lambda: self._stage(
-                'git_clone', workdir=workdir,
-                cmd_args=['git', 'clone', self.repo, workdir]
-            ),
-            lambda: self._stage(
-                'git_checkout', workdir=workdir,
-                cmd_args=['git', 'checkout', self.commit]
-            ),
-        ))
-        result = all((stage.returncode == 0 for stage in to_run))
+        stage = self._stage(
+            'git_prepare', workdir=workdir,
+            cmd_args=(['git', 'clone', self.repo, workdir],
+                      ['git', 'checkout', self.commit],
+                      )
+        )
+        result = stage.returncode == 0
 
         # check for, and load build config
         build_config_file = os.path.join(workdir, BuildConfig.slug)
