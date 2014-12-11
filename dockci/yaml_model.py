@@ -25,8 +25,10 @@ class OnAccess(object):  # pylint:disable=too-few-public-methods
     var_name = None
     func = None
 
-    def __init__(self, func):
+    def __init__(self, func, input_transform=None, output_transform=None):
         self.func = func
+        self.input_transform = input_transform
+        self.output_transform = output_transform
 
     def property_value(self):
         """
@@ -40,15 +42,23 @@ class OnAccess(object):  # pylint:disable=too-few-public-methods
             """
             # pylint:disable=protected-access
             try:
-                return self_._lazy_vals[self.var_name]
+                value = self_._lazy_vals[self.var_name]
             except KeyError:
                 self_._lazy_vals[self.var_name] = self.func(self_)
-                return self_._lazy_vals[self.var_name]
+                value = self_._lazy_vals[self.var_name]
+
+            if self.output_transform:
+                return self.output_transform(value)
+            else:
+                return value
 
         def setter(self_, value):
             """
             Basic setter to write the value to the cache dict
             """
+            if self.input_transform:
+                value = self.input_transform(value)
+
             # pylint:disable=protected-access
             self_._lazy_vals[self.var_name] = value
 
