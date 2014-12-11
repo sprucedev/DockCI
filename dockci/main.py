@@ -580,6 +580,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                         )).encode(),
                     )
 
+            # Output something on no output
+            if not mappings:
+                handle.write("No output files to fetch".encode())
+
         return self._stage('docker_fetch', runnable=runnable).returncode
 
     def _run_cleanup(self):
