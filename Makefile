@@ -16,7 +16,6 @@ collectstatic: htmldeps
 	cp bower_components/bootstrap-material-design/dist/js/material.min.js dockci/static/lib/js
 	cp bower_components/bootstrap-material-design/dist/js/ripples.min.js dockci/static/lib/js
 	cp bower_components/jquery/dist/jquery.min.js dockci/static/lib/js
-	cp bower_components/jquery-ui/jquery-ui.min.js dockci/static/lib/js
 
 htmldeps:
 	npm install
