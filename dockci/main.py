@@ -295,6 +295,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         for slug
         in self.build_stage_slugs
     ])
+    git_author_name = LoadOnAccess(default=lambda _: None)
+    git_author_email = LoadOnAccess(default=lambda _: None)
+    git_committer_name = LoadOnAccess(default=lambda self: \
+                                      self.git_author_name)
+    git_committer_email = LoadOnAccess(default=lambda self: \
+                                       self.git_author_email)
     # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
 
@@ -376,6 +382,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             with tempfile.TemporaryDirectory() as workdir:
                 pre_build = (stage() for stage in (
                     lambda: self._run_prep_workdir(workdir),
+                    lambda: self._run_git_info(workdir),
                     lambda: self._run_tag_version(workdir),
                     lambda: self._run_build(workdir),
                 ))
@@ -431,6 +438,58 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             self.build_config.save()
 
         return result
+
+    def _run_git_info(self, workdir):
+        """
+        Get info about the current commit from git
+        """
+
+        def runnable(handle):
+            def run_proc(*args):
+                proc = subprocess.Popen(args,
+                                        stdout=subprocess.PIPE,
+                                        stderr=handle,
+                                        cwd=workdir,
+                                        )
+                proc.wait()
+                return proc
+
+            largest_returncode = 0
+            properties_empty = True
+
+            properties = {
+                'Author name': ('git_author_name', '%an'),
+                'Author email': ('git_author_email', '%ae'),
+                'Committer name': ('git_committer_name', '%cn'),
+                'Committer email': ('git_committer_email', '%ce'),
+            }
+            for display_name, (attr_name, format_string) in properties.items():
+                proc = run_proc('git', 'show',
+                                '-s',
+                                '--format=format:%s' % format_string,
+                                'HEAD' )
+
+                largest_returncode = max(largest_returncode, proc.returncode)
+                value = proc.stdout.read().decode().strip()
+
+                if value != '' and proc.returncode == 0:
+                    setattr(self, attr_name, value)
+                    properties_empty = False
+                    handle.write((
+                        "%s is %s\n" % (display_name, value)
+                    ).encode())
+
+            if properties_empty:
+                handle.write("No information about the git commit could be "
+                             "derived\n".encode())
+
+            else:
+                self.save()
+
+            return proc.returncode
+
+        stage = self._stage('git_info', workdir=workdir, runnable=runnable)
+        return stage.returncode == 0
 
     def _run_tag_version(self, workdir):
         """
