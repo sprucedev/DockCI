@@ -27,8 +27,8 @@ pythondeps:
 deps: htmldeps pythondeps collectstatic
 
 styletest:  # don't install deps
-	pep8 dockci
-	pylint --rcfile pylint.conf dockci
+	python_env/bin/pep8 dockci
+	python_env/bin/pylint --rcfile pylint.conf dockci
 test: styletest
 
 # Container commands
