@@ -109,6 +109,10 @@
       panel_el.toggleClass('panel-info panel-success')
       log_el.text(log_data)
     },
+    error: function(log_data, panel_el, log_el) {
+      panel_el.toggleClass('panel-info panel-danger')
+      log_el.text(log_data)
+    },
     docker: function(log_data, panel_el, log_el) {
       panel_el.toggleClass('panel-info panel-success')
       $(log_data.split("\n")).each(function(idx, obj_line) {
@@ -198,6 +202,8 @@
   <div class="panel-heading">{{ stage.slug }}<i class="loading mdi-device-data-usage spin pull-right"></i></div>
 {% set stage_log_class = '' %}
 {%- if stage.slug == 'docker_build' %}{% set stage_log_class = 'stage-log-docker' %}{% endif %}
+{%- if stage.slug == 'error' %}{% set stage_log_class = 'stage-log-error' %}{% endif %}
+{%- if stage.slug == 'docker_test' and build.exit_code not in (0, None) %}{% set stage_log_class = 'stage-log-error' %}{% endif %}
     <pre class="panel-body stage-log {{ stage_log_class }}"></pre>
 </div>
 {% endfor %}
