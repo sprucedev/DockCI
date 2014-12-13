@@ -4,8 +4,6 @@
 DockCI - CI, but with that all important Docker twist
 """
 
-import hashlib
-import hmac
 import json
 import logging
 import mimetypes
@@ -15,14 +13,11 @@ import os
 import os.path
 import re
 import socket
-import struct
 import subprocess
 import sys
 import tempfile
 
-from contextlib import contextmanager
 from datetime import datetime
-from ipaddress import ip_address
 from urllib.parse import urlparse
 from uuid import uuid1, uuid4
 
@@ -39,76 +34,14 @@ from flask import (abort,
                    )
 from flask_mail import Mail, Message
 
+from dockci.util import (bytes_human_readable,
+                         default_gateway,
+                         is_valid_github,
+                         is_yaml_file,
+                         request_fill,
+                         stream_write_status,
+                         )
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
-
-
-def is_yaml_file(filename):
-    """
-    Check if the filename provided points to a file, and ends in .yaml
-    """
-    return os.path.isfile(filename) and filename.endswith('.yaml')
-
-
-def request_fill(model_obj, fill_atts, save=True):
-    """
-    Fill given model attrs from a POST request (and ignore other requests).
-    Will save only if the save flag is True
-    """
-    if request.method == 'POST':
-        for att in fill_atts:
-            if att in request.form:
-                setattr(model_obj, att, request.form[att])
-
-        if save:
-            model_obj.save()
-            flash(u"%s saved" % model_obj.__class__.__name__.title(),
-                  'success')
-
-
-def default_gateway():
-    """
-    Gets the IP address of the default gateway
-    """
-    with open('/proc/net/route') as handle:
-        for line in handle:
-            fields = line.strip().split()
-            if fields[1] != '00000000' or not int(fields[3], 16) & 2:
-                continue
-
-            return ip_address(socket.inet_ntoa(
-                struct.pack("<L", int(fields[2], 16))
-            ))
-
-
-def bytes_human_readable(num, suffix='B'):
-    """
-    Gets byte size in human readable format
-    """
-    for unit in ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'):
-        if abs(num) < 1000.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1000.0
-
-    return "%.1f%s%s" % (num, 'Y', suffix)
-
-
-def is_valid_github(secret):
-    """
-    Validates a GitHub hook payload
-    """
-    if 'X-Hub-Signature' not in request.headers:
-        return False
-
-    hash_type, signature = request.headers['X-Hub-Signature'].split('=')
-    if hash_type.lower() != 'sha1':
-        logging.warn("Unknown GitHub hash type: '%s'", hash_type)
-        return False
-
-    computed_signature = hmac.new(secret.encode(),
-                                  request.data,
-                                  hashlib.sha1).hexdigest()
-
-    return signature == computed_signature
 
 
 def _run_build_worker(job_slug, build_slug):
@@ -148,21 +81,6 @@ def _run_build_worker(job_slug, build_slug):
 
     except Exception:  # pylint:disable=broad-except
         logging.exception("Something went wrong in the build worker")
-
-
-@contextmanager
-def stream_write_status(handle, status, success, fail):
-    """
-    Context manager to write a status, followed by success message, or fail
-    message if yield raises an exception
-    """
-    handle.write(status.encode())
-    try:
-        yield
-        handle.write((" %s\n" % success).encode())
-    except Exception:  # pylint:disable=broad-except
-        handle.write((" %s\n" % fail).encode())
-        raise
 
 
 class InvalidOperationError(Exception):
