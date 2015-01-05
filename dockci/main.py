@@ -1,5 +1,3 @@
-# pylint:disable=too-many-lines
-# TODO ^^^ this is bad mmkay
 """
 DockCI - CI, but with that all important Docker twist
 """
@@ -7,41 +5,36 @@ DockCI - CI, but with that all important Docker twist
 import json
 import logging
 import mimetypes
-import multiprocessing
-import multiprocessing.pool
 import os
 import os.path
 import re
-import socket
 import subprocess
-import sys
 import tempfile
 
 from datetime import datetime
-from urllib.parse import urlparse
-from uuid import uuid1, uuid4
+from uuid import uuid1
 
 import docker
 
 from flask import (abort,
                    flash,
-                   Flask,
                    redirect,
                    render_template,
                    request,
                    Response,
                    url_for,
                    )
-from flask_mail import Mail, Message
+from flask_mail import Message
 
+# TODO fix the cyclic import and reenable pylint check for cyclic-import
+from dockci.server import APP, MAIL, MAIL_QUEUE, CONFIG
 from dockci.util import (bytes_human_readable,
-                         default_gateway,
                          is_valid_github,
                          is_yaml_file,
                          request_fill,
                          stream_write_status,
                          )
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess, SingletonModel
+from dockci.yaml_model import LoadOnAccess, Model, OnAccess
 
 
 def _run_build_worker(job_slug, build_slug):
@@ -711,64 +704,6 @@ class BuildConfig(Model):
         return self.build.build_output_path() + [BuildConfig.slug]
 
 
-class Config(SingletonModel):
-    """
-    Global application configuration
-    """
-    restart_needed = False
-
-    # TODO docker_hosts
-    docker_host = LoadOnAccess(default=lambda _: Config.default_docker_host())
-    secret = LoadOnAccess(generate=lambda _: uuid4().hex)
-    workers = LoadOnAccess(default=lambda _: 5)
-
-    mail_server = LoadOnAccess(default=lambda _: "localhost")
-    mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)
-    mail_use_tls = LoadOnAccess(default=lambda _: False, input_transform=bool)
-    mail_use_ssl = LoadOnAccess(default=lambda _: False, input_transform=bool)
-    mail_username = LoadOnAccess(default=lambda _: None)
-    mail_password = LoadOnAccess(default=lambda _: None)
-    mail_default_sender = LoadOnAccess(default=lambda _:
-                                       "dockci@%s" % socket.gethostname())
-
-    @property
-    def mail_host_string(self):
-        """
-        Get the host/port as a h:p string
-        """
-        return "{host}:{port}".format(host=self.mail_server,
-                                      port=self.mail_port)
-
-    @mail_host_string.setter
-    def mail_host_string(self, value):
-        """
-        Parse a URL string into host/port/user/pass and set the relevant attrs
-        """
-        url = urlparse('smtp://%s' % value)
-        if url.hostname:
-            self.mail_server = url.hostname
-        if url.port:
-            self.mail_port = url.port
-        if url.username:
-            self.mail_username = url.username
-        if url.password:
-            self.mail_password = url.password
-
-    @classmethod
-    def default_docker_host(cls):
-        """
-        Get a default value for the docker_host variable. This will work out
-        if DockCI is running in Docker, and try and guess the Docker IP address
-        to use for a TCP connection. Otherwise, defaults to the default
-        unix socket.
-        """
-        docker_files = ('/.dockerenv', '/.dockerinit')
-        if any(os.path.isfile(filename) for filename in docker_files):
-            return "tcp://{ip}:2375".format(ip=default_gateway())
-
-        return "unix:///var/run/docker.sock"
-
-
 def all_jobs():
     """
     Get the list of jobs
@@ -782,15 +717,6 @@ def all_jobs():
 
     except FileNotFoundError:
         return
-
-
-APP = Flask(__name__)
-MAIL = Mail()
-MAIL_QUEUE = multiprocessing.Queue()  # pylint:disable=no-member
-CONFIG = Config()
-
-
-APP.config.model = CONFIG  # For templates
 
 
 @APP.route('/')
@@ -970,51 +896,3 @@ def init_mail_queue():
 
                 except Exception:  # pylint:disable=broad-except
                     logging.exception("Couldn't send email message")
-
-
-def app_setup_extra():
-    """
-    Pre-run app setup
-    """
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.DEBUG,
-    )
-    APP.secret_key = CONFIG.secret
-
-    APP.config['MAIL_SERVER'] = CONFIG.mail_server
-    APP.config['MAIL_PORT'] = CONFIG.mail_port
-    APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls
-    APP.config['MAIL_USE_SSL'] = CONFIG.mail_use_ssl
-    APP.config['MAIL_USERNAME'] = CONFIG.mail_username
-    APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
-    APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
-
-    MAIL.init_app(APP)
-    init_mail_queue()
-
-    # Pool must be started after mail is initialized
-    APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
-
-    mimetypes.add_type('application/x-yaml', 'yaml')
-
-
-def main():
-    """
-    Setup and start the app
-    """
-    app_setup_extra()
-
-    run_kwargs = {
-        'debug': True
-    }
-    if len(sys.argv) > 1:
-        run_kwargs.update({'host': sys.argv[1]})
-    if len(sys.argv) > 2:
-        run_kwargs.update({'port': int(sys.argv[2])})
-
-    APP.run(**run_kwargs)
-
-
-if __name__ == "__main__":
-    main()
