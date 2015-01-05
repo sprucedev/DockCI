@@ -18,6 +18,7 @@ import docker
 from flask import url_for
 from flask_mail import Message
 
+from dockci.exceptions import AlreadyRunError
 # TODO fix the cyclic import and reenable pylint check for cyclic-import
 from dockci.server import APP, MAIL, MAIL_QUEUE, CONFIG
 from dockci.util import (bytes_human_readable,
@@ -64,25 +65,6 @@ def _run_build_worker(job_slug, build_slug):
 
     except Exception:  # pylint:disable=broad-except
         logging.exception("Something went wrong in the build worker")
-
-
-class InvalidOperationError(Exception):
-    """
-    Raised when a call is not valid at the current time
-    """
-    pass
-
-
-class AlreadyRunError(InvalidOperationError):
-    """
-    Raised when a build or stage is attempted to be run that has already been
-    started/completed
-    """
-    runnable = None
-
-    def __init__(self, runnable):
-        super(AlreadyRunError, self).__init__()
-        self.runnable = runnable
 
 
 class Job(Model):
