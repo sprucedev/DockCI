@@ -24,7 +24,7 @@ def all_jobs():
         return
 
 
-class Job(Model):
+class Job(Model):  # pylint:disable=too-few-public-methods
     """
     A job, representing a container to be built
     """
