@@ -12,14 +12,28 @@ from dockci.util import default_gateway
 from dockci.yaml_model import LoadOnAccess, SingletonModel
 
 
-class Config(SingletonModel):
+def default_docker_host():
+    """
+    Get a default value for the docker_host variable. This will work out
+    if DockCI is running in Docker, and try and guess the Docker IP address
+    to use for a TCP connection. Otherwise, defaults to the default
+    unix socket.
+    """
+    docker_files = ('/.dockerenv', '/.dockerinit')
+    if any(os.path.isfile(filename) for filename in docker_files):
+        return "tcp://{ip}:2375".format(ip=default_gateway())
+
+    return "unix:///var/run/docker.sock"
+
+
+class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     """
     Global application configuration
     """
     restart_needed = False
 
     # TODO docker_hosts
-    docker_host = LoadOnAccess(default=lambda _: Config.default_docker_host())
+    docker_host = LoadOnAccess(default=lambda _: default_docker_host())
     secret = LoadOnAccess(generate=lambda _: uuid4().hex)
     workers = LoadOnAccess(default=lambda _: 5)
 
@@ -54,17 +68,3 @@ class Config(SingletonModel):
             self.mail_username = url.username
         if url.password:
             self.mail_password = url.password
-
-    @classmethod
-    def default_docker_host(cls):
-        """
-        Get a default value for the docker_host variable. This will work out
-        if DockCI is running in Docker, and try and guess the Docker IP address
-        to use for a TCP connection. Otherwise, defaults to the default
-        unix socket.
-        """
-        docker_files = ('/.dockerenv', '/.dockerinit')
-        if any(os.path.isfile(filename) for filename in docker_files):
-            return "tcp://{ip}:2375".format(ip=default_gateway())
-
-        return "unix:///var/run/docker.sock"

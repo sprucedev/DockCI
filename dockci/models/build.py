@@ -575,7 +575,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         return stage
 
 
-class BuildConfig(Model):
+class BuildConfig(Model):  # pylint:disable=too-few-public-methods
     """
     Build config, loaded from the repo
     """
