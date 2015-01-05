@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+import logging
+
+from argparse import ArgumentParser
+
+import dockci.server
+
+PARSER = ArgumentParser(description="CI, but with that all important Docker twist")
+PARSER.add_argument("--host",
+                    help="Interface to listen on")
+PARSER.add_argument("--port", "-p", type=int,
+                    help="Port to listen on")
+
+PARSER.add_argument("--debug", default=False, action='store_true',
+                    help="Turn debug mode on")
+
+def main():
+    args = PARSER.parse_args()
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.INFO,
+    )
+    dockci.server.run(args.__dict__)
+
+if __name__ == '__main__':
+    main()
