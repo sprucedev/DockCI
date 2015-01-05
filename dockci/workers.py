@@ -7,7 +7,8 @@ import os
 
 from flask_mail import Message
 
-from dockci.main import Build, Job
+from dockci.models.build import Build
+from dockci.models.job import Job
 from dockci.server import APP, MAIL
 
 

@@ -17,48 +17,11 @@ import docker
 from flask import url_for
 
 from dockci.exceptions import AlreadyRunError
+from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
 from dockci.server import APP, CONFIG
-from dockci.util import (bytes_human_readable,
-                         is_yaml_file,
-                         stream_write_status,
-                         )
+from dockci.util import bytes_human_readable, stream_write_status
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
-
-
-class Job(Model):
-    """
-    A job, representing a container to be built
-    """
-    def __init__(self, slug=None):
-        super(Job, self).__init__()
-        self.slug = slug
-
-    def _all_builds(self):
-        """
-        Get all the builds associated with this job
-        """
-        try:
-            my_data_dir_path = Build.data_dir_path()
-            my_data_dir_path.append(self.slug)
-            builds = []
-
-            for filename in os.listdir(os.path.join(*my_data_dir_path)):
-                full_path = Build.data_dir_path() + [self.slug, filename]
-                if is_yaml_file(os.path.join(*full_path)):
-                    builds.append(Build(job=self,
-                                        slug=filename[:-5]))
-
-            return builds
-
-        except FileNotFoundError:
-            return []
-
-    slug = None
-    repo = LoadOnAccess(default=lambda _: '')
-    name = LoadOnAccess(default=lambda _: '')
-    github_secret = LoadOnAccess(default=lambda _: None)
-    builds = OnAccess(_all_builds)
 
 
 class BuildStage(object):
@@ -635,18 +598,3 @@ class BuildConfig(Model):
     def data_file_path(self):
         # Our data file path is <build output>/<slug>
         return self.build.build_output_path() + [BuildConfig.slug]
-
-
-def all_jobs():
-    """
-    Get the list of jobs
-    """
-    try:
-        for filename in os.listdir(os.path.join(*Job.data_dir_path())):
-            full_path = Job.data_dir_path() + [filename]
-            if is_yaml_file(os.path.join(*full_path)):
-                job = Job(filename[:-5])
-                yield job
-
-    except FileNotFoundError:
-        return

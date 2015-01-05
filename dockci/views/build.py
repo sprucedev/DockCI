@@ -16,7 +16,8 @@ from flask import (abort,
                    url_for,
                    )
 
-from dockci.main import Build, Job
+from dockci.models.build import Build
+from dockci.models.job import Job
 from dockci.server import APP
 from dockci.util import is_valid_github
 
