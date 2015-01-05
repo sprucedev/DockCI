@@ -4,7 +4,7 @@ Views related to job management
 
 from flask import redirect, render_template, request
 
-from dockci.main import Job
+from dockci.models.job import Job
 from dockci.server import APP
 from dockci.util import request_fill
 

@@ -4,7 +4,7 @@ Core app views
 
 from flask import flash, render_template, request
 
-from dockci.main import all_jobs
+from dockci.models.job import all_jobs
 from dockci.server import APP, CONFIG
 from dockci.util import request_fill
 
