@@ -45,12 +45,24 @@ def app_setup_extra():
     mimetypes.add_type('application/x-yaml', 'yaml')
 
 
+def app_setup_views():
+    """
+    Activate all DockCI views
+    """
+    # pylint:disable=unused-variable
+    import dockci.views.core
+
+    import dockci.views.build
+    import dockci.views.job
+
+
 def run(app_args):
     """
     Setup, and run the DockCI application server, using the args given to
     configure it
     """
     app_setup_extra()
+    app_setup_views()
 
     server_args = {
         key: val

@@ -4,7 +4,6 @@ DockCI - CI, but with that all important Docker twist
 
 import json
 import logging
-import mimetypes
 import os
 import os.path
 import re
@@ -16,22 +15,13 @@ from uuid import uuid1
 
 import docker
 
-from flask import (abort,
-                   flash,
-                   redirect,
-                   render_template,
-                   request,
-                   Response,
-                   url_for,
-                   )
+from flask import url_for
 from flask_mail import Message
 
 # TODO fix the cyclic import and reenable pylint check for cyclic-import
 from dockci.server import APP, MAIL, MAIL_QUEUE, CONFIG
 from dockci.util import (bytes_human_readable,
-                         is_valid_github,
                          is_yaml_file,
-                         request_fill,
                          stream_write_status,
                          )
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
@@ -717,168 +707,6 @@ def all_jobs():
 
     except FileNotFoundError:
         return
-
-
-@APP.route('/')
-def root_view():
-    """
-    View to display the list of all jobs
-    """
-    return render_template('index.html', jobs=list(all_jobs()))
-
-
-@APP.route('/config', methods=('GET', 'POST'))
-def config_edit_view():
-    """
-    View to edit global config
-    """
-    fields = (
-        'docker_host', 'secret', 'workers',
-        'mail_host_string', 'mail_use_tls', 'mail_use_ssl', 'mail_username',
-        'mail_password', 'mail_default_sender'
-    )
-    restart_needed = any((
-        attr in request.form and request.form[attr] != getattr(CONFIG, attr)
-        for attr in fields
-    ))
-    if restart_needed:
-        CONFIG.restart_needed = True
-        flash(u"An application restart is required for some changes to take "
-              "effect", 'warning')
-
-    request_fill(CONFIG, fields)
-
-    return render_template('config_edit.html')
-
-
-@APP.route('/jobs/<slug>', methods=('GET', 'POST'))
-def job_view(slug):
-    """
-    View to display a job
-    """
-    job = Job(slug)
-    request_fill(job, ('name', 'repo', 'github_secret'))
-
-    return render_template('job.html', job=job)
-
-
-@APP.route('/jobs/<slug>/edit', methods=('GET',))
-def job_edit_view(slug):
-    """
-    View to edit a job
-    """
-    return render_template('job_edit.html',
-                           job=Job(slug),
-                           edit_operation='edit')
-
-
-@APP.route('/jobs/new', methods=('GET', 'POST'))
-def job_new_view():
-    """
-    View to make a new job
-    """
-    job = Job()
-    if request.method == 'POST':
-        request_fill(job, ('slug', 'name', 'repo'))
-        return redirect('/jobs/{job_slug}'.format(job_slug=job.slug))
-    return render_template('job_edit.html', job=job, edit_operation='new')
-
-
-@APP.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
-def build_view(job_slug, build_slug):
-    """
-    View to display a build
-    """
-    job = Job(slug=job_slug)
-    build = Build(job=job, slug=build_slug)
-
-    return render_template('build.html', build=build)
-
-
-@APP.route('/jobs/<job_slug>/builds/new', methods=('GET', 'POST'))
-def build_new_view(job_slug):
-    """
-    View to create a new build
-    """
-    job = Job(slug=job_slug)
-
-    if request.method == 'POST':
-        build = Build(job=job)
-        build.repo = job.repo
-
-        build_url = url_for('build_view',
-                            job_slug=job_slug,
-                            build_slug=build.slug)
-
-        if 'X-Github-Event' in request.headers:
-            if not job.github_secret:
-                logging.warn("GitHub webhook secret not setup")
-                abort(403)
-
-            if not is_valid_github(job.github_secret):
-                logging.warn("Invalid GitHub payload")
-                abort(403)
-
-            if request.headers['X-Github-Event'] == 'push':
-                push_data = request.json
-                build.commit = push_data['head_commit']['id']
-
-            else:
-                logging.debug("Unknown GitHub hook '%s'",
-                              request.headers['X-Github-Event'])
-                abort(501)
-
-            build.save()
-            build.queue()
-
-            return build_url, 201
-
-        else:
-            build.commit = request.form['commit']
-
-            if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
-                flash(u"Invalid git commit hash", 'danger')
-                return render_template('build_new.html', build=build)
-
-            build.save()
-            build.queue()
-
-            flash(u"Build queued", 'success')
-            return redirect(build_url, 303)
-
-    return render_template('build_new.html', build=Build(job=job))
-
-
-@APP.route('/jobs/<job_slug>/builds/<build_slug>/output/<filename>',
-           methods=('GET',))
-def build_output_view(job_slug, build_slug, filename):
-    """
-    View to download some build output
-    """
-    job = Job(slug=job_slug)
-    build = Build(job=job, slug=build_slug)
-
-    # TODO possible security issue opending files from user input like this
-    data_file_path = os.path.join(*build.build_output_path() + [filename])
-    if not os.path.isfile(data_file_path):
-        abort(404)
-
-    def loader():
-        """
-        Generator to stream the log file
-        """
-        with open(data_file_path, 'rb') as handle:
-            while True:
-                data = handle.read(1024)
-                yield data
-                if len(data) == 0:
-                    return
-
-    mimetype, _ = mimetypes.guess_type(filename)
-    if mimetype is None:
-        mimetype = 'application/octet-stream'
-
-    return Response(loader(), mimetype=mimetype)
 
 
 def init_mail_queue():
