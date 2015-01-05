@@ -3,7 +3,6 @@ DockCI - CI, but with that all important Docker twist
 """
 
 import json
-import logging
 import os
 import os.path
 import re
@@ -16,55 +15,15 @@ from uuid import uuid1
 import docker
 
 from flask import url_for
-from flask_mail import Message
 
 from dockci.exceptions import AlreadyRunError
-# TODO fix the cyclic import and reenable pylint check for cyclic-import
-from dockci.server import APP, MAIL, MAIL_QUEUE, CONFIG
+# TODO fix and reenable pylint check for cyclic-import
+from dockci.server import APP, CONFIG
 from dockci.util import (bytes_human_readable,
                          is_yaml_file,
                          stream_write_status,
                          )
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
-
-
-def _run_build_worker(job_slug, build_slug):
-    """
-    Load and run a build's private run job. Used to trigger builds inside
-    worker threads so that data is pickled correctly
-    """
-    try:
-        with APP.app_context():
-            job = Job(job_slug)
-            build = Build(job=job, slug=build_slug)
-            build_okay = build._run_now()  # pylint:disable=protected-access
-
-            # Send the failure message
-            if not build_okay:
-                recipients = []
-                if build.git_author_email:
-                    recipients.append('%s <%s>' % (
-                        build.git_author_name,
-                        build.git_author_email
-                    ))
-                if build.git_committer_email:
-                    recipients.append('%s <%s>' % (
-                        build.git_committer_name,
-                        build.git_committer_email
-                    ))
-
-                if recipients:
-                    email = Message(
-                        recipients=recipients,
-                        subject="DockCI - {job_name} {build_result}ed".format(
-                            job_name=job.name,
-                            build_result=build.result,
-                        ),
-                    )
-                    MAIL_QUEUE.put_nowait(email)
-
-    except Exception:  # pylint:disable=broad-except
-        logging.exception("Something went wrong in the build worker")
 
 
 class Job(Model):
@@ -283,7 +242,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        APP.workers.apply_async(_run_build_worker, (self.job_slug, self.slug))
+        from dockci.workers import run_build_worker
+        # TODO fix and reenable pylint check for cyclic-import
+        APP.workers.apply_async(run_build_worker, (self.job_slug, self.slug))
 
     def _run_now(self):
         """
@@ -689,20 +650,3 @@ def all_jobs():
 
     except FileNotFoundError:
         return
-
-
-def init_mail_queue():
-    """
-    Start the mail queue process
-    """
-    pid = os.fork()
-    if not pid:  # child process
-        with APP.app_context():
-            logging.info("Email queue initiated")
-            while True:
-                message = MAIL_QUEUE.get()
-                try:
-                    MAIL.send(message)
-
-                except Exception:  # pylint:disable=broad-except
-                    logging.exception("Couldn't send email message")

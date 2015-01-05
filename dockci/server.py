@@ -14,7 +14,6 @@ from dockci.models.config import Config
 
 APP = Flask(__name__)
 MAIL = Mail()
-MAIL_QUEUE = multiprocessing.Queue()  # pylint:disable=no-member
 CONFIG = Config()
 
 APP.config.model = CONFIG  # For templates
@@ -35,7 +34,7 @@ def app_setup_extra():
     APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
 
     # Import loop if this is imported at head
-    from dockci.main import init_mail_queue
+    from dockci.workers import init_mail_queue
     MAIL.init_app(APP)
     init_mail_queue()
 
