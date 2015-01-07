@@ -4,6 +4,10 @@
   "description": "Docker CI",
   "author": "Ricky Cook",
   "license": "ISC",
+  "repository": {
+    "type" : "git",
+    "url" : "http://github.com/RickyCook/DockCI.git"
+  },
   "dependencies": {
     "bower": "^1.3.9"
   }
