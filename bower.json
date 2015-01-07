@@ -1,11 +1,15 @@
 {
   "name": "dockci",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "authors": [
     "Ricky Cook <rcook@odecee.com.au>"
   ],
   "license": "MIT",
   "private": true,
+  "repository": {
+    "type" : "git",
+    "url" : "http://github.com/RickyCook/DockCI.git"
+  },
   "dependencies": {
     "bootstrap": "~3.2.0",
     "ansi_up": "https://github.com/drudru/ansi_up.git",

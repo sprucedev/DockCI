@@ -1,6 +1,6 @@
 {
   "name": "dockci",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Docker CI",
   "author": "Ricky Cook",
   "license": "ISC",
