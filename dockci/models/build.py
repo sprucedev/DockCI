@@ -222,6 +222,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     lambda: self._run_prep_workdir(workdir),
                     lambda: self._run_git_info(workdir),
                     lambda: self._run_tag_version(workdir),
+                    lambda: self._run_provision(workdir),
                     lambda: self._run_build(workdir),
                 ))
                 if not all(pre_build):
@@ -363,6 +364,47 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         # TODO don't spoof the return; just ignore output elsewhere
         return True  # stage result is irrelevant
+
+    def _run_provision(self, workdir):
+        """
+        Provision the services that are required for this build
+        """
+        def runnable(handle):
+            """
+            Resolve jobs and start services
+            """
+            all_okay = True
+            for job_slug, service_config in self.build_config.services.items():
+                service_job = Job(job_slug)
+                if not service_job.exists():
+                    handle.write((
+                        "No job found matching %s\n" % job_slug
+                    ).encode())
+                    all_okay = False
+                    continue
+
+                service_build = service_job.latest_build(passed=True,
+                                                         versioned=True)
+                if not service_build:
+                    handle.write((
+                        "No successful, versioned build for %s - %s\n" % (
+                            job_slug, service_job.name
+                        )
+                    ).encode())
+                    all_okay = False
+                    continue
+
+                handle.write(("%sStarting service %s - %s %s" % (
+                    "" if all_okay else "NOT ",
+                    job_slug, service_job.name, service_build.version
+                )).encode())
+
+            return all_okay
+
+        return self._stage('docker_provision',
+                           workdir=workdir,
+                           runnable=runnable).returncode
+
 
     def _run_build(self, workdir):
         """
@@ -597,6 +639,7 @@ class BuildConfig(Model):  # pylint:disable=too-few-public-methods
     build_slug = OnAccess(lambda self: self.build.slug)  # TODO infinite loop
 
     build_output = LoadOnAccess(default=lambda _: {})
+    services = LoadOnAccess(default=lambda _: {})
 
     def __init__(self, build):
         super(BuildConfig, self).__init__()
