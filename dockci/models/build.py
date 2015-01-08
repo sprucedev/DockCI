@@ -390,7 +390,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             tag = "%s:%s" % (
                 self.job_slug,
                 self.version,
-                )
+            )
 
         return self._run_docker(
             'build',
