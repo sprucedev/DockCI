@@ -39,7 +39,7 @@ def app_setup_extra():
     init_mail_queue()
 
     # Pool must be started after mail is initialized
-    APP.workers = multiprocessing.pool.Pool(int(CONFIG.workers))
+    APP.workers = multiprocessing.pool.Pool(int(CONFIG.docker_workers))
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
