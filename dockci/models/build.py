@@ -388,7 +388,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         tag = None
         if self.version is not None:
             tag = "%s:%s" % (
-                self.job,
+                self.job_slug,
                 self.version,
                 )
 
