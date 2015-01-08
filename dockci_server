@@ -17,9 +17,10 @@ PARSER.add_argument("--debug", default=False, action='store_true',
 
 def main():
     args = PARSER.parse_args()
+    log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.INFO,
+        level=log_level,
     )
     dockci.server.run(args.__dict__)
 
