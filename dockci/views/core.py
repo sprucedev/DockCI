@@ -23,9 +23,10 @@ def config_edit_view():
     View to edit global config
     """
     fields = (
-        'docker_host', 'secret', 'workers',
-        'mail_host_string', 'mail_use_tls', 'mail_use_ssl', 'mail_username',
-        'mail_password', 'mail_default_sender'
+        'secret',
+        'docker_use_env_vars', 'docker_host', 'docker_workers',
+        'mail_host_string', 'mail_use_tls',
+        'mail_use_ssl', 'mail_username', 'mail_password', 'mail_default_sender'
     )
     restart_needed = any((
         attr in request.form and request.form[attr] != getattr(CONFIG, attr)
@@ -33,8 +34,6 @@ def config_edit_view():
     ))
     if restart_needed:
         CONFIG.restart_needed = True
-        flash(u"An application restart is required for some changes to take "
-              "effect", 'warning')
 
     request_fill(CONFIG, fields)
 
