@@ -359,8 +359,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     return True
 
         except KeyError:
-            # TODO remove spoofed return
-            return True  # stage result is irrelevant
+            pass
+
+        # TODO don't spoof the return; just ignore output elsewhere
+        return True  # stage result is irrelevant
 
     def _run_build(self, workdir):
         """
