@@ -385,11 +385,19 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             return False
 
+        tag = None
+        if self.version is not None:
+            tag = "%s:%s" % (
+                self.job,
+                self.version,
+                )
+
         return self._run_docker(
             'build',
             # saved stream for debugging
             # lambda: open('docker_build_stream', 'r'),
             lambda: self.docker_client.build(path=workdir,
+                                             tag=tag,
                                              rm=True,
                                              stream=True),
             on_done=on_done,
