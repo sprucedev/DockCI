@@ -10,7 +10,7 @@ from flask_mail import Message
 from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP, MAIL
-from dockci.chat import HipChat
+from dockci.notifications import HipChat
 
 
 MAIL_QUEUE = multiprocessing.Queue()  # pylint:disable=no-member
