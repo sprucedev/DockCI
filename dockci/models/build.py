@@ -371,6 +371,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             Check the final line for success, and image id
             """
             if line:
+                if isinstance(line, bytes):
+                    line = line.decode()
+
                 line_data = json.loads(line)
                 re_match = re.search(r'Successfully built ([0-9a-f]+)',
                                      line_data.get('stream', ''))
