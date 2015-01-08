@@ -43,7 +43,10 @@ class Job(Model):  # pylint:disable=too-few-public-methods
             my_data_dir_path.append(self.slug)
             builds = []
 
-            for filename in os.listdir(os.path.join(*my_data_dir_path)):
+            all_files = os.listdir(os.path.join(*my_data_dir_path))
+            all_files.sort()
+
+            for filename in all_files:
                 full_path = Build.data_dir_path() + [self.slug, filename]
                 if is_yaml_file(os.path.join(*full_path)):
                     builds.append(Build(job=self,
@@ -53,6 +56,19 @@ class Job(Model):  # pylint:disable=too-few-public-methods
 
         except FileNotFoundError:
             return []
+
+    def latest_build(self, passed=None, versioned=None):
+        """
+        Find the latest build matching the criteria
+        """
+        for build in self.builds:
+            build_passed = lambda: build.result == 'success'  # lazy load
+            if passed is not None and build_passed() != passed:
+                continue
+            if versioned is not None and build.version is None:
+                continue
+
+            return build
 
     slug = None
     repo = LoadOnAccess(default=lambda _: '')
