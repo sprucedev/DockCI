@@ -160,7 +160,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         Get the cached (or new) Docker Client object being used for this build
         """
         if not self._docker_client:
-            self._docker_client = docker.Client(base_url=CONFIG.docker_host)
+            self._docker_client = docker.Client(base_url=CONFIG.docker_host, version='1.12')
 
         return self._docker_client
 
