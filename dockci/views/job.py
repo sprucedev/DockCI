@@ -15,7 +15,7 @@ def job_view(slug):
     View to display a job
     """
     job = Job(slug)
-    request_fill(job, ('name', 'repo', 'github_secret'))
+    request_fill(job, ('name', 'repo', 'github_secret', 'hipchat_api_token', 'hipchat_room'))
 
     return render_template('job.html', job=job)
 
@@ -37,6 +37,6 @@ def job_new_view():
     """
     job = Job()
     if request.method == 'POST':
-        request_fill(job, ('slug', 'name', 'repo'))
+        request_fill(job, ('slug', 'name', 'repo', 'hipchat_api_token', 'hipchat_room'))
         return redirect('/jobs/{job_slug}'.format(job_slug=job.slug))
     return render_template('job_edit.html', job=job, edit_operation='new')
