@@ -2,7 +2,7 @@
 Core app views
 """
 
-from flask import flash, render_template, request
+from flask import render_template, request
 
 from dockci.models.job import all_jobs
 from dockci.server import APP, CONFIG
