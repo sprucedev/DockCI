@@ -62,6 +62,8 @@ class Job(Model):  # pylint:disable=too-few-public-methods
         Find the latest build matching the criteria
         """
         for build in self.builds:
+            # build_passed is used only in this loop iter
+            # pylint:disable=cell-var-from-loop
             build_passed = lambda: build.result == 'success'  # lazy load
             if passed is not None and build_passed() != passed:
                 continue
