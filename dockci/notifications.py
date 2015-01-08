@@ -1,11 +1,11 @@
-""" Module for chat integration, for DockCI """
+""" Module for notification integration, for DockCI """
 import hypchat
 
 # pylint:disable=too-few-public-methods
 
 
 class HipChat():
-    """ HipChat Class generic """
+    """ HipChat Class """
 
     def __init__(self, apitoken, room):
         self.token = apitoken
