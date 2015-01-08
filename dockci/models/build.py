@@ -13,6 +13,7 @@ from datetime import datetime
 from uuid import uuid1
 
 import docker
+from docker.utils import kwargs_from_env
 
 from flask import url_for
 
@@ -160,7 +161,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         Get the cached (or new) Docker Client object being used for this build
         """
         if not self._docker_client:
-            self._docker_client = docker.Client(base_url=CONFIG.docker_host)
+            if CONFIG.docker_use_env_vars:
+                docker_client_args = kwargs_from_env()
+            else:
+                docker_client_args = {'base_url': CONFIG.docker_host}
+
+            self._docker_client = docker.Client(**docker_client_args)
 
         return self._docker_client
 
