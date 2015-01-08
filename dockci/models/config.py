@@ -33,9 +33,12 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     restart_needed = False
 
     # TODO docker_hosts
-    docker_host = LoadOnAccess(default=lambda _: default_docker_host())
     secret = LoadOnAccess(generate=lambda _: uuid4().hex)
-    workers = LoadOnAccess(default=lambda _: 5)
+
+    docker_use_env_vars = LoadOnAccess(default=lambda _: False,
+                                       input_transform=bool)
+    docker_host = LoadOnAccess(default=lambda _: default_docker_host())
+    docker_workers = LoadOnAccess(default=lambda _: 5)
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")
     mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)
