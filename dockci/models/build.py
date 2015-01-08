@@ -377,6 +377,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             Resolve jobs and start services
             """
             all_okay = True
+            # pylint:disable=no-member
             for job_slug, service_config in self.build_config.services.items():
                 service_job = Job(job_slug)
                 if not service_job.exists():
@@ -432,7 +433,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         return self._stage('docker_provision',
                            workdir=workdir,
                            runnable=runnable).returncode
-
 
     def _run_build(self, workdir):
         """
@@ -497,10 +497,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
                 if 'alias' not in service_info:
                     if isinstance(service_info['config'], dict):
-                            service_info['alias'] = service_info['config'].get(
-                                'alias',
-                                service_info['job_slug']
-                            )
+                        service_info['alias'] = service_info['config'].get(
+                            'alias',
+                            service_info['job_slug']
+                        )
 
                     else:
                         service_info['alias'] = service_info['job_slug']
@@ -641,7 +641,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             if self._provisioned_containers:
                 for service_info in self._provisioned_containers:
-                    with cleanup_context(handle, 'provisioned container', service_info['id']):
+                    ctx = cleanup_context(handle,
+                                          'provisioned container',
+                                          service_info['id'])
+                    with ctx:
                         self.docker_client.remove_container(
                             service_info['id'],
                             force=True,
