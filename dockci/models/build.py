@@ -536,9 +536,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 with cleanup_context(handle, 'container', self.container_id):
                     self.docker_client.remove_container(self.container_id)
 
-            if self.image_id:
-                with cleanup_context(handle, 'image', self.image_id):
-                    self.docker_client.remove_image(self.image_id)
+            # Only clean up image if this is an non-versioned build
+            if self.version is None:
+                if self.image_id:
+                    with cleanup_context(handle, 'image', self.image_id):
+                        self.docker_client.remove_image(self.image_id)
 
         return self._stage('cleanup', runnable)
 
