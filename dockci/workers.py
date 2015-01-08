@@ -10,6 +10,7 @@ from flask_mail import Message
 from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP, MAIL
+from dockci.chat import HipChat
 
 
 MAIL_QUEUE = multiprocessing.Queue()  # pylint:disable=no-member
@@ -66,6 +67,16 @@ def run_build_worker(job_slug, build_slug):
                         ),
                     )
                     MAIL_QUEUE.put_nowait(email)
+
+            # Send a HipChat notification
+            api_token = job.hipchat_api_token
+            hipchat_room = job.hipchat_room
+            hipchat = HipChat(apitoken=api_token, room=hipchat_room)
+            hipchat.message("DockCI - {name} Build {label}: {result}".format(
+                name=job.name,
+                label=build.create_ts,
+                result=build.result,
+            ))
 
     except Exception:  # pylint:disable=broad-except
         logging.exception("Something went wrong in the build worker")
