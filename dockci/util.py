@@ -26,12 +26,13 @@ def request_fill(model_obj, fill_atts, save=True):
     Fill given model attrs from a POST request (and ignore other requests).
     Will save only if the save flag is True
     """
+    print(request.method)
     if request.method == 'POST':
         for att in fill_atts:
             if att in request.form:
                 setattr(model_obj, att, request.form[att])
             else:
-                setattr(model_obj, att, False)
+                setattr(model_obj, att, None)
 
         if save:
             model_obj.save()
