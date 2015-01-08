@@ -30,6 +30,8 @@ def request_fill(model_obj, fill_atts, save=True):
         for att in fill_atts:
             if att in request.form:
                 setattr(model_obj, att, request.form[att])
+            else:
+                setattr(model_obj, att, False)
 
         if save:
             model_obj.save()
