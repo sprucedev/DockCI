@@ -15,6 +15,7 @@ from uuid import uuid1
 import docker
 import docker.errors
 
+from docker.utils import kwargs_from_env
 from flask import url_for
 
 from dockci.exceptions import AlreadyRunError
@@ -163,7 +164,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         Get the cached (or new) Docker Client object being used for this build
         """
         if not self._docker_client:
-            self._docker_client = docker.Client(base_url=CONFIG.docker_host)
+            if CONFIG.docker_use_env_vars:
+                docker_client_args = kwargs_from_env()
+            else:
+                docker_client_args = {'base_url': CONFIG.docker_host}
+
+            self._docker_client = docker.Client(**docker_client_args)
 
         return self._docker_client
 
@@ -455,6 +461,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             return False
 
+        tag = None
+        if self.version is not None:
+            tag = "%s:%s" % (
+                self.job_slug,
+                self.version,
+            )
+
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.version is not None)
 
@@ -463,6 +476,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             # saved stream for debugging
             # lambda: open('docker_build_stream', 'r'),
             lambda: self.docker_client.build(path=workdir,
+                                             tag=tag,
                                              nocache=no_cache,
                                              rm=True,
                                              stream=True),
