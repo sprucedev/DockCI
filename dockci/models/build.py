@@ -13,6 +13,7 @@ from datetime import datetime
 from uuid import uuid1
 
 import docker
+import docker.errors
 
 from flask import url_for
 
@@ -139,6 +140,8 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                                        self.git_author_email)
     # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
+
+    _provisioned_containers = []
 
     @property
     def state(self):
@@ -399,6 +402,31 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     job_slug, service_job.name, service_build.version
                 )).encode())
 
+                try:
+                    service_kwargs = {
+                        key: value for key, value in service_config.items()
+                        if key in ('command', 'environment')
+                    }
+                    service_container = self.docker_client.create_container(
+                        image=service_build.image_id,
+                        **service_kwargs
+                    )
+                    self.docker_client.start(service_container['Id'])
+
+                    # Store the provisioning info
+                    self._provisioned_containers.append({
+                        'job_slug': job_slug,
+                        'config': service_config,
+                        'id': service_container['Id']
+                    })
+                    handle.write("... STARTED!\n".encode())
+
+                except docker.errors.APIError as ex:
+                    handle.write((
+                        "... FAILED!\n    %s" % ex.explanation.decode()
+                    ).encode())
+                    all_okay = False
+
             return all_okay
 
         return self._stage('docker_provision',
@@ -456,8 +484,37 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             self.container_id = container_details['Id']
             self.save()
 
+            def link_tuple(service_info):
+                """
+                Turn our provisioned service info dict into an alias string for
+                Docker
+                """
+                if 'name' not in service_info:
+                    service_info['name'] = \
+                        self.docker_client.inspect_container(
+                            service_info['id']
+                        )['Name'][1:]  # slice to remove the / from start
+
+                if 'alias' not in service_info:
+                    if isinstance(service_info['config'], dict):
+                            service_info['alias'] = service_info['config'].get(
+                                'alias',
+                                service_info['job_slug']
+                            )
+
+                    else:
+                        service_info['alias'] = service_info['job_slug']
+
+                return (service_info['name'], service_info['alias'])
+
             stream = self.docker_client.attach(self.container_id, stream=True)
-            self.docker_client.start(self.container_id)
+            self.docker_client.start(
+                self.container_id,
+                links=[
+                    link_tuple(service_info)
+                    for service_info in self._provisioned_containers
+                ]
+            )
 
             return stream
 
@@ -581,6 +638,14 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             if self.container_id:
                 with cleanup_context(handle, 'container', self.container_id):
                     self.docker_client.remove_container(self.container_id)
+
+            if self._provisioned_containers:
+                for service_info in self._provisioned_containers:
+                    with cleanup_context(handle, 'provisioned container', service_info['id']):
+                        self.docker_client.remove_container(
+                            service_info['id'],
+                            force=True,
+                        )
 
             # Only clean up image if this is an non-versioned build
             if self.version is None:
