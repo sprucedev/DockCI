@@ -16,6 +16,7 @@ import docker
 
 from flask import url_for
 
+from dockci.exceptions import AlreadyBuiltError
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
@@ -391,6 +392,17 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 self.job_slug,
                 self.version,
             )
+
+            for img in self.docker_client.images(
+                name=self.job_slug,
+            ):
+                if tag in img['RepoTags']:
+                    raise AlreadyBuiltError(
+                        'Version %s of %s already built' % (
+                            self.version,
+                            self.job_slug,
+                        )
+                    )
 
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.version is not None)
