@@ -57,6 +57,7 @@ class Job(Model):  # pylint:disable=too-few-public-methods
     slug = None
     repo = LoadOnAccess(default=lambda _: '')
     name = LoadOnAccess(default=lambda _: '')
+    # TODO encrypt decrypt sensitive data etc..
     hipchat_api_token = LoadOnAccess(default=lambda _: '')
     hipchat_room = LoadOnAccess(default=lambda _: '')
     github_secret = LoadOnAccess(default=lambda _: None)

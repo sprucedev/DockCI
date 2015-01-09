@@ -70,7 +70,7 @@
         var attr = $(this).attr('required');
         if (typeof attr == 'string' || attr instanceof String) {
           if ($.trim($(this).val()) == '') {
-            // TODO: replace this with an inline error message, e.g. possibly all
+            // TODO replace this with an inline error message, e.g. possibly all
             // html templates should have a standard field for capturing errors
             alert(this.name + ' cannot be empty');
             valid = false;
