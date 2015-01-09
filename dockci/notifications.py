@@ -18,7 +18,7 @@ class HipChat():
 
     def _create_connection(self):
         """ Initialises a connection to the HipChat server """
-        # TODO: this connection should be cached and handle reconnects, etc..
+        # TODO this connection should be cached and handle reconnects, etc..
         self.chatconn = None
         try:
             # HypChat() doesn't initiate a connection, invoke rooms() to test
