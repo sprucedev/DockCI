@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import logging
 import os
+import re
 import socket
 import struct
 
@@ -99,3 +100,13 @@ def stream_write_status(handle, status, success, fail):
     except Exception:  # pylint:disable=broad-except
         handle.write((" %s\n" % fail).encode())
         raise
+
+
+def is_semantic(version):
+    """
+    Returns True if tag contains a semantic version number prefixed with a
+    lowercase v.  e.g. v1.2.3 returns True
+    """
+    # TODO maybe this could be a configuable regex for different
+    # versioning schemes?  (yyyymmdd for example)
+    return re.match(r'^v\d+\.\d+\.\d+$', version) is not None
