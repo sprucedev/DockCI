@@ -137,7 +137,11 @@
     $.ajax({
       url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
       xhrFields: { onprogress: function(e) {
-          $('.panel-body', buildStageDiv).text(e.target.responseText);
+          responseText = e.target.responseText
+            .replace(/\{\"stream\":\"/g, '')
+            .replace(/\\n\"\}/g, '');
+
+          $('.panel-body', buildStageDiv).text(responseText);
 
           $("html, body").animate({ scrollTop: $(document).height() }, 100);
         }
@@ -148,18 +152,26 @@
     })
   }
 
-  var active_stage = null;
+  var update_current_stage = function(stageSlug) {
+    var buildStageDiv = get_stage_element(stageSlug);
+    buildStageDiv.toggleClass('panel-info panel-success');
+    $('i', buildStageDiv).hide();
+  }
+
+  var active_stage_index = null;
   var build_stages = [];
 
   var load_next_stage = function() {
-    if (active_stage != null) {
-      ++active_stage;
+    if (active_stage_index != null) {
+      update_current_stage(build_stages[active_stage_index])
+
+      ++active_stage_index;
     } else {
-      active_stage = 0;
+      active_stage_index = 0;
     }
 
-    if (active_stage < build_stages.length) {
-      load_stage_log(build_stages[active_stage]);
+    if (active_stage_index < build_stages.length) {
+      load_stage_log(build_stages[active_stage_index]);
     }
   }
 
