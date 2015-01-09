@@ -1,9 +1,7 @@
 [![Build Status](https://travis-ci.org/RickyCook/DockCI.svg)](https://travis-ci.org/RickyCook/DockCI)[![Requirements Status](https://requires.io/github/RickyCook/DockCI/requirements.svg?branch=master)](https://requires.io/github/RickyCook/DockCI/requirements/?branch=master)
 
 # DockCI
-DOCKCI IS STILL VERY ALPHA!!! It's certainly not feature complete, nor even the
-MVP (and really really hastily written). At the moment, it's less MVP and more
-TUVP: Totally un-viable product.
+DockCI is still alpha! It's certainly not feature complete.  It's heading towards MVP.
 
 ## What is DockCI?
 DockCI aims to be one of the missing links in a full Docker CI/CD pipeline.
@@ -55,7 +53,8 @@ git clone https://github.com/RickyCook/DockCI.git
 cd DockCI
 make deps
 source python_env/bin/activate
-./dockci_server --host 0.0.0.0 # use --debug for debugging purposes```
+./dockci_server --host 0.0.0.0 # use --debug for debugging purposes
+```
 
 ## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly
