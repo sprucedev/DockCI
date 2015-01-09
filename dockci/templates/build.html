@@ -139,7 +139,7 @@
       xhrFields: { onprogress: function(e) {
           $('.panel-body', buildStageDiv).text(e.target.responseText);
 
-          $("html, body").animate({ scrollTop: $(document).height() }, 1000);
+          $("html, body").animate({ scrollTop: $(document).height() }, 100);
         }
       },
       complete: function(jqXHR, textStatus) {
