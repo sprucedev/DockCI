@@ -8,6 +8,9 @@ import multiprocessing.pool
 
 from flask import Flask
 from flask_mail import Mail
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 
 from dockci.models.config import Config
 
@@ -68,4 +71,10 @@ def run(app_args):
         for key, val in app_args.items()
         if key in ('host', 'port', 'debug')
     }
-    APP.run(**server_args)
+    if server_args.get('debug', False):
+        APP.run(**server_args)
+    else:
+        http_server = HTTPServer(WSGIContainer(APP))
+        http_server.listen(port=server_args['port'],
+                           address=server_args['host'])
+        IOLoop.instance().start()

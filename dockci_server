@@ -7,9 +7,9 @@ from argparse import ArgumentParser
 import dockci.server
 
 PARSER = ArgumentParser(description="CI, but with that all important Docker twist")
-PARSER.add_argument("--host",
+PARSER.add_argument("--host", default="127.0.0.1",
                     help="Interface to listen on")
-PARSER.add_argument("--port", "-p", type=int,
+PARSER.add_argument("--port", "-p", type=int, default="5000",
                     help="Port to listen on")
 
 PARSER.add_argument("--debug", default=False, action='store_true',
