@@ -21,7 +21,7 @@ from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
 from dockci.server import APP, CONFIG
-from dockci.util import bytes_human_readable, stream_write_status
+from dockci.util import bytes_human_readable, is_semantic, stream_write_status
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
 
 
@@ -186,16 +186,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             for name, path in output_files
             if os.path.isfile(path)
         }
-
-    @classmethod
-    def _is_semantic(cls, tag):
-        """
-        Returns True if tag contains a semantic version number prefixed with a
-        lowercase v.  e.g. v1.2.3 returns True
-        """
-        # TODO maybe this could be a configuable regex for different
-        # versioning schemes?  (yyyymmdd for example)
-        return re.match(r'^v\d+\.\d+\.\d+$', tag) is not None
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
@@ -412,7 +402,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             if existing_image is not None:
                 # Do not override existing builds of _versioned_ tagged code
-                if self._is_semantic(self.version):
+                if is_semantic(self.version):
                     raise AlreadyBuiltError(
                         'Version %s of %s already built' % (
                             self.version,
