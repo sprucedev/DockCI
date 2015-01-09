@@ -13,6 +13,7 @@ from datetime import datetime
 from uuid import uuid1
 
 import docker
+from docker.utils import kwargs_from_env
 
 from flask import url_for
 
@@ -160,9 +161,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         Get the cached (or new) Docker Client object being used for this build
         """
         if not self._docker_client:
-            self._docker_client = docker.Client(
-                base_url=CONFIG.docker_host,
-                version='1.12')
+            if CONFIG.docker_use_env_vars:
+                docker_client_args = kwargs_from_env()
+            else:
+                docker_client_args = {'base_url': CONFIG.docker_host}
+
+            self._docker_client = docker.Client(**docker_client_args)
 
         return self._docker_client
 
@@ -387,11 +391,23 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             return False
 
+        tag = None
+        if self.version is not None:
+            tag = "%s:%s" % (
+                self.job_slug,
+                self.version,
+            )
+
+        # Don't use the docker caches if a version tag is defined
+        no_cache = (self.version is not None)
+
         return self._run_docker(
             'build',
             # saved stream for debugging
             # lambda: open('docker_build_stream', 'r'),
             lambda: self.docker_client.build(path=workdir,
+                                             tag=tag,
+                                             nocache=no_cache,
                                              rm=True,
                                              stream=True),
             on_done=on_done,
@@ -538,9 +554,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 with cleanup_context(handle, 'container', self.container_id):
                     self.docker_client.remove_container(self.container_id)
 
-            if self.image_id:
-                with cleanup_context(handle, 'image', self.image_id):
-                    self.docker_client.remove_image(self.image_id)
+            # Only clean up image if this is an non-versioned build
+            if self.version is None:
+                if self.image_id:
+                    with cleanup_context(handle, 'image', self.image_id):
+                        self.docker_client.remove_image(self.image_id)
 
         return self._stage('cleanup', runnable)
 
