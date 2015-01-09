@@ -97,8 +97,6 @@ def build_output_json(job_slug, build_slug):
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
 
-    print(build.as_dict())
-
     return Response(json.dumps(build.as_dict(), cls=DateTimeEncoder), mimetype='application/json')
 
 
