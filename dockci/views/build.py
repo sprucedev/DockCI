@@ -8,6 +8,7 @@ import os.path
 import re
 import select
 import json
+import select
 
 from flask import (abort,
                    flash,
@@ -95,8 +96,6 @@ def build_output_json(job_slug, build_slug):
     """
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
-
-    print(build.as_dict())
 
     return Response(json.dumps(build.as_dict(), cls=DateTimeEncoder), mimetype='application/json')
 
