@@ -187,6 +187,16 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             if os.path.isfile(path)
         }
 
+    @classmethod
+    def _is_semantic(cls, tag):
+        """
+        Returns True if tag contains a semantic version number prefixed with a
+        lowercase v.  e.g. v1.2.3 returns True
+        """
+        # TODO maybe this could be a configuable regex for different
+        # versioning schemes?  (yyyymmdd for example)
+        return (re.match(r'^v\d+\.\d+\.\d+$', tag) is not None)
+
     def data_file_path(self):
         # Add the job name before the build slug in the path
         data_file_path = super(Build, self).data_file_path()
@@ -354,8 +364,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             data_file_path = os.path.join(*stage.data_file_path())
             with open(data_file_path, 'r') as handle:
                 line = handle.readline().strip()
-                # TODO be more generic! GOSH
-                if re.match(r'^v\d+\.\d+\.\d+$', line):
+                if not line == '':
                     self.version = line
                     self.save()
 
@@ -393,16 +402,35 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 self.version,
             )
 
-            for img in self.docker_client.images(
+            existing_image = None
+            for image in self.docker_client.images(
                 name=self.job_slug,
             ):
-                if tag in img['RepoTags']:
+                if tag in image['RepoTags']:
+                    existing_image = image
+                    break
+
+            if existing_image is not None:
+
+                # Do not override existing builds of _versioned_ tagged code
+                if self._is_semantic(self.version):
                     raise AlreadyBuiltError(
                         'Version %s of %s already built' % (
                             self.version,
                             self.job_slug,
                         )
                     )
+
+                # Delete existing builds of _non-versioned_ tagged code
+                # (allows replacement of images)
+                else:
+                    try:
+                        self.docker_client.remove_image(
+                            image=existing_image['Id'],
+                        )
+                    except docker.APIError:
+                        # TODO handle deletion of containers here
+                        pass
 
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.version is not None)
