@@ -15,3 +15,5 @@ requests==2.5.1
 six==1.9.0
 tornado==4.0.2
 Werkzeug==0.9.6
+python-dateutil==2.4.0
+hypchat==0.18
