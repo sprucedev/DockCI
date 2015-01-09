@@ -195,7 +195,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         # TODO maybe this could be a configuable regex for different
         # versioning schemes?  (yyyymmdd for example)
-        return (re.match(r'^v\d+\.\d+\.\d+$', tag) is not None)
+        return re.match(r'^v\d+\.\d+\.\d+$', tag) is not None
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
@@ -428,7 +428,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                         self.docker_client.remove_image(
                             image=existing_image['Id'],
                         )
-                    except docker.APIError:
+                    except docker.errors.APIError:
                         # TODO handle deletion of containers here
                         pass
 
