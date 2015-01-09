@@ -1,9 +1,7 @@
 [![Build Status](https://travis-ci.org/RickyCook/DockCI.svg)](https://travis-ci.org/RickyCook/DockCI)[![Requirements Status](https://requires.io/github/RickyCook/DockCI/requirements.svg?branch=master)](https://requires.io/github/RickyCook/DockCI/requirements/?branch=master)
 
 # DockCI
-DOCKCI IS STILL VERY ALPHA!!! It's certainly not feature complete, nor even the
-MVP (and really really hastily written). At the moment, it's less MVP and more
-TUVP: Totally un-viable product.
+DockCI is still alpha! It's certainly not feature complete.  It's heading towards MVP.
 
 ## What is DockCI?
 DockCI aims to be one of the missing links in a full Docker CI/CD pipeline.
@@ -27,6 +25,36 @@ Sounds great, right? And it will be! But it's not ready yet! Soooooo read on ;D
 ## Requirements
  - Docker 1.15
  - Python 3.4 (may work with 3.x, but untested)
+
+## System setup
+
+### Ubuntu 
+
+- Ubuntu Trusty64 (DockCi and Docker on same machine)
+
+### Install pre reqs
+```sh
+$ apt-get install git
+$ apt-get install docker.io
+$ apt-get install python-virtualenv
+```
+
+As bower doesn't like npm and node installed as root, you will need to install it via
+https://gist.github.com/isaacs/579814#file-node-and-npm-in-30-seconds-sh
+
+### Add your user to the docker group
+```sh
+$ usermod -G docker dockci_user
+```
+
+### Run DockCI
+```sh
+git clone https://github.com/RickyCook/DockCI.git
+cd DockCI
+make deps
+source python_env/bin/activate
+./dockci_server --host 0.0.0.0 # use --debug for debugging purposes
+```
 
 ## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly
