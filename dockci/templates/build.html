@@ -103,100 +103,6 @@
   </div>
 </div>
 <h2>Build Log</h2>
-<!-- <script>
-  STAGE_LOG_HANDLERS = {
-    _default: function(log_data, panel_el, log_el) {
-      panel_el.toggleClass('panel-info panel-success')
-      log_el.text(log_data)
-    },
-    error: function(log_data, panel_el, log_el) {
-      panel_el.toggleClass('panel-info panel-danger')
-      log_el.text(log_data)
-    },
-    docker: function(log_data, panel_el, log_el) {
-      panel_el.toggleClass('panel-info panel-success')
-      $(log_data.split("\n")).each(function(idx, obj_line) {
-        handle_docker_line(obj_line, panel_el, log_el)
-      })
-    }
-  }
-  LOG_LOAD_JOB = null
-  LOG_LOAD_LIST = []
-  function handle_docker_line(obj_line, panel_el, log_el) {
-    if (obj_line.trim() == '') { return }
-    obj = $.parseJSON(obj_line)
-
-    if ('errorDetail' in obj) {
-      log_el.append('<div class="docker-log-error alert alert-danger">' + ansi_up.ansi_to_html(obj['errorDetail']['message']) + '</div>')
-      panel_el.toggleClass('panel-success panel-danger')
-    } else if ('stream' in obj) {
-      log_el.append('<div class="docker-log-stream">' + ansi_up.ansi_to_html(obj['stream']) + '</div>')
-
-    } else if ('id' in obj) {
-      id_row = log_el.children('.docker-log-' + obj['id'])
-      if (id_row.length < 1) {
-        id_row = $('<div class="docker-log-' + obj['id'] + '"></div>')
-        log_el.append(id_row)
-      }
-
-      message_comps = [obj['id']]
-      if ('status' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['status'])) }
-      if ('progress' in obj) { message_comps.push(ansi_up.ansi_to_html(obj['progress'])) }
-
-      id_row.html(message_comps.join(' | '))
-
-    } else if ('status' in obj) {
-      log_el.append('<div class="docker-log-status">' + ansi_up.ansi_to_html(obj['status']) + '</div>')
-
-    } else {
-      log_el.append('<div style="color: red">' + obj_line + '</div>')
-    }
-  }
-  function try_next_log_load_job() {
-    if (LOG_LOAD_JOB === null && LOG_LOAD_LIST.length > 0) {
-      LOG_LOAD_JOB = LOG_LOAD_LIST.shift()
-      LOG_LOAD_JOB()
-    }
-  }
-  function handler_name_from_class(cls) {
-    if (cls.slice(0, 10) == 'stage-log-') {
-      return cls.slice(10)
-    } else {
-      return null
-    }
-  }
-  function load_stage_log(url, panel_el, load_badge_el, heading_el, log_el, classes) {
-    var handler = STAGE_LOG_HANDLERS['_default']
-    $(classes).each(function(idx, cls) {
-      handler_name = handler_name_from_class(cls)
-      if (handler_name in STAGE_LOG_HANDLERS) {
-        handler = STAGE_LOG_HANDLERS[handler_name]
-      }
-    })
-    var curried_handler = function(data) {
-      handler(data, panel_el, log_el)
-    }
-
-    LOG_LOAD_LIST.push(function() {
-      $.get(url).done(
-        curried_handler
-      ).fail(function(xhr, errorType, httpErrorText) {
-        panel_el.toggleClass('panel-info panel-danger')
-        if (httpErrorText === null) {
-          heading_el.text(heading_el.text() + errorType)
-        } else {
-          heading_el.text(heading_el.text() + httpErrorText)
-        }
-      }).always(function() {
-        // Next job
-        LOG_LOAD_JOB = null
-        load_badge_el.hide(1000)
-        try_next_log_load_job()
-      })
-    })
-    try_next_log_load_job()
-  }
-</script> -->
 <div id="build-stages"></div>
 <script>
   var get_stage_element = function(stageSlug) {
@@ -232,10 +138,29 @@
       url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
       xhrFields: { onprogress: function(e) {
           $('.panel-body', buildStageDiv).text(e.target.responseText);
-          console.dir(e);
+
+          $("html, body").animate({ scrollTop: $(document).height() }, 1000);
         }
+      },
+      complete: function(jqXHR, textStatus) {
+        load_next_stage();
       }
     })
+  }
+
+  var active_stage = null;
+  var build_stages = [];
+
+  var load_next_stage = function() {
+    if (active_stage != null) {
+      ++active_stage;
+    } else {
+      active_stage = 0;
+    }
+
+    if (active_stage < build_stages.length) {
+      load_stage_log(build_stages[active_stage]);
+    }
   }
 
   var build_info_interval = setInterval(function() {
@@ -247,10 +172,10 @@
           clearInterval(build_info_interval);
         }
 
-        $.each(data.build_stage_slugs, function(i, stage_slug) {
-          console.log(stage_slug)
-          load_stage_log(stage_slug);
-        });
+        if (data.build_stage_slugs.length != build_stages.length) {
+          build_stages = data.build_stage_slugs;
+          load_next_stage();
+        }
       }
     });
   }, 500);
