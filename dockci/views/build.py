@@ -6,6 +6,7 @@ import logging
 import mimetypes
 import os.path
 import re
+import select
 
 from flask import (abort,
                    flash,
@@ -109,7 +110,13 @@ def build_output_view(job_slug, build_slug, filename):
             while True:
                 data = handle.read(1024)
                 yield data
-                if len(data) == 0:
+
+                #if build.state == 'running' and filename == "%s.log" % build.build_stage_slugs[-1]:
+                if filename == "%s.log" % build.build_stage_slugs[-1]:
+                    select.select((handle,), (), (), 2)
+                    build.load()
+
+                elif len(data) == 0:
                     return
 
     mimetype, _ = mimetypes.guess_type(filename)
