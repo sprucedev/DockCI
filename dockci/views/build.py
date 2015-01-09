@@ -8,6 +8,7 @@ import os.path
 import re
 import select
 import json
+import select
 
 from flask import (abort,
                    flash,
