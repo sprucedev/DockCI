@@ -7,6 +7,8 @@ import logging
 import os
 import socket
 import struct
+import json
+import datetime
 
 from contextlib import contextmanager
 from ipaddress import ip_address
@@ -99,3 +101,11 @@ def stream_write_status(handle, status, success, fail):
     except Exception:  # pylint:disable=broad-except
         handle.write((" %s\n" % fail).encode())
         raise
+
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            encoded_object = list(obj.timetuple())[0:6]
+        else:
+            encoded_object =json.JSONEncoder.default(self, obj)
+        return encoded_object
