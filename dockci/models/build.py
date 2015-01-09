@@ -411,7 +411,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     break
 
             if existing_image is not None:
-
                 # Do not override existing builds of _versioned_ tagged code
                 if self._is_semantic(self.version):
                     raise AlreadyBuiltError(
@@ -420,7 +419,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                             self.job_slug,
                         )
                     )
-
                 # Delete existing builds of _non-versioned_ tagged code
                 # (allows replacement of images)
                 else:
