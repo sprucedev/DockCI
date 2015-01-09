@@ -10,6 +10,13 @@ class InvalidOperationError(Exception):
     pass
 
 
+class AlreadyBuiltError(Exception):
+    """
+    Raised when a versioned build already exists in the repository
+    """
+    pass
+
+
 class AlreadyRunError(InvalidOperationError):
     """
     Raised when a build or stage is attempted to be run that has already been
