@@ -18,11 +18,12 @@ import docker.errors
 from docker.utils import kwargs_from_env
 from flask import url_for
 
+from dockci.exceptions import AlreadyBuiltError
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
 from dockci.server import APP, CONFIG
-from dockci.util import bytes_human_readable, stream_write_status
+from dockci.util import bytes_human_readable, is_semantic, stream_write_status
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
 
 
@@ -351,10 +352,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         stage = self._stage(
             'git_tag', workdir=workdir,
-            cmd_args=['git', 'describe', '--tags']
+            cmd_args=['git', 'describe', '--tags', '--exact-match']
         )
         if not stage.returncode == 0:
             # TODO remove spoofed return
+            # (except that --exact-match legitimately returns 128 if no tag)
             return True  # stage result is irrelevant
 
         try:
@@ -362,11 +364,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             data_file_path = os.path.join(*stage.data_file_path())
             with open(data_file_path, 'r') as handle:
                 line = handle.readline().strip()
-                # TODO be more generic! GOSH
-                if re.match(r'^v\d+\.\d+\.\d+$', line):
+                if not line:
                     self.version = line
                     self.save()
-                    return True
 
         except KeyError:
             pass
@@ -467,6 +467,34 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 self.job_slug,
                 self.version,
             )
+
+            existing_image = None
+            for image in self.docker_client.images(
+                name=self.job_slug,
+            ):
+                if tag in image['RepoTags']:
+                    existing_image = image
+                    break
+
+            if existing_image is not None:
+                # Do not override existing builds of _versioned_ tagged code
+                if is_semantic(self.version):
+                    raise AlreadyBuiltError(
+                        'Version %s of %s already built' % (
+                            self.version,
+                            self.job_slug,
+                        )
+                    )
+                # Delete existing builds of _non-versioned_ tagged code
+                # (allows replacement of images)
+                else:
+                    try:
+                        self.docker_client.remove_image(
+                            image=existing_image['Id'],
+                        )
+                    except docker.errors.APIError:
+                        # TODO handle deletion of containers here
+                        pass
 
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.version is not None)
