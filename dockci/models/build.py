@@ -358,7 +358,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 if re.match(r'^v\d+\.\d+\.\d+$', line):
                     self.version = line
                     self.save()
-                    return True
 
         except KeyError:
             pass
