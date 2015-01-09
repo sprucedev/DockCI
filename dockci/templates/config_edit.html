@@ -3,31 +3,42 @@
 {% block header %}Global Configuration{% endblock %}
 {% block content %}
 {% if not config.model.exists() -%}
-  <div class="alert alert-danger" role="alert">Persistent config file does not exist. These settings should be saved</div>
+  <div class="alert alert-danger" role="alert">Persistent config file does not exist. These settings should be saved.</div>
 {%- endif %}
 {% if config.model.restart_needed -%}
-  <div class="alert alert-warning" role="alert">Settings have been changed. An application restart is required</div>
+  <div class="alert alert-warning" role="alert">Warning! An application restart is required for some changes to take effect.</div>
 {%- endif %}
 <form class="form-horizontal" role="form" action="/config" method="POST">
   <div class="panel panel-default">
     <div class="panel-heading">General</div>
     <div class="panel-body">
       <div class="form-group">
-        <label for="inputDockerHost" class="col-sm-2 control-label">Docker host</label>
+        <label for="inputSecret" class="col-sm-2 control-label">Sessions secret</label>
         <div class="col-sm-10">
-          <input class="form-control" id="inputDockerHost" name="docker_host" placeholder="Name" value="{{ config.model.docker_host or '' }}">
+          <input class="form-control" id="inputSecret" name="secret" value="{{ config.model.secret or '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">Docker Daemon</div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label for="useENVVars" class="col-sm-2 control-label">Use ENV variables</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="useENVVars" name="docker_use_env_vars" type="checkbox" {{ 'checked' if config.model.docker_use_env_vars else '' }}>
         </div>
       </div>
       <div class="form-group">
-        <label for="inputSecret" class="col-sm-2 control-label">Secret</label>
+        <label for="inputDockerHost" class="col-sm-2 control-label">Docker host</label>
         <div class="col-sm-10">
-          <input class="form-control" id="inputSecret" name="secret" value="{{ config.model.secret or '' }}">
+          <input class="form-control" id="inputDockerHost" name="docker_host" value="{{ config.model.docker_host or '' }}">
         </div>
       </div>
       <div class="form-group">
         <label for="inputWorkers" class="col-sm-2 control-label">Workers</label>
         <div class="col-sm-10">
-          <input class="form-control" id="inputWorkers" name="workers" type="number" value="{{ config.model.workers or '' }}">
+          <input class="form-control" id="inputWorkers" name="docker_workers" type="number" value="{{ config.model.docker_workers or '' }}">
         </div>
       </div>
     </div>
