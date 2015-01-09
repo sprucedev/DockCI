@@ -13,4 +13,5 @@ PyYAML==3.11
 requests==2.5.1
 six==1.9.0
 Werkzeug==0.9.6
+python-dateutil==2.4.0
 hypchat==0.18
