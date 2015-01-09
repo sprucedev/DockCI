@@ -83,15 +83,15 @@ class LoadOnAccess(OnAccess):  # pylint:disable=too-few-public-methods
 
             except FileNotFoundError:
                 if generate:
-                    return generate(self) if callable(generate) else generate
+                    return generate(self_) if callable(generate) else generate
                 elif default:
-                    return default(self) if callable(default) else default
+                    return default(self_) if callable(default) else default
                 else:
                     raise NoValueError(self_.__class__, self.var_name)
 
             except KeyError:
                 if default:
-                    return default(self) if callable(default) else default
+                    return default(self_) if callable(default) else default
                 else:
                     raise NoValueError(self_.__class__, self.var_name)
 
@@ -215,7 +215,7 @@ class Model(object, metaclass=ModelMeta):
         """
         Serialize to dict
         """
-        return {var_name: getattr(self, var_name, None)
+        return {var_name: getattr(self, var_name)
                 for var_name
                 in self._load_on_access}  # pylint:disable=no-member
 
