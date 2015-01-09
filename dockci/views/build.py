@@ -6,6 +6,7 @@ import logging
 import mimetypes
 import os.path
 import re
+import json
 
 from flask import (abort,
                    flash,
@@ -19,7 +20,7 @@ from flask import (abort,
 from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP
-from dockci.util import is_valid_github
+from dockci.util import is_valid_github, DateTimeEncoder
 
 
 @APP.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
@@ -85,6 +86,18 @@ def build_new_view(job_slug):
             return redirect(build_url, 303)
 
     return render_template('build_new.html', build=Build(job=job))
+
+@APP.route('/jobs/<job_slug>/builds/<build_slug>.json', methods=('GET',))
+def build_output_json(job_slug, build_slug):
+    """
+    View to download some build info in JSON
+    """
+    job = Job(slug=job_slug)
+    build = Build(job=job, slug=build_slug)
+
+    print(build.as_dict())
+
+    return Response(json.dumps(build.as_dict(), cls=DateTimeEncoder), mimetype='application/json')
 
 
 @APP.route('/jobs/<job_slug>/builds/<build_slug>/output/<filename>',
