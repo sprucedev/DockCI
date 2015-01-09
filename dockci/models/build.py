@@ -13,8 +13,9 @@ from datetime import datetime
 from uuid import uuid1
 
 import docker
-from docker.utils import kwargs_from_env
+import docker.errors
 
+from docker.utils import kwargs_from_env
 from flask import url_for
 
 from dockci.exceptions import AlreadyRunError
@@ -141,6 +142,8 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
 
+    _provisioned_containers = []
+
     @property
     def state(self):
         """
@@ -228,6 +231,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     lambda: self._run_prep_workdir(workdir),
                     lambda: self._run_git_info(workdir),
                     lambda: self._run_tag_version(workdir),
+                    lambda: self._run_provision(workdir),
                     lambda: self._run_build(workdir),
                 ))
                 if not all(pre_build):
@@ -370,6 +374,72 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         # TODO don't spoof the return; just ignore output elsewhere
         return True  # stage result is irrelevant
 
+    def _run_provision(self, workdir):
+        """
+        Provision the services that are required for this build
+        """
+        def runnable(handle):
+            """
+            Resolve jobs and start services
+            """
+            all_okay = True
+            # pylint:disable=no-member
+            for job_slug, service_config in self.build_config.services.items():
+                service_job = Job(job_slug)
+                if not service_job.exists():
+                    handle.write((
+                        "No job found matching %s\n" % job_slug
+                    ).encode())
+                    all_okay = False
+                    continue
+
+                service_build = service_job.latest_build(passed=True,
+                                                         versioned=True)
+                if not service_build:
+                    handle.write((
+                        "No successful, versioned build for %s - %s\n" % (
+                            job_slug, service_job.name
+                        )
+                    ).encode())
+                    all_okay = False
+                    continue
+
+                handle.write(("%sStarting service %s - %s %s" % (
+                    "" if all_okay else "NOT ",
+                    job_slug, service_job.name, service_build.version
+                )).encode())
+
+                try:
+                    service_kwargs = {
+                        key: value for key, value in service_config.items()
+                        if key in ('command', 'environment')
+                    }
+                    service_container = self.docker_client.create_container(
+                        image=service_build.image_id,
+                        **service_kwargs
+                    )
+                    self.docker_client.start(service_container['Id'])
+
+                    # Store the provisioning info
+                    self._provisioned_containers.append({
+                        'job_slug': job_slug,
+                        'config': service_config,
+                        'id': service_container['Id']
+                    })
+                    handle.write("... STARTED!\n".encode())
+
+                except docker.errors.APIError as ex:
+                    handle.write((
+                        "... FAILED!\n    %s" % ex.explanation.decode()
+                    ).encode())
+                    all_okay = False
+
+            return all_okay
+
+        return self._stage('docker_provision',
+                           workdir=workdir,
+                           runnable=runnable).returncode
+
     def _run_build(self, workdir):
         """
         Tell the Docker host to build
@@ -428,8 +498,37 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             self.container_id = container_details['Id']
             self.save()
 
+            def link_tuple(service_info):
+                """
+                Turn our provisioned service info dict into an alias string for
+                Docker
+                """
+                if 'name' not in service_info:
+                    service_info['name'] = \
+                        self.docker_client.inspect_container(
+                            service_info['id']
+                        )['Name'][1:]  # slice to remove the / from start
+
+                if 'alias' not in service_info:
+                    if isinstance(service_info['config'], dict):
+                        service_info['alias'] = service_info['config'].get(
+                            'alias',
+                            service_info['job_slug']
+                        )
+
+                    else:
+                        service_info['alias'] = service_info['job_slug']
+
+                return (service_info['name'], service_info['alias'])
+
             stream = self.docker_client.attach(self.container_id, stream=True)
-            self.docker_client.start(self.container_id)
+            self.docker_client.start(
+                self.container_id,
+                links=[
+                    link_tuple(service_info)
+                    for service_info in self._provisioned_containers
+                ]
+            )
 
             return stream
 
@@ -554,6 +653,17 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 with cleanup_context(handle, 'container', self.container_id):
                     self.docker_client.remove_container(self.container_id)
 
+            if self._provisioned_containers:
+                for service_info in self._provisioned_containers:
+                    ctx = cleanup_context(handle,
+                                          'provisioned container',
+                                          service_info['id'])
+                    with ctx:
+                        self.docker_client.remove_container(
+                            service_info['id'],
+                            force=True,
+                        )
+
             # Only clean up image if this is an non-versioned build
             if self.version is None:
                 if self.image_id:
@@ -611,6 +721,7 @@ class BuildConfig(Model):  # pylint:disable=too-few-public-methods
     build_slug = OnAccess(lambda self: self.build.slug)  # TODO infinite loop
 
     build_output = LoadOnAccess(default=lambda _: {})
+    services = LoadOnAccess(default=lambda _: {})
 
     def __init__(self, build):
         super(BuildConfig, self).__init__()
