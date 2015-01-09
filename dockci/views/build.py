@@ -112,7 +112,7 @@ def build_output_view(job_slug, build_slug, filename):
                 yield data
 
                 #if build.state == 'running' and filename == "%s.log" % build.build_stage_slugs[-1]:
-                if filename == "%s.log" % build.build_stage_slugs[-1]:
+                if build.state not in ('success', 'fail', 'error') and filename == "%s.log" % build.build_stage_slugs[-1]:
                     select.select((handle,), (), (), 2)
                     build.load()
 
