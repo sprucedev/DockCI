@@ -342,10 +342,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         stage = self._stage(
             'git_tag', workdir=workdir,
-            cmd_args=['git', 'describe', '--tags']
+            cmd_args=['git', 'describe', '--tags', '--exact-match']
         )
         if not stage.returncode == 0:
             # TODO remove spoofed return
+            # (except that --exact-match legitimately returns 128 if no tag)
             return True  # stage result is irrelevant
 
         try:
