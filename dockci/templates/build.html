@@ -129,6 +129,7 @@
     return stageEl;
   }
 
+  var scroll_animation = null, max_scroll = 0
   var load_stage_log = function(stageSlug) {
     var buildStageDiv = get_stage_element(stageSlug);
 
@@ -143,7 +144,13 @@
 
           $('.panel-body', buildStageDiv).text(responseText);
 
-          $("html, body").animate({ scrollTop: $(document).height() }, 100);
+          if (max_scroll < $(document).height()) {
+              max_scroll = $(document).height();
+              if (scroll_animation !== null) { scroll_animation.stop(true); }
+              scroll_animation = $("html, body").animate({
+                scrollTop: max_scroll
+              }, 100);
+          } else { console.log('no scroll') }
         }
       },
       complete: function(jqXHR, textStatus) {
