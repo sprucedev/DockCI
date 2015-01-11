@@ -28,7 +28,7 @@ Sounds great, right? And it will be! But it's not ready yet! Soooooo read on ;D
 
 ## System setup
 
-### Ubuntu 
+### Ubuntu
 
 - Ubuntu Trusty64 (DockCi and Docker on same machine)
 
@@ -53,7 +53,7 @@ git clone https://github.com/RickyCook/DockCI.git
 cd DockCI
 make deps
 source python_env/bin/activate
-./dockci_server --host 0.0.0.0 # use --debug for debugging purposes
+make run
 ```
 
 ## Contributing
