@@ -171,10 +171,22 @@
           }
         },
         complete: function(jqXHR, textStatus) {
-          stageData['stageEl'].toggleClass('panel-info panel-success');
           $('i', stageData['stageEl']).hide();
           processNextStage();
           refreshBuildInfo();
+        },
+        success: function(jqXHR, textStatus) {
+          var panelClass = 'panel-success';
+          if (stageData['slug'] == 'error') {
+            panelClass = 'panel-danger';
+          }
+
+          stageData['stageEl'].toggleClass('panel-info ' + panelClass);
+        },
+        error: function(jqXHR, textStatus, errorText) {
+          var stagePanelHeadingEl = $('.panel-heading', stageData['stageEl'])
+          stagePanelHeadingEl.text(stageData['slug'] + ' - ' + errorText);
+          stageData['stageEl'].toggleClass('panel-info panel-danger');
         }
       })
     }
