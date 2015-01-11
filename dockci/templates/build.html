@@ -150,6 +150,7 @@
     }
     function processNextStage() {
       var sortedQueueIndexes = Object.keys(stageAjaxQueue).sort(),
+          incompleteLineBuffer = "", processedChars = 0,
           stageData;
 
       if (sortedQueueIndexes.length === 0) {
@@ -161,12 +162,51 @@
 
       $.ajax({
         url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageData['slug'] + '.log',
-        xhrFields: { onprogress: function(e) {
-            responseText = e.target.responseText
-              .replace(/\{\"stream\":\"/g, '')
-              .replace(/\\n\"\}/g, '');
+        xhrFields: {
+          onprogress: function(e) {
+            var logEl = $('.panel-body', stageData['stageEl']),
+                responseText = e.target.responseText,
+                responseLines;
 
-            $('.panel-body', stageData['stageEl']).text(responseText);
+            totalLength = responseText.length;
+            responseText = responseText.substr(processedChars,
+                                               responseText.length);
+            responseLines = responseText.split('\n');
+            processedChars = totalLength;
+
+            if (stageData['slug'] === 'docker_build') {
+              // Combine the first line with the previous incomplete line
+              responseLines[0] = incompleteLineBuffer + responseLines[0];
+
+              // Last value is always incomplete
+              incompleteLineBuffer = responseLines.pop();
+
+              $.each(responseLines, function(idx, value) {
+                if (value === '') { return; }
+                value = $.parseJSON(value);
+                if ('stream' in value) {
+                  logEl.append($(
+                    '<div class="docker-log-stream">' +
+                    ansi_up.ansi_to_html(value['stream']) +
+                    '</div>'
+                  ));
+                }
+              }, '');
+            } else {
+              lastLine = $('div:last', logEl)
+              if (lastLine.length !== 0) {
+                lineCompletion = responseLines.shift();
+                lastLine.text(lastLine.text() + lineCompletion);
+              }
+              $.each(responseLines, function(idx, value) {
+                logEl.append($(
+                  '<div class="docker-log-stream">' +
+                  ansi_up.ansi_to_html(value) +
+                  '</div>'
+                ));
+              })
+            }
+
             scrollToBottom();
           }
         },
