@@ -24,7 +24,7 @@ def config_edit_view():
     """
     fields = (
         'secret',
-        'docker_use_env_vars', 'docker_host', 'docker_workers',
+        'docker_use_env_vars', 'docker_host',
         'mail_host_string', 'mail_use_tls',
         'mail_use_ssl', 'mail_username', 'mail_password', 'mail_default_sender'
     )

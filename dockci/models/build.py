@@ -22,7 +22,7 @@ from dockci.exceptions import AlreadyBuiltError
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
-from dockci.server import APP, CONFIG
+from dockci.server import CONFIG
 from dockci.util import bytes_human_readable, is_semantic, stream_write_status
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
 
@@ -152,7 +152,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         if self.result is not None:
             return self.result
-        elif self.start_ts is not None:
+        elif self.build_stages:
             return 'running'  # TODO check if running or dead
         else:
             return 'queued'  # TODO check if queued or queue fail
@@ -215,9 +215,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        from dockci.workers import run_build_worker
         # TODO fix and reenable pylint check for cyclic-import
-        APP.workers.apply_async(run_build_worker, (self.job_slug, self.slug))
+        from dockci.workers import run_build_async
+        run_build_async(self.job_slug, self.slug)
 
     def _run_now(self):
         """
