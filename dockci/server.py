@@ -4,8 +4,6 @@ Functions for setting up and starting the DockCI application server
 
 import logging
 import mimetypes
-import multiprocessing
-import multiprocessing.pool
 
 from flask import Flask
 from flask_mail import Mail

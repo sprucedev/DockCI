@@ -22,7 +22,7 @@ from dockci.exceptions import AlreadyBuiltError
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
-from dockci.server import APP, CONFIG
+from dockci.server import CONFIG
 from dockci.util import bytes_human_readable, is_semantic, stream_write_status
 from dockci.yaml_model import LoadOnAccess, Model, OnAccess
 

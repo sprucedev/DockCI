@@ -104,15 +104,18 @@ def stream_write_status(handle, status, success, fail):
         raise
 
 
+# pylint:disable=too-few-public-methods
 class DateTimeEncoder(json.JSONEncoder):
     """
     Encode a date/time for JSON dump
     """
-    def default(self, obj):
+    def default(self, obj):  # pylint:disable=method-hidden
         if isinstance(obj, datetime.datetime):
             encoded_object = list(obj.timetuple())[0:6]
+
         else:
-            encoded_object = json.JSONEncoder.default(self, obj)
+            encoded_object = super(DateTimeEncoder, self).default(obj)
+
         return encoded_object
 
 

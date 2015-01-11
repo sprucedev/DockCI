@@ -2,12 +2,11 @@
 Views related to build management
 """
 
+import json
 import logging
 import mimetypes
 import os.path
 import re
-import select
-import json
 import select
 
 from flask import (abort,
@@ -89,6 +88,7 @@ def build_new_view(job_slug):
 
     return render_template('build_new.html', build=Build(job=job))
 
+
 @APP.route('/jobs/<job_slug>/builds/<build_slug>.json', methods=('GET',))
 def build_output_json(job_slug, build_slug):
     """
@@ -97,7 +97,10 @@ def build_output_json(job_slug, build_slug):
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
 
-    return Response(json.dumps(build.as_dict(), cls=DateTimeEncoder), mimetype='application/json')
+    return Response(json.dumps(build.as_dict(),
+                               cls=DateTimeEncoder
+                               ),
+                    mimetype='application/json')
 
 
 @APP.route('/jobs/<job_slug>/builds/<build_slug>/output/<filename>',
@@ -123,8 +126,11 @@ def build_output_view(job_slug, build_slug, filename):
                 data = handle.read(1024)
                 yield data
 
-                #if build.state == 'running' and filename == "%s.log" % build.build_stage_slugs[-1]:
-                if build.state not in ('success', 'fail', 'error') and filename == "%s.log" % build.build_stage_slugs[-1]:
+                is_live_log = (
+                    build.state == 'running' and
+                    filename == "%s.log" % build.build_stage_slugs[-1]
+                )
+                if is_live_log:
                     select.select((handle,), (), (), 2)
                     build.load()
 
