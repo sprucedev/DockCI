@@ -364,7 +364,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             data_file_path = os.path.join(*stage.data_file_path())
             with open(data_file_path, 'r') as handle:
                 line = handle.readline().strip()
-                if not line:
+                if line:
                     self.version = line
                     self.save()
 
