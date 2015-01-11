@@ -152,7 +152,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         if self.result is not None:
             return self.result
-        elif self.start_ts is not None:
+        elif self.build_stages:
             return 'running'  # TODO check if running or dead
         else:
             return 'queued'  # TODO check if queued or queue fail
