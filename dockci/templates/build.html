@@ -148,6 +148,46 @@
           }, 100);
       }
     }
+    function dockerBuildLine(panelEl, logEl, obj) {
+      var idRow;
+
+      if ('errorDetail' in obj) {
+        logEl.append(
+          '<div class="docker-log-error alert alert-danger">' +
+          ansi_up.ansi_to_html(obj['errorDetail']['message']) +
+          '</div>'
+        );
+        panelEl.toggleClass('panel-info panel-danger');
+
+      } else if ('stream' in obj) {
+        logEl.append(
+          '<div class="docker-log-stream">' +
+          ansi_up.ansi_to_html(obj['stream']) +
+          '</div>'
+        );
+
+      } else if ('id' in obj) {
+        idRow = $('.docker-log-' + obj['id'], logEl);
+        if (idRow.length < 1) {
+          idRow = $('<div class="docker-log-' + obj['id'] + '"></div>');
+          logEl.append(idRow);
+        }
+
+        messageComps = [obj['id']]
+        if ('status' in obj) { messageComps.push(ansi_up.ansi_to_html(obj['status'])) }
+        if ('progress' in obj) { messageComps.push(ansi_up.ansi_to_html(obj['progress'])) }
+
+        idRow.html(messageComps.join(' | '))
+      } else if ('status' in obj) {
+        logEl.append(
+          '<div class="docker-log-status">' +
+          ansi_up.ansi_to_html(obj['status']) +
+          '</div>'
+        );
+      } else {
+        logEl.append('<div style="color: red">' + obj_line + '</div>');
+      }
+    }
     function processNextStage() {
       var sortedQueueIndexes = Object.keys(stageAjaxQueue).sort(),
           incompleteLineBuffer = "", processedChars = 0,
@@ -184,13 +224,7 @@
               $.each(responseLines, function(idx, value) {
                 if (value === '') { return; }
                 value = $.parseJSON(value);
-                if ('stream' in value) {
-                  logEl.append($(
-                    '<div class="docker-log-stream">' +
-                    ansi_up.ansi_to_html(value['stream']) +
-                    '</div>'
-                  ));
-                }
+                dockerBuildLine(stageData['stageEl'], logEl, value);
               }, '');
             } else {
               lastLine = $('div:last', logEl)
