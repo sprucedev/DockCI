@@ -2,7 +2,6 @@
 Functions and constants relating to background workers
 """
 import logging
-import multiprocessing
 import os
 
 from flask_mail import Message
@@ -13,31 +12,29 @@ from dockci.server import APP, MAIL
 from dockci.notifications import HipChat
 
 
-MAIL_QUEUE = multiprocessing.Queue()  # pylint:disable=no-member
-
-
-def init_mail_queue():
+def send_mail(message):
     """
-    Start the mail queue process
+    Send an email using the app context
     """
-    pid = os.fork()
-    if not pid:  # child process
-        with APP.app_context():
-            logging.info("Email queue initiated")
-            while True:
-                message = MAIL_QUEUE.get()
-                try:
-                    MAIL.send(message)
+    with APP.app_context():
+        try:
+            MAIL.send(message)
 
-                except Exception:  # pylint:disable=broad-except
-                    logging.exception("Couldn't send email message")
+        except Exception:  # pylint:disable=broad-except
+            logging.getLogger('dockci.mail').exception(
+                "Couldn't send email message"
+            )
 
 
-def run_build_worker(job_slug, build_slug):
+def run_build_async(job_slug, build_slug):
     """
-    Load and run a build's private run job. Used to trigger builds inside
-    worker threads so that data is pickled correctly
+    Load and run a build's private run job, forking to handle the build in the
+    background
     """
+    if os.fork():
+        return  # parent process
+
+    logger = logging.getLogger('dockci.build')
     try:
         with APP.app_context():
             job = Job(job_slug)
@@ -66,7 +63,7 @@ def run_build_worker(job_slug, build_slug):
                             build_result=build.result,
                         ),
                     )
-                    MAIL_QUEUE.put_nowait(email)
+                    send_mail(email)
 
             # Send a HipChat notification
             if job.hipchat_api_token != '' and job.hipchat_room != '':
@@ -79,4 +76,4 @@ def run_build_worker(job_slug, build_slug):
                 ))
 
     except Exception:  # pylint:disable=broad-except
-        logging.exception("Something went wrong in the build worker")
+        logger.exception("Something went wrong in the build worker")

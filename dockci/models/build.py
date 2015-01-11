@@ -215,9 +215,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        from dockci.workers import run_build_worker
         # TODO fix and reenable pylint check for cyclic-import
-        APP.workers.apply_async(run_build_worker, (self.job_slug, self.slug))
+        from dockci.workers import run_build_async
+        run_build_async(self.job_slug, self.slug)
 
     def _run_now(self):
         """
