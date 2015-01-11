@@ -105,98 +105,106 @@
 <h2>Build Log</h2>
 <div id="build-stages"></div>
 <script>
-  var get_stage_element = function(stageSlug) {
-    var stageEl = $('#build-stages .stage-panel-' + stageSlug);
+  function dockciBuild() {
+    var stageAjaxQueue = {},
+        scrollAnimation = null, maxScroll = 0;
 
-    if (stageEl.length > 0) {
-      return stageEl;
+    function getExistingStageEl(slug) {
+      var existing = $('.stage-panel-' + slug);
+
+      if (existing.length > 0) {
+        return existing;
+      }
     }
-
-    stageEl = $('<div></div>')
-      .addClass('stage-panel panel panel-info stage-panel-' + stageSlug)
-      .append(
-        $('<div></div>')
-          .addClass('panel-heading')
-          .text(stageSlug)
-          .append(
-            $('<i></i>').addClass('loading mdi-device-data-usage spin pull-right')
-          )
+    function createNewStageEl(idx, slug) {
+      var created = $('<div></div>')
+        .addClass('stage-panel panel panel-info stage-panel-' + slug)
+        .append(
+          $('<div></div>')
+            .addClass('panel-heading')
+            .text(slug)
+            .append(
+              $('<i></i>').addClass('loading mdi-device-data-usage spin pull-right')
+            )
         )
-      .append(
-        $('<pre></pre>').addClass('panel-body stage-log')
-      );
+        .append(
+          $('<pre></pre>').addClass('panel-body stage-log')
+        );
 
-    return stageEl;
-  }
-
-  var scroll_animation = null, max_scroll = 0
-  var load_stage_log = function(stageSlug) {
-    var buildStageDiv = get_stage_element(stageSlug);
-
-    $('#build-stages').append(buildStageDiv);
-
-    $.ajax({
-      url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageSlug + '.log',
-      xhrFields: { onprogress: function(e) {
-          responseText = e.target.responseText
-            .replace(/\{\"stream\":\"/g, '')
-            .replace(/\\n\"\}/g, '');
-
-          $('.panel-body', buildStageDiv).text(responseText);
-
-          if (max_scroll < $(document).height()) {
-              max_scroll = $(document).height();
-              if (scroll_animation !== null) { scroll_animation.stop(true); }
-              scroll_animation = $("html, body").animate({
-                scrollTop: max_scroll
-              }, 100);
-          } else { console.log('no scroll') }
-        }
-      },
-      complete: function(jqXHR, textStatus) {
-        load_next_stage();
+      if (idx == 0) {
+        $('#build-stages').append(created);
+      } else {
+        created.insertAfter($('#build-stages').children()[idx - 1]);
       }
-    })
-  }
 
-  var update_current_stage = function(stageSlug) {
-    var buildStageDiv = get_stage_element(stageSlug);
-    buildStageDiv.toggleClass('panel-info panel-success');
-    $('i', buildStageDiv).hide();
-  }
+      return created
+    }
+    function scrollToBottom() {
+      if (maxScroll < $(document).height()) {
+          maxScroll = $(document).height();
+          if (scrollAnimation !== null) { scrollAnimation.stop(true); }
+          scrollAnimation = $("html, body").animate({
+            scrollTop: maxScroll
+          }, 100);
+      }
+    }
+    function processNextStage() {
+      var sortedQueueIndexes = Object.keys(stageAjaxQueue).sort(),
+          stageData;
 
-  var active_stage_index = null;
-  var build_stages = [];
+      if (sortedQueueIndexes.length === 0) {
+        return
+      }
 
-  var load_next_stage = function() {
-    if (active_stage_index != null) {
-      update_current_stage(build_stages[active_stage_index])
+      stageData = stageAjaxQueue[sortedQueueIndexes[0]]
+      delete stageAjaxQueue[sortedQueueIndexes[0]]
 
-      ++active_stage_index;
-    } else {
-      active_stage_index = 0;
+      $.ajax({
+        url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}/output/' + stageData['slug'] + '.log',
+        xhrFields: { onprogress: function(e) {
+            responseText = e.target.responseText
+              .replace(/\{\"stream\":\"/g, '')
+              .replace(/\\n\"\}/g, '');
+
+            $('.panel-body', stageData['stageEl']).text(responseText);
+            scrollToBottom();
+          }
+        },
+        complete: function(jqXHR, textStatus) {
+          stageData['stageEl'].toggleClass('panel-info panel-success');
+          $('i', stageData['stageEl']).hide();
+          processNextStage();
+          refreshBuildInfo();
+        }
+      })
+    }
+    function queueStageLoad(idx, stageEl, slug) {
+      stageAjaxQueue[idx] = {'stageEl': stageEl,
+                             'slug':    slug
+                             }
+      if (Object.keys(stageAjaxQueue).length == 1) {
+        processNextStage()
+      }
     }
 
-    if (active_stage_index < build_stages.length) {
-      load_stage_log(build_stages[active_stage_index]);
+    function refreshBuildInfo() {
+      $.ajax({
+        url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}.json',
+        dataType: 'json',
+        success: function(data, textStatus, jqXHR) {
+          var stageEl;
+          $.each(data.build_stage_slugs, function(idx, slug) {
+            if (! getExistingStageEl(slug)) {
+              stageEl = createNewStageEl(idx, slug);
+              queueStageLoad(idx, stageEl, slug);
+            }
+          })
+        }
+      });
     }
-  }
 
-  var build_info_interval = setInterval(function() {
-    $.ajax({
-      url: '/jobs/{{ build.job.slug }}/builds/{{ build.slug }}.json',
-      dataType: 'json',
-      success: function(data, textStatus, jqXHR) {
-        if (data.result == 'success' || data.result == 'error' || data.result == 'fail') {
-          clearInterval(build_info_interval);
-        }
-
-        if (data.build_stage_slugs.length != build_stages.length) {
-          build_stages = data.build_stage_slugs;
-          load_next_stage();
-        }
-      }
-    });
-  }, 500);
+    refreshBuildInfo()
+  };
+  dockciBuild();
 </script>
 {% endblock %}
