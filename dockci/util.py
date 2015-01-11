@@ -8,6 +8,8 @@ import os
 import re
 import socket
 import struct
+import json
+import datetime
 
 from contextlib import contextmanager
 from ipaddress import ip_address
@@ -100,6 +102,21 @@ def stream_write_status(handle, status, success, fail):
     except Exception:  # pylint:disable=broad-except
         handle.write((" %s\n" % fail).encode())
         raise
+
+
+# pylint:disable=too-few-public-methods
+class DateTimeEncoder(json.JSONEncoder):
+    """
+    Encode a date/time for JSON dump
+    """
+    def default(self, obj):  # pylint:disable=method-hidden
+        if isinstance(obj, datetime.datetime):
+            encoded_object = list(obj.timetuple())[0:6]
+
+        else:
+            encoded_object = super(DateTimeEncoder, self).default(obj)
+
+        return encoded_object
 
 
 def is_semantic(version):

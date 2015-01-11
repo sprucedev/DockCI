@@ -2,9 +2,8 @@
 Functions for setting up and starting the DockCI application server
 """
 
+import logging
 import mimetypes
-import multiprocessing
-import multiprocessing.pool
 
 from flask import Flask
 from flask_mail import Mail
@@ -19,10 +18,14 @@ CONFIG = Config()
 APP.config.model = CONFIG  # For templates
 
 
-def app_setup_extra():
+def app_init():
     """
     Pre-run app setup
     """
+    logger = logging.getLogger('dockci.init')
+
+    logger.info("Loading app config")
+
     APP.secret_key = CONFIG.secret
 
     APP.config['MAIL_SERVER'] = CONFIG.mail_server
@@ -33,18 +36,12 @@ def app_setup_extra():
     APP.config['MAIL_PASSWORD'] = CONFIG.mail_password
     APP.config['MAIL_DEFAULT_SENDER'] = CONFIG.mail_default_sender
 
-    # Import loop if this is imported at head
-    from dockci.workers import init_mail_queue
-    MAIL.init_app(APP)
-    init_mail_queue()
-
-    # Pool must be started after mail is initialized
-    APP.workers = multiprocessing.pool.Pool(int(CONFIG.docker_workers))
-
     mimetypes.add_type('application/x-yaml', 'yaml')
 
+    app_init_views()
 
-def app_setup_views():
+
+def app_init_views():
     """
     Activate all DockCI views
     """
@@ -60,12 +57,11 @@ def run(app_args):
     Setup, and run the DockCI application server, using the args given to
     configure it
     """
-    app_setup_extra()
-    app_setup_views()
-
+    app_init()
     server_args = {
         key: val
         for key, val in app_args.items()
         if key in ('host', 'port', 'debug')
     }
+
     APP.run(**server_args)
