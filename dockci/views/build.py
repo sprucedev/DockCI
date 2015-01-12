@@ -6,7 +6,7 @@ import json
 import logging
 import mimetypes
 import os.path
-import re
+# import re
 import select
 
 from flask import (abort,
@@ -76,9 +76,11 @@ def build_new_view(job_slug):
         else:
             build.commit = request.form['commit']
 
-            if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
-                flash(u"Invalid git commit hash", 'danger')
-                return render_template('build_new.html', build=build)
+            # If we don't verify the commit ID, then this enables the use
+            # of tags... https://trello.com/c/cs4TkIdT
+            # if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
+            #     flash(u"Invalid git commit hash", 'danger')
+            #     return render_template('build_new.html', build=build)
 
             build.save()
             build.queue()
