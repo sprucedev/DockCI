@@ -22,7 +22,7 @@ def config_edit_view():
     """
     View to edit global config
     """
-    restart_fields = fields = (
+    restart_fields = (
         'secret',
         'docker_use_env_vars', 'docker_host',
         'mail_host_string', 'mail_use_tls',

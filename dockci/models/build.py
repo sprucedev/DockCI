@@ -201,13 +201,11 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         Get the docker image name, including repository where necessary
         """
-        name = self.job_slug
         if CONFIG.docker_use_registry:
-            name = '{host}/{name}'.format(host=CONFIG.docker_registry_host,
+            return '{host}/{name}'.format(host=CONFIG.docker_registry_host,
                                           name=self.job_slug)
 
-
-        return name
+        return self.job_slug
 
     @property
     def docker_full_name(self):
@@ -220,7 +218,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                                          tag=self.version)
 
         return self.docker_image_name
-
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
