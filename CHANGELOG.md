@@ -1,6 +1,8 @@
 # Changelog
 
 ## v0.0.3
+- Log level to debug
+- Docker registry config options
 
 ## v0.0.2
 - Streaming console #16
