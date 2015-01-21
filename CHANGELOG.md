@@ -3,6 +3,7 @@
 ## v0.0.3
 - Log level to debug
 - Docker registry config options
+- Failed/errored builds are cleaned, even when versioned
 
 ## v0.0.2
 - Streaming console #16
