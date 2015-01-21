@@ -4,6 +4,7 @@
 - Log level to debug
 - Docker registry config options
 - Failed/errored builds are cleaned, even when versioned
+- Versioned images are pushed to registry
 
 ## v0.0.2
 - Streaming console #16
