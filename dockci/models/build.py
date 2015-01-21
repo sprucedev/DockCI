@@ -693,7 +693,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                         )
 
             # Only clean up image if this is an non-versioned build
-            if self.version is None:
+            if self.version is None or self.result in ('error', 'fail'):
                 if self.image_id:
                     with cleanup_context(handle, 'image', self.image_id):
                         self.docker_client.remove_image(self.image_id)
