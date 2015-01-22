@@ -95,35 +95,31 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             self.mail_password = url.password
 
     def validate(self):
-        try:
-            super(Config, self).validate()
+        with self.parent_validation(Config):
             errors = []
 
-        except ValidationError as ex:
-            errors = list(ex.messages)
+            import docker
+            try:
+                # pylint:disable=unused-variable
+                client = docker.Client(self.docker_host)
+            except docker.errors.DockerException as ex:
+                message, = ex.args  # pylint:disable=unpacking-non-sequence
+                errors.append(message)
 
-        import docker
-        try:
-            # pylint:disable=unused-variable
-            client = docker.Client(self.docker_host)
-        except docker.errors.DockerException as ex:
-            message, = ex.args  # pylint:disable=unpacking-non-sequence
-            errors.append(message)
+            registry_url = urlparse(self.docker_registry)
+            if registry_url.scheme.lower() not in ('http', 'https'):
+                errors.append("Registry URL must be HTTP, or HTTPS")
 
-        registry_url = urlparse(self.docker_registry)
-        if registry_url.scheme.lower() not in ('http', 'https'):
-            errors.append("Registry URL must be HTTP, or HTTPS")
+            invalid_url_parts = (
+                bool(getattr(registry_url, url_part))
+                for url_part
+                in ('path', 'params', 'query', 'fragment')
+            )
+            if any(invalid_url_parts):
+                errors.append("Registry URL can only include scheme, host, "
+                              "and port")
 
-        invalid_url_parts = (
-            bool(getattr(registry_url, url_part))
-            for url_part
-            in ('path', 'params', 'query', 'fragment')
-        )
-        if any(invalid_url_parts):
-            errors.append("Registry URL can only include scheme, host, "
-                          "and port")
-
-        if errors:
-            raise ValidationError(errors)
+            if errors:
+                raise ValidationError(errors)
 
         return True

@@ -73,23 +73,19 @@ class Job(Model):  # pylint:disable=too-few-public-methods
             return build
 
     def validate(self):
-        try:
-            super(Job, self).validate()
+        with self.parent_validation(Job):
             errors = []
 
-        except ValidationError as ex:
-            errors = list(ex.messages)
+            if not self.repo:
+                errors.append("Repository can not be blank")
+            if not self.name:
+                errors.append("Name can not be blank")
 
-        if not self.repo:
-            errors.append("Repository can not be blank")
-        if not self.name:
-            errors.append("Name can not be blank")
+            if bool(self.hipchat_api_token) != bool(self.hipchat_room):
+                errors.append("Both, or neither HipChat values must be given")
 
-        if bool(self.hipchat_api_token) != bool(self.hipchat_room):
-            errors.append("Both, or neither HipChat values must be given")
-
-        if errors:
-            raise ValidationError(errors)
+            if errors:
+                raise ValidationError(errors)
 
         return True
 

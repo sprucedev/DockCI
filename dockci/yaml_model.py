@@ -5,6 +5,8 @@ from Python objects composed of specialized fields
 
 import os
 
+from contextlib import contextmanager
+
 from yaml import safe_load as yaml_load, dump as yaml_dump
 
 
@@ -232,6 +234,27 @@ class Model(object, metaclass=ModelMeta):
             raise ValidationError('Slug can not be blank')
 
         return True
+
+    @contextmanager
+    def parent_validation(self, klass):
+        """
+        Context manager to wrap validation with parent validation and combine
+        ValidationError messages
+        """
+        errors = []
+        for validate in (super(klass, self).validate, None):
+            try:
+                if validate:
+                    validate()
+
+                else:
+                    yield errors
+
+            except ValidationError as ex:
+                errors += list(ex.messages)
+
+        if errors:
+            raise ValidationError(errors)
 
     def from_yaml(self, data):
         """
