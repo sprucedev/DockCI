@@ -6,7 +6,7 @@ import os
 import os.path
 
 from dockci.util import is_yaml_file
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess
+from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 
 
 def all_jobs():
@@ -71,6 +71,27 @@ class Job(Model):  # pylint:disable=too-few-public-methods
                 continue
 
             return build
+
+    def validate(self):
+        try:
+            super(Job, self).validate()
+            errors = []
+
+        except ValidationError as ex:
+            errors = list(ex.messages)
+
+        if not self.repo:
+            errors.append("Repository can not be blank")
+        if not self.name:
+            errors.append("Name can not be blank")
+
+        if bool(self.hipchat_api_token) != bool(self.hipchat_room):
+            errors.append("Both, or neither HipChat values must be given")
+
+        if errors:
+            raise ValidationError(errors)
+
+        return True
 
     slug = None
     repo = LoadOnAccess(default=lambda _: '')
