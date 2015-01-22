@@ -36,8 +36,10 @@ def config_edit_view():
 
     if saved:
         restart_needed = any((
-            attr in request.form \
-                and request.form[attr] != getattr(CONFIG, attr)
+            (
+                attr in request.form and
+                request.form[attr] != getattr(CONFIG, attr)
+            )
             for attr in restart_fields
         ))
         if restart_needed:

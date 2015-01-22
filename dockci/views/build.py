@@ -98,7 +98,6 @@ def build_new_view(job_slug):
             except ValidationError as ex:
                 flash(ex.messages, 'danger')
 
-
     return render_template('build_new.html', build=Build(job=job))
 
 

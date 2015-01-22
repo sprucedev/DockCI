@@ -150,24 +150,28 @@ def is_hex_string(value, max_len=None):
     return re.match(regex, value) is not None
 
 
-def is_git_hash(hash):
+def is_git_hash(value):
     """
     Validate a git commit hash for validity
     """
-    return is_hex_string(hash, 40)
+    return is_hex_string(value, 40)
 
 
-def is_docker_id(ident):
+def is_docker_id(value):
     """
     Validate a Docker Id (image, container) for validity
     """
-    return is_hex_string(ident, 64)
+    return is_hex_string(value, 64)
 
 
 def setup_templates(app):
     """
     Add util filters/tests/etc to the app's Jinja context
     """
+    # pylint:disable=unused-variable
     @app.template_test('an_array')
     def an_array(val):
+        """
+        Jinja test to see if the value is array-like (tuple, list)
+        """
         return isinstance(val, (tuple, list))
