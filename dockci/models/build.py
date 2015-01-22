@@ -23,8 +23,13 @@ from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
 from dockci.server import CONFIG
-from dockci.util import bytes_human_readable, is_semantic, stream_write_status
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess
+from dockci.util import (bytes_human_readable,
+                         is_docker_id,
+                         is_git_hash,
+                         is_semantic,
+                         stream_write_status,
+                         )
+from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 
 
 class BuildStage(object):
@@ -144,6 +149,24 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     build_config = OnAccess(lambda self: BuildConfig(self))
 
     _provisioned_containers = []
+
+    def validate(self):
+        with self.parent_validation(Build):
+            errors = []
+
+            if not self.job:
+                errors.append("Parent job not given")
+            if self.commit and not is_git_hash(self.commit):
+                errors.append("Invalid git commit hash")
+            if self.image_id and not is_docker_id(self.image_id):
+                errors.append("Invalid Docker image ID")
+            if self.container_id and not is_docker_id(self.container_id):
+                errors.append("Invalid Docker container ID")
+
+            if errors:
+                raise ValidationError(errors)
+
+        return True
 
     @property
     def state(self):

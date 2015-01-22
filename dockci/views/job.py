@@ -38,7 +38,9 @@ def job_new_view():
     """
     job = Job()
     if request.method == 'POST':
-        request_fill(job, ('slug', 'name', 'repo',
-                           'hipchat_api_token', 'hipchat_room'))
-        return redirect('/jobs/{job_slug}'.format(job_slug=job.slug))
+        saved = request_fill(job, ('slug', 'name', 'repo',
+                                   'hipchat_api_token', 'hipchat_room'))
+        if saved:
+            return redirect('/jobs/{job_slug}'.format(job_slug=job.slug))
+
     return render_template('job_edit.html', job=job, edit_operation='new')
