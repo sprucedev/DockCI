@@ -95,7 +95,12 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             self.mail_password = url.password
 
     def validate(self):
-        errors = []
+        try:
+            super(Config, self).validate()
+            errors = []
+
+        except ValidationError as ex:
+            errors = list(ex.messages)
 
         import docker
         try:
