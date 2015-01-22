@@ -9,6 +9,7 @@ from flask import Flask
 from flask_mail import Mail
 
 from dockci.models.config import Config
+from dockci.util import setup_templates
 
 
 APP = Flask(__name__)
@@ -50,6 +51,8 @@ def app_init_views():
 
     import dockci.views.build
     import dockci.views.job
+
+    setup_templates(APP)
 
 
 def run(app_args):
