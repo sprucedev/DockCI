@@ -5,6 +5,7 @@
 - Docker registry config options #20
 - Failed/errored builds are cleaned, even when versioned #20
 - Versioned images are pushed to registry #20
+- Forms are validated for model integrity
 
 ## v0.0.2
 - Streaming console #16
