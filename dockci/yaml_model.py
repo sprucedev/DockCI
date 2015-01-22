@@ -13,7 +13,10 @@ class ValidationError(Exception):
     Raised when model validation failed in some way
     """
     def __init__(self, messages):
-        self.messages = messages
+        if not isinstance(messages, (tuple, list)):
+            messages = [messages]
+
+        self.messages = tuple(messages)
 
     _message = None
 
@@ -225,6 +228,9 @@ class Model(object, metaclass=ModelMeta):
         Validate the model fields to make sure they are sane. Raises
         ValidationError on failure
         """
+        if not self.slug:
+            raise ValidationError('Slug can not be blank')
+
         return True
 
     def from_yaml(self, data):
