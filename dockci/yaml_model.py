@@ -8,6 +8,32 @@ import os
 from yaml import safe_load as yaml_load, dump as yaml_dump
 
 
+class ValidationError(Exception):
+    """
+    Raised when model validation failed in some way
+    """
+    def __init__(self, messages):
+        self.messages = messages
+
+    _message = None
+
+    @property
+    def message(self):
+        """
+        Get a single display message from the list of messages provided
+        """
+        if self._message is None:
+            self._message = "\n".join(self.messages)
+
+        return self._message
+
+    def __add__(self, other):
+        if isinstance(other, ValidationError):
+            return ValidationError(self.messages + other.messages)
+
+        return super(self, ValidationError).__add__(other)
+
+
 class NoValueError(Exception):
     """
     Raised when a field has no value, no generator and no default
@@ -176,10 +202,13 @@ class Model(object, metaclass=ModelMeta):
             data = yaml_load(handle)
             self.from_dict(data)
 
-    def save(self, data_file=None):
+    def save(self, data_file=None, force=False):
         """
         Save the job data
         """
+        if not force:  # if forced, validation is unnecessary
+            self.validate()
+
         if data_file is None:
             data_file_path = self.data_file_path()
             data_file = os.path.join(*data_file_path)
@@ -190,6 +219,13 @@ class Model(object, metaclass=ModelMeta):
         yaml_data = self.as_yaml()
         with open(data_file, 'w') as handle:
             handle.write(yaml_data)
+
+    def validate(self):
+        """
+        Validate the model fields to make sure they are sane. Raises
+        ValidationError on failure
+        """
+        return True
 
     def from_yaml(self, data):
         """
