@@ -22,6 +22,7 @@ from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP
 from dockci.util import is_valid_github, DateTimeEncoder
+from dockci.yaml_model import ValidationError
 
 
 @APP.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))
@@ -68,10 +69,17 @@ def build_new_view(job_slug):
                               request.headers['X-Github-Event'])
                 abort(501)
 
-            build.save()
-            build.queue()
+            try:
+                build.save()
+                build.queue()
 
-            return build_url, 201
+                return build_url, 201
+
+            except ValidationError as ex:
+                logging.exception("GitHub hook error")
+                return json.dumps({
+                    'errors': ex.messages,
+                }), 400
 
         else:
             build.commit = request.form['commit']
@@ -80,11 +88,16 @@ def build_new_view(job_slug):
                 flash(u"Invalid git commit hash", 'danger')
                 return render_template('build_new.html', build=build)
 
-            build.save()
-            build.queue()
+            try:
+                build.save()
+                build.queue()
 
-            flash(u"Build queued", 'success')
-            return redirect(build_url, 303)
+                flash(u"Build queued", 'success')
+                return redirect(build_url, 303)
+
+            except ValidationError as ex:
+                flash(ex.messages, 'danger')
+
 
     return render_template('build_new.html', build=Build(job=job))
 
