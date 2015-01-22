@@ -22,19 +22,22 @@ def config_edit_view():
     """
     View to edit global config
     """
-    fields = (
+    restart_fields = (
         'secret',
         'docker_use_env_vars', 'docker_host',
         'mail_host_string', 'mail_use_tls',
         'mail_use_ssl', 'mail_username', 'mail_password', 'mail_default_sender'
     )
+    all_fields = restart_fields + (
+        'docker_use_registry', 'docker_registry',
+    )
     restart_needed = any((
         attr in request.form and request.form[attr] != getattr(CONFIG, attr)
-        for attr in fields
+        for attr in restart_fields
     ))
     if restart_needed:
         CONFIG.restart_needed = True
 
-    request_fill(CONFIG, fields)
+    request_fill(CONFIG, all_fields)
 
     return render_template('config_edit.html')
