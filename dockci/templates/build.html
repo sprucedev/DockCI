@@ -214,7 +214,7 @@
             responseLines = responseText.split('\n');
             processedChars = totalLength;
 
-            if (stageData['slug'] === 'docker_build') {
+            if (stageData['slug'] === 'docker_build' || stageData['slug'] === 'docker_push') {
               // Combine the first line with the previous incomplete line
               responseLines[0] = incompleteLineBuffer + responseLines[0];
 

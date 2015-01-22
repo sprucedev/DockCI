@@ -1,6 +1,10 @@
 # Changelog
 
 ## v0.0.3
+- Log level to debug #20
+- Docker registry config options #20
+- Failed/errored builds are cleaned, even when versioned #20
+- Versioned images are pushed to registry #20
 
 ## v0.0.2
 - Streaming console #16
