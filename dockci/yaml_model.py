@@ -20,23 +20,13 @@ class ValidationError(Exception):
 
         self.messages = tuple(messages)
 
-    _message = None
-
-    @property
-    def message(self):
-        """
-        Get a single display message from the list of messages provided
-        """
-        if self._message is None:
-            self._message = "\n".join(self.messages)
-
-        return self._message
+        super(ValidationError, self).__init__("\n".join(self.messages))
 
     def __add__(self, other):
         if isinstance(other, ValidationError):
             return ValidationError(self.messages + other.messages)
 
-        return super(self, ValidationError).__add__(other)
+        return super(ValidationError, self).__add__(other)
 
 
 class NoValueError(Exception):
