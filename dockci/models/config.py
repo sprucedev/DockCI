@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from dockci.util import default_gateway
-from dockci.yaml_model import LoadOnAccess, SingletonModel
+from dockci.yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
 
 def default_docker_host(format_string, local_default=None):
@@ -93,3 +93,32 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             self.mail_username = url.username
         if url.password:
             self.mail_password = url.password
+
+    def validate(self):
+        errors = []
+
+        import docker
+        try:
+            # pylint:disable=unused-variable
+            client = docker.Client(self.docker_host)
+        except docker.errors.DockerException as ex:
+            message, = ex.args  # pylint:disable=unpacking-non-sequence
+            errors.append(message)
+
+        registry_url = urlparse(self.docker_registry)
+        if registry_url.scheme.lower() not in ('http', 'https'):
+            errors.append("Registry URL must be HTTP, or HTTPS")
+
+        invalid_url_parts = (
+            bool(getattr(registry_url, url_part))
+            for url_part
+            in ('path', 'params', 'query', 'fragment')
+        )
+        if any(invalid_url_parts):
+            errors.append("Registry URL can only include scheme, host, "
+                          "and port")
+
+        if errors:
+            raise ValidationError(errors)
+
+        return True
