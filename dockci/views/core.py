@@ -31,13 +31,18 @@ def config_edit_view():
     all_fields = restart_fields + (
         'docker_use_registry', 'docker_registry',
     )
-    restart_needed = any((
-        attr in request.form and request.form[attr] != getattr(CONFIG, attr)
-        for attr in restart_fields
-    ))
-    if restart_needed:
-        CONFIG.restart_needed = True
 
-    request_fill(CONFIG, all_fields)
+    saved = request_fill(CONFIG, all_fields)
+
+    if saved:
+        restart_needed = any((
+            (
+                attr in request.form and
+                request.form[attr] != getattr(CONFIG, attr)
+            )
+            for attr in restart_fields
+        ))
+        if restart_needed:
+            CONFIG.restart_needed = True
 
     return render_template('config_edit.html')

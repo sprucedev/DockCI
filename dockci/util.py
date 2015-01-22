@@ -16,6 +16,8 @@ from ipaddress import ip_address
 
 from flask import flash, request
 
+from dockci.yaml_model import ValidationError
+
 
 def is_yaml_file(filename):
     """
@@ -37,10 +39,17 @@ def request_fill(model_obj, fill_atts, save=True):
             else:
                 setattr(model_obj, att, None)
 
+        # TODO move the flash to views
         if save:
-            model_obj.save()
-            flash(u"%s saved" % model_obj.__class__.__name__.title(),
-                  'success')
+            try:
+                model_obj.save()
+                flash(u"%s saved" % model_obj.__class__.__name__.title(),
+                      'success')
+                return True
+
+            except ValidationError as ex:
+                flash(ex.messages, 'danger')
+                return False
 
 
 def default_gateway():
@@ -127,3 +136,42 @@ def is_semantic(version):
     # TODO maybe this could be a configuable regex for different
     # versioning schemes?  (yyyymmdd for example)
     return re.match(r'^v\d+\.\d+\.\d+$', version) is not None
+
+
+def is_hex_string(value, max_len=None):
+    """
+    Is the value a hex string (only characters 0-f)
+    """
+    if max_len:
+        regex = r'^[a-fA-F0-9]{1,%d}$' % max_len
+    else:
+        regex = r'^[a-fA-F0-9]+$'
+
+    return re.match(regex, value) is not None
+
+
+def is_git_hash(value):
+    """
+    Validate a git commit hash for validity
+    """
+    return is_hex_string(value, 40)
+
+
+def is_docker_id(value):
+    """
+    Validate a Docker Id (image, container) for validity
+    """
+    return is_hex_string(value, 64)
+
+
+def setup_templates(app):
+    """
+    Add util filters/tests/etc to the app's Jinja context
+    """
+    # pylint:disable=unused-variable
+    @app.template_test('an_array')
+    def an_array(val):
+        """
+        Jinja test to see if the value is array-like (tuple, list)
+        """
+        return isinstance(val, (tuple, list))
