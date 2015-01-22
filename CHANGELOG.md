@@ -6,6 +6,8 @@
 - Failed/errored builds are cleaned, even when versioned #20
 - Versioned images are pushed to registry #20
 - Forms are validated for model integrity #21
+- Added auto scroll button to build pages #22
+- Auto scroll off by default #22
 
 ## v0.0.2
 - Streaming console #16
