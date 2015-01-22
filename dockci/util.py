@@ -137,6 +137,33 @@ def is_semantic(version):
     # versioning schemes?  (yyyymmdd for example)
     return re.match(r'^v\d+\.\d+\.\d+$', version) is not None
 
+
+def is_hex_string(value, max_len=None):
+    """
+    Is the value a hex string (only characters 0-f)
+    """
+    if max_len:
+        regex = r'^[a-fA-F0-9]{1,%d}$' % max_len
+    else:
+        regex = r'^[a-fA-F0-9]+$'
+
+    return re.match(regex, value) is not None
+
+
+def is_git_hash(hash):
+    """
+    Validate a git commit hash for validity
+    """
+    return is_hex_string(hash, 40)
+
+
+def is_docker_id(ident):
+    """
+    Validate a Docker Id (image, container) for validity
+    """
+    return is_hex_string(ident, 64)
+
+
 def setup_templates(app):
     """
     Add util filters/tests/etc to the app's Jinja context
