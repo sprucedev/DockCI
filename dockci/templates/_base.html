@@ -51,7 +51,14 @@
     {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
       <ul class="list-group">{% for category, message in messages %}
         <li class="list-group-item list-group-item-{{ category }}" role="alert">
-          <strong>{{ category | title }}!</strong> {{ message }}
+          <strong>{{ category | title }}!</strong>
+          {% if message is an_array %}
+            <ul>{% for line in message %}
+              <li>{{ line }}</li>
+            {% endfor %}</ul>
+          {% else %}
+            {{ message }}
+          {% endif %}
         </li>
       {% endfor %}</ul>
     {% endif %}{% endwith %}

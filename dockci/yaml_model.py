@@ -5,7 +5,28 @@ from Python objects composed of specialized fields
 
 import os
 
+from contextlib import contextmanager
+
 from yaml import safe_load as yaml_load, dump as yaml_dump
+
+
+class ValidationError(Exception):
+    """
+    Raised when model validation failed in some way
+    """
+    def __init__(self, messages):
+        if not isinstance(messages, (tuple, list)):
+            messages = [messages]
+
+        self.messages = tuple(messages)
+
+        super(ValidationError, self).__init__("\n".join(self.messages))
+
+    def __add__(self, other):
+        if isinstance(other, ValidationError):
+            return ValidationError(self.messages + other.messages)
+
+        return super(ValidationError, self).__add__(other)
 
 
 class NoValueError(Exception):
@@ -176,10 +197,13 @@ class Model(object, metaclass=ModelMeta):
             data = yaml_load(handle)
             self.from_dict(data)
 
-    def save(self, data_file=None):
+    def save(self, data_file=None, force=False):
         """
         Save the job data
         """
+        if not force:  # if forced, validation is unnecessary
+            self.validate()
+
         if data_file is None:
             data_file_path = self.data_file_path()
             data_file = os.path.join(*data_file_path)
@@ -190,6 +214,37 @@ class Model(object, metaclass=ModelMeta):
         yaml_data = self.as_yaml()
         with open(data_file, 'w') as handle:
             handle.write(yaml_data)
+
+    def validate(self):
+        """
+        Validate the model fields to make sure they are sane. Raises
+        ValidationError on failure
+        """
+        if not self.slug:
+            raise ValidationError('Slug can not be blank')
+
+        return True
+
+    @contextmanager
+    def parent_validation(self, klass):
+        """
+        Context manager to wrap validation with parent validation and combine
+        ValidationError messages
+        """
+        errors = []
+        for validate in (super(klass, self).validate, None):
+            try:
+                if validate:
+                    validate()
+
+                else:
+                    yield errors
+
+            except ValidationError as ex:
+                errors += list(ex.messages)
+
+        if errors:
+            raise ValidationError(errors)
 
     def from_yaml(self, data):
         """
