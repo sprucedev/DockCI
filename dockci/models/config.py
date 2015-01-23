@@ -9,10 +9,10 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from dockci.util import default_gateway
-from dockci.yaml_model import LoadOnAccess, SingletonModel
+from dockci.yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
 
-def default_docker_host():
+def default_docker_host(format_string, local_default=None):
     """
     Get a default value for the docker_host variable. This will work out
     if DockCI is running in Docker, and try and guess the Docker IP address
@@ -21,9 +21,9 @@ def default_docker_host():
     """
     docker_files = ('/.dockerenv', '/.dockerinit')
     if any(os.path.isfile(filename) for filename in docker_files):
-        return "tcp://{ip}:2375".format(ip=default_gateway())
+        return format_string.format(ip=default_gateway())
 
-    return "unix:///var/run/docker.sock"
+    return local_default
 
 
 class Config(SingletonModel):  # pylint:disable=too-few-public-methods
@@ -37,7 +37,14 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
 
     docker_use_env_vars = LoadOnAccess(default=lambda _: False,
                                        input_transform=bool)
-    docker_host = LoadOnAccess(default=lambda _: default_docker_host())
+    docker_host = LoadOnAccess(default=lambda _: default_docker_host(
+        "tcp://{ip}:2375", "unix:///var/run/docker.sock"
+    ))
+    docker_use_registry = LoadOnAccess(default=lambda _: False,
+                                       input_transform=bool)
+    docker_registry = LoadOnAccess(default=lambda _: default_docker_host(
+        "http://{ip}:5000", "http://127.0.0.1:5000"
+    ))
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")
     mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)
@@ -47,6 +54,22 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     mail_password = LoadOnAccess(default=lambda _: None)
     mail_default_sender = LoadOnAccess(default=lambda _:
                                        "dockci@%s" % socket.gethostname())
+
+    @property
+    def docker_registry_host(self):
+        """
+        Get the hostname portion of the Docker registry
+        """
+        url = urlparse(self.docker_registry)
+        return url.netloc
+
+    @property
+    def docker_registry_insecure(self):
+        """
+        Tell if the Docker registry URL is secure, or insecure
+        """
+        url = urlparse(self.docker_registry)
+        return url.scheme.lower() == 'http'
 
     @property
     def mail_host_string(self):
@@ -70,3 +93,33 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             self.mail_username = url.username
         if url.password:
             self.mail_password = url.password
+
+    def validate(self):
+        with self.parent_validation(Config):
+            errors = []
+
+            import docker
+            try:
+                # pylint:disable=unused-variable
+                client = docker.Client(self.docker_host)
+            except docker.errors.DockerException as ex:
+                message, = ex.args  # pylint:disable=unpacking-non-sequence
+                errors.append(message)
+
+            registry_url = urlparse(self.docker_registry)
+            if registry_url.scheme.lower() not in ('http', 'https'):
+                errors.append("Registry URL must be HTTP, or HTTPS")
+
+            invalid_url_parts = (
+                bool(getattr(registry_url, url_part))
+                for url_part
+                in ('path', 'params', 'query', 'fragment')
+            )
+            if any(invalid_url_parts):
+                errors.append("Registry URL can only include scheme, host, "
+                              "and port")
+
+            if errors:
+                raise ValidationError(errors)
+
+        return True
