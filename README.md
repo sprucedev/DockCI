@@ -69,5 +69,10 @@ All pull requests must completely pass PEP8 and 10/10 with the pylint config
 given. You can check this with `make test` (that's what Travis does too). No
 green CI, no merge!
 
+Make sure you update the CHANGELOG.md with any changes you make, including the
+pull request number so that we can easily track changes between versions.
+You'll obviously need to create the pull request, then update the changelog to
+add the PR number.
+
 If you want to have a talk about ideas, project priorities, etc feel free to
 drop me an email at mail[at]thatpanda.com.

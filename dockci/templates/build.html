@@ -58,6 +58,11 @@
       .stage-panel .panel-heading {
         transition: all 1s;
       }
+      #auto-scroll {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+      }
 
       @-moz-keyframes spin {
         from { -moz-transform: rotate(0deg); }
@@ -107,10 +112,11 @@
 </div>
 <h2>Build Log</h2>
 <div id="build-stages"></div>
+<div id="auto-scroll" class="btn btn-info btn-fab"><i class="mdi-editor-vertical-align-bottom"></i></div>
 <script>
   function dockciBuild() {
     var stageAjaxQueue = {},
-        scrollAnimation = null, maxScroll = 0;
+        scrollEnabled = false, scrollAnimation = null, maxScroll = 0;
 
     function getExistingStageEl(slug) {
       var existing = $('.stage-panel-' + slug);
@@ -143,6 +149,8 @@
       return created
     }
     function scrollToBottom() {
+      if (!scrollEnabled) { return; }
+
       if (maxScroll < $(document).height()) {
           maxScroll = $(document).height();
           if (scrollAnimation !== null) { scrollAnimation.stop(true); }
@@ -217,7 +225,7 @@
             responseLines = responseText.split('\n');
             processedChars = totalLength;
 
-            if (stageData['slug'] === 'docker_build') {
+            if (stageData['slug'] === 'docker_build' || stageData['slug'] === 'docker_push') {
               // Combine the first line with the previous incomplete line
               responseLines[0] = incompleteLineBuffer + responseLines[0];
 
@@ -291,6 +299,14 @@
         }
       });
     }
+
+    $('#auto-scroll').click(function() {
+      var icon = $('i', this)
+      scrollEnabled = ! scrollEnabled;
+      scrollToBottom();
+      icon.toggleClass('mdi-device-data-usage spin', scrollEnabled);
+      icon.toggleClass('mdi-editor-vertical-align-bottom', !scrollEnabled);
+    });
 
     refreshBuildInfo()
   };

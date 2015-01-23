@@ -5,5 +5,5 @@ import logging
 
 from dockci.server import app_init, APP as application
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 app_init()

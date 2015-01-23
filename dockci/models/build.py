@@ -23,8 +23,13 @@ from dockci.exceptions import AlreadyRunError
 from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
 from dockci.server import CONFIG
-from dockci.util import bytes_human_readable, is_semantic, stream_write_status
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess
+from dockci.util import (bytes_human_readable,
+                         is_docker_id,
+                         is_git_hash,
+                         is_semantic,
+                         stream_write_status,
+                         )
+from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 
 
 class BuildStage(object):
@@ -145,6 +150,24 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
     _provisioned_containers = []
 
+    def validate(self):
+        with self.parent_validation(Build):
+            errors = []
+
+            if not self.job:
+                errors.append("Parent job not given")
+            if self.commit and not is_git_hash(self.commit):
+                errors.append("Invalid git commit hash")
+            if self.image_id and not is_docker_id(self.image_id):
+                errors.append("Invalid Docker image ID")
+            if self.container_id and not is_docker_id(self.container_id):
+                errors.append("Invalid Docker container ID")
+
+            if errors:
+                raise ValidationError(errors)
+
+        return True
+
     @property
     def state(self):
         """
@@ -196,6 +219,29 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             if os.path.isfile(path)
         }
 
+    @property
+    def docker_image_name(self):
+        """
+        Get the docker image name, including repository where necessary
+        """
+        if CONFIG.docker_use_registry:
+            return '{host}/{name}'.format(host=CONFIG.docker_registry_host,
+                                          name=self.job_slug)
+
+        return self.job_slug
+
+    @property
+    def docker_full_name(self):
+        """
+        Get the full name of the docker image, including tag, and repository
+        where necessary
+        """
+        if self.version:
+            return '{name}:{tag}'.format(name=self.docker_image_name,
+                                         tag=self.version)
+
+        return self.docker_image_name
+
     def data_file_path(self):
         # Add the job name before the build slug in the path
         data_file_path = super(Build, self).data_file_path()
@@ -241,6 +287,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
                 if not self._run_test():
                     self.result = 'fail'
+                    return False
+
+                # We should fail the build here because if this is a versioned
+                # build, we can't rebuild it
+                if not self._run_push():
+                    self.result = 'error'
                     return False
 
                 self.result = 'success'
@@ -461,13 +513,8 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             return False
 
-        tag = None
+        tag = self.docker_full_name
         if self.version is not None:
-            tag = "%s:%s" % (
-                self.job_slug,
-                self.version,
-            )
-
             existing_image = None
             for image in self.docker_client.images(
                 name=self.job_slug,
@@ -574,6 +621,28 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             start_container,
             on_done=on_done,
         )
+
+    def _run_push(self):
+        """
+        Push the built container to the Docker registry, if versioned and
+        configured
+        """
+        def push_container():
+            """
+            Perform the actual Docker push operation
+            """
+            return self.docker_client.push(
+                self.docker_image_name,
+                tag=self.version,
+                stream=True,
+                insecure_registry=CONFIG.docker_registry_insecure,
+            )
+
+        if self.version and CONFIG.docker_use_registry:
+            return self._run_docker('push', push_container)
+
+        else:
+            return True
 
     def _run_docker(self,
                     docker_stage_slug,
@@ -693,7 +762,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                         )
 
             # Only clean up image if this is an non-versioned build
-            if self.version is None:
+            if self.version is None or self.result in ('error', 'fail'):
                 if self.image_id:
                     with cleanup_context(handle, 'image', self.image_id):
                         self.docker_client.remove_image(self.image_id)
