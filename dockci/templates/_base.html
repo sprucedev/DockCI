@@ -13,6 +13,9 @@
             {%- else -%}mdi-action-help mdi-info
             {%- endif -%}" title="{{ state | title }}"></i>
 {%- endmacro %}
+{% macro git_user(name, email) -%}
+  {{ name }} <small>&lt;{{ email }}&gt;</small>
+{%- endmacro %}
 
 <html lang="en">
 <head>
