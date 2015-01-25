@@ -12,6 +12,7 @@ collectstatic: htmldeps
 	cp bower_components/bootstrap-material-design/dist/fonts/Material-Design-Icons.ttf dockci/static/lib/fonts
 
 	cp bower_components/ansi_up/ansi_up.js dockci/static/lib/js
+	cp bower_components/blueimp-md5/js/md5.min.js dockci/static/lib/js
 	cp bower_components/bootstrap/js/tab.js dockci/static/lib/js
 	cp bower_components/bootstrap-material-design/dist/js/material.min.js dockci/static/lib/js
 	cp bower_components/bootstrap-material-design/dist/js/ripples.min.js dockci/static/lib/js

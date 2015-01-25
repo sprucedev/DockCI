@@ -14,7 +14,7 @@
             {%- endif -%}" title="{{ state | title }}"></i>
 {%- endmacro %}
 {% macro git_user(name, email) -%}
-  {{ name }} <small>&lt;{{ email }}&gt;</small>
+  <span class="git-user"><span class="git-user-name">{{ name }}</span> <small class="git-user-email">&lt;{{ email }}&gt;</small></span>
 {%- endmacro %}
 
 <html lang="en">
@@ -31,8 +31,22 @@
   <script src="/static/lib/js/jquery.min.js"></script>
   <script src="/static/lib/js/tab.js"></script>
   <script src="/static/lib/js/ansi_up.js"></script>
+  <script src="/static/lib/js/md5.min.js"></script>
   <script src="/static/lib/js/material.min.js"></script>
   <script src="/static/lib/js/ripples.min.js"></script>
+
+  <style>
+    .git-user {
+      margin-top: -10px;
+      margin-bottom: -10px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+
+      padding-left: 45px;
+      background-repeat: no-repeat;
+      background-position: left center;
+    }
+  </style>
 </head>
 
 <body>
@@ -89,6 +103,31 @@
       });
       return valid;
     });
+  </script>
+  <script>
+    $(document).ready(function (){
+      // GRAVATARS
+      function gravatarUrl(email, size) {
+        var hash = md5(email.trim().toLowerCase());
+        return 'https://secure.gravatar.com/avatar/' + hash + '?d=mm&s=' + size
+      }
+      $('.git-user-email').each(function(idx, el) {
+        var lineHeight = $(el).height(),
+            emailAddress = $(el).text(),
+            emailStartIdx, emailEndIdx, imageUrl;
+
+        emailStartIdx = emailAddress.startsWith('<') ? 1 : 0;
+        emailEndIdx = emailAddress.endsWith('>') ? -1 : 0;
+        if (emailStartIdx || emailEndIdx) {
+          emailAddress = emailAddress.slice(emailStartIdx,
+                                            emailAddress.length + emailEndIdx)
+        }
+
+        imageUrl =  gravatarUrl(emailAddress, lineHeight + 20);  // 20 is CSS extra
+
+        el.parentElement.style.backgroundImage = "url('" + imageUrl + "')";
+      })
+    })
   </script>
 </body>
 </html>
