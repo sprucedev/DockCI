@@ -8,6 +8,7 @@
 - Forms are validated for model integrity #21
 - Added auto scroll button to build pages #22
 - Auto scroll off by default #22
+- Console line splitting fixed #23
 
 ## v0.0.2
 - Streaming console #16
