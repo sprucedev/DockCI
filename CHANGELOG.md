@@ -12,6 +12,8 @@
 - Version, and author info on builds list pages #24
 - Add gravatars for git author/committer #25
 - UI check boxes themed #27
+- Add builds filter for only stable releases #28
+- Remove Python2 dependency #28
 
 ## v0.0.2
 - Streaming console #16
