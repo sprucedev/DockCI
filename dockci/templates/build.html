@@ -21,11 +21,11 @@
     </div>
     {% if build.git_author_name or build.git_author_email %}<div class="form-group">
       <label class="col-sm-2 control-label">Author</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ build.git_author_name }} <small>&lt;{{ build.git_author_email }}&gt;</small></div>
+      <div class="col-sm-10"><p class="form-control-static">{{ git_user(build.git_author_name, build.git_author_email) }}</div>
     </div>{% endif %}
     {% if (build.git_committer_name or build.git_committer_email) and (build.git_committer_name != build.git_author_name or build.git_committer_email != build.git_author_email) %}<div class="form-group">
       <label class="col-sm-2 control-label">Committer</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ build.git_committer_name }} <small>&lt;{{ build.git_committer_email }}&gt;</small></div>
+      <div class="col-sm-10"><p class="form-control-static">{{ git_user(build.git_committer_name, build.git_committer_email) }}</div>
     </div>{% endif %}
     {% if build.version %}<div class="form-group">
       <label class="col-sm-2 control-label">Version</label>
