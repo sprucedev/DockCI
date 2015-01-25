@@ -10,7 +10,6 @@ import subprocess
 import tempfile
 
 from datetime import datetime
-from uuid import uuid1
 
 import docker
 import docker.errors
@@ -120,7 +119,8 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         if slug:
             self.slug = slug
 
-    slug = OnAccess(lambda _: str(uuid1()))
+    slug = OnAccess(lambda _: hex(int(datetime.now().timestamp() * 10000))[2:])
+    previous_build_slug = OnAccess(lambda _: None)
     job = OnAccess(lambda self: Job(self.job_slug))
     job_slug = OnAccess(lambda self: self.job.slug)  # TODO infinite loop
     create_ts = LoadOnAccess(generate=lambda _: datetime.now())
@@ -392,6 +392,14 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     handle.write((
                         "%s is %s\n" % (display_name, value)
                     ).encode())
+
+            ancestor_build = self.job.latest_build_ancestor(workdir,
+                                                            self.commit)
+            if ancestor_build:
+                properties_empty = False
+                handle.write((
+                    "Ancestor build is %s\n" % ancestor_build.slug
+                ).encode())
 
             if properties_empty:
                 handle.write("No information about the git commit could be "
