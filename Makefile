@@ -33,7 +33,9 @@ test: styletest
 
 # Container commands
 ci: test
-run:
+migrate:
+	@python_env/bin/python -m dockci.migrations.run
+run: migrate
 	@python_env/bin/gunicorn --workers 20 --timeout 0 --bind 0.0.0.0:5000 --preload wsgi
 sh:
 	@sh
