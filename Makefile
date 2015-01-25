@@ -22,7 +22,7 @@ htmldeps:
 	npm install
 	node_modules/bower/bin/bower --allow-root install
 pythondeps:
-	virtualenv -p $(shell which python3.4) python_env
+	python3.4 -m virtualenv -p $(shell which python3.4) python_env
 	python_env/bin/pip install -r requirements.txt
 deps: htmldeps pythondeps collectstatic
 
