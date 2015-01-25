@@ -168,11 +168,18 @@
         panelEl.toggleClass('panel-info panel-danger');
 
       } else if ('stream' in obj) {
-        logEl.append(
-          '<div class="docker-log-stream">' +
-          ansi_up.ansi_to_html(obj['stream']) +
-          '</div>'
-        );
+
+        lineEl = $('.docker-log-stream:last', logEl);
+        if (lineEl.length === 0) {
+          lineEl = $('<div class="docker-log-stream"></div>');
+          logEl.append(lineEl);
+        }
+
+        lineEl.html(lineEl.html() + ansi_up.ansi_to_html(obj['stream']));
+
+        if (obj['stream'].endsWith('\n')) {
+          logEl.append('<div class="docker-log-stream"></div>');
+        }
 
       } else if ('id' in obj) {
         idRow = $('.docker-log-' + obj['id'], logEl);
