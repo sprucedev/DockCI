@@ -242,6 +242,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         return self.docker_image_name
 
+    @property
+    def is_stable_release(self):
+      """
+      Check if this is a successfully run, versioned build
+      """
+      return self.result == 'success' and self.version is not None
+
     def data_file_path(self):
         # Add the job name before the build slug in the path
         data_file_path = super(Build, self).data_file_path()
