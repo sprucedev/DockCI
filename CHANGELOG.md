@@ -10,6 +10,7 @@
 - Auto scroll off by default #22
 - Console line splitting fixed #23
 - Version, and author info on builds list pages #24
+- Add gravatars for git author/committer #25
 
 ## v0.0.2
 - Streaming console #16
