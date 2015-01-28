@@ -6,7 +6,6 @@ import json
 import logging
 import mimetypes
 import os.path
-# import re
 import select
 
 from flask import (abort,
