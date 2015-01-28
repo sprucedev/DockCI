@@ -24,7 +24,6 @@ from dockci.models.job import Job
 from dockci.server import CONFIG
 from dockci.util import (bytes_human_readable,
                          is_docker_id,
-                         is_git_hash,
                          is_semantic,
                          stream_write_status,
                          )
@@ -155,9 +154,6 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             if not self.job:
                 errors.append("Parent job not given")
-# Don't validate hash here - don't know it yet
-#            if self.commit and not is_git_hash(self.commit):
-#                errors.append("Invalid git commit hash")
             if self.image_id and not is_docker_id(self.image_id):
                 errors.append("Invalid Docker image ID")
             if self.container_id and not is_docker_id(self.container_id):
@@ -543,6 +539,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 # Delete existing builds of _non-versioned_ tagged code
                 # (allows replacement of images)
                 else:
+                    # TODO it would be nice to inform the user of this action
                     try:
                         self.docker_client.remove_image(
                             image=existing_image['Id'],

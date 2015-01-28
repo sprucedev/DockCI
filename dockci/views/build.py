@@ -23,7 +23,6 @@ from dockci.models.job import Job
 from dockci.server import APP
 from dockci.util import (is_valid_github,
                          DateTimeEncoder,
-                         is_semantic,
                          )
 from dockci.yaml_model import ValidationError
 
@@ -86,12 +85,6 @@ def build_new_view(job_slug):
 
         else:
             build.commit = request.form['commit']
-
-            # If we don't verify the commit ID, then this enables the use
-            # of tags... https://trello.com/c/cs4TkIdT
-            # if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
-            #     flash(u"Invalid git commit hash", 'danger')
-            #     return render_template('build_new.html', build=build)
 
             try:
                 build.save()
