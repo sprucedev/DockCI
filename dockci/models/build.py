@@ -128,7 +128,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     result = LoadOnAccess(default=lambda _: None)
     repo = LoadOnAccess(generate=lambda self: self.job.repo)
     commit = LoadOnAccess(default=lambda _: None)
-    version = LoadOnAccess(default=lambda _: None)
+    tag = LoadOnAccess(default=lambda _: None)
     image_id = LoadOnAccess(default=lambda _: None)
     container_id = LoadOnAccess(default=lambda _: None)
     exit_code = LoadOnAccess(default=lambda _: None)
@@ -155,8 +155,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             if not self.job:
                 errors.append("Parent job not given")
-            if self.commit and not is_git_hash(self.commit):
-                errors.append("Invalid git commit hash")
+# Don't validate hash here - don't know it yet
+#            if self.commit and not is_git_hash(self.commit):
+#                errors.append("Invalid git commit hash")
             if self.image_id and not is_docker_id(self.image_id):
                 errors.append("Invalid Docker image ID")
             if self.container_id and not is_docker_id(self.container_id):
@@ -235,18 +236,18 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         Get the full name of the docker image, including tag, and repository
         where necessary
         """
-        if self.version:
+        if self.tag:
             return '{name}:{tag}'.format(name=self.docker_image_name,
-                                         tag=self.version)
+                                         tag=self.tag)
 
         return self.docker_image_name
 
     @property
     def is_stable_release(self):
         """
-        Check if this is a successfully run, versioned build
+        Check if this is a successfully run, tagged build
         """
-        return self.result == 'success' and self.version is not None
+        return self.result == 'success' and self.tag is not None
 
     def data_file_path(self):
         # Add the job name before the build slug in the path
@@ -295,7 +296,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     self.result = 'fail'
                     return False
 
-                # We should fail the build here because if this is a versioned
+                # We should fail the build here because if this is a tagged
                 # build, we can't rebuild it
                 if not self._run_push():
                     self.result = 'error'
@@ -375,6 +376,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 'Author email': ('git_author_email', '%ae'),
                 'Committer name': ('git_committer_name', '%cn'),
                 'Committer email': ('git_committer_email', '%ce'),
+                'Full SHA-1 hash': ('commit', '%H'),
             }
             for display_name, (attr_name, format_string) in properties.items():
                 proc = run_proc('git', 'show',
@@ -423,7 +425,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             with open(data_file_path, 'r') as handle:
                 line = handle.readline().strip()
                 if line:
-                    self.version = line
+                    self.tag = line
                     self.save()
 
         except KeyError:
@@ -520,7 +522,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             return False
 
         tag = self.docker_full_name
-        if self.version is not None:
+        if self.tag is not None:
             existing_image = None
             for image in self.docker_client.images(
                 name=self.job_slug,
@@ -531,10 +533,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
             if existing_image is not None:
                 # Do not override existing builds of _versioned_ tagged code
-                if is_semantic(self.version):
+                if is_semantic(self.tag):
                     raise AlreadyBuiltError(
                         'Version %s of %s already built' % (
-                            self.version,
+                            self.tag,
                             self.job_slug,
                         )
                     )
@@ -550,7 +552,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                         pass
 
         # Don't use the docker caches if a version tag is defined
-        no_cache = (self.version is not None)
+        no_cache = (self.tag is not None)
 
         return self._run_docker(
             'build',
@@ -639,12 +641,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             """
             return self.docker_client.push(
                 self.docker_image_name,
-                tag=self.version,
+                tag=self.tag,
                 stream=True,
                 insecure_registry=CONFIG.docker_registry_insecure,
             )
 
-        if self.version and CONFIG.docker_use_registry:
+        if self.tag and CONFIG.docker_use_registry:
             return self._run_docker('push', push_container)
 
         else:
@@ -767,8 +769,8 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                             force=True,
                         )
 
-            # Only clean up image if this is an non-versioned build
-            if self.version is None or self.result in ('error', 'fail'):
+            # Only clean up image if this is an non-tagged build
+            if self.tag is None or self.result in ('error', 'fail'):
                 if self.image_id:
                     with cleanup_context(handle, 'image', self.image_id):
                         self.docker_client.remove_image(self.image_id)
