@@ -8,14 +8,31 @@
   </span>
 {% endblock %}
 {% block content %}
-
-<table class="table table-striped">
-  <tr><th>Created</th><th>Git reference</th><th>State</th></tr>
-  {% for build in job.builds | sort(attribute='create_ts', reverse=True) %}<tr>
-    <td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.create_ts }}</a></td>
-    <td>{{ build.commit }}</td>
-    <td>{{ build_state_glyph(build.state) }}</td>
-  </tr>{% endfor %}
+<div class="checkbox"><label>
+  <input id="filterStable" type="checkbox">Only stable releases
+</label></div>
+<table id="builds-list" class="table table-striped">
+  <tr><th>Created</th><th>Git reference</th><th>Version</th><th>Author</th><th>State</th></tr>
+  {% for build in job.builds | sort(attribute='create_ts', reverse=True) -%}
+    <tr class="build-detail {{ 'stable-release' if build.is_stable_release else '' }}">
+      <td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.create_ts }}</a></td>
+      <td>{{ build.commit }}</td>
+      <td>{{ build.version if build.version else '' }}</td>
+      <td>{{ git_user(build.git_author_name, build.git_author_email) if build.git_author_name or build.git_author_email else ''}}</td>
+      <td>{{ build_state_glyph(build.state) }}</td>
+    </tr>
+  {%- endfor %}
 </table>
-
+<script>
+  $(document).ready(function() {
+    var unstableBuilds = $('.build-detail:not(.stable-release)');
+    $('#filterStable').change(function(ev) {
+      if (ev.target.checked) {
+        unstableBuilds.hide();
+      } else {
+        unstableBuilds.show();
+      }
+    })
+  })
+</script>
 {% endblock %}

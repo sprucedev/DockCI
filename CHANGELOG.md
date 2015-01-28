@@ -8,6 +8,14 @@
 - Forms are validated for model integrity #21
 - Added auto scroll button to build pages #22
 - Auto scroll off by default #22
+- Console line splitting fixed #23
+- Version, and author info on builds list pages #24
+- Add gravatars for git author/committer #25
+- UI check boxes themed #27
+- Add builds filter for only stable releases #28
+- Remove Python2 dependency #28
+- Add data migrations that occur on run #29
+- Change build slugs from UUID1 to a hex string of create_ts values #29
 
 ## v0.0.2
 - Streaming console #16

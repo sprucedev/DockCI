@@ -2,7 +2,9 @@ language: python
 python:
   - "3.4"
 
-install: make deps
+install:
+  - pip3 install virtualenv
+  - make deps
 script: make test
 notifications:
   webhooks:
