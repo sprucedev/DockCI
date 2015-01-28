@@ -12,6 +12,7 @@ collectstatic: htmldeps
 	cp bower_components/bootstrap-material-design/dist/fonts/Material-Design-Icons.ttf dockci/static/lib/fonts
 
 	cp bower_components/ansi_up/ansi_up.js dockci/static/lib/js
+	cp bower_components/blueimp-md5/js/md5.min.js dockci/static/lib/js
 	cp bower_components/bootstrap/js/tab.js dockci/static/lib/js
 	cp bower_components/bootstrap-material-design/dist/js/material.min.js dockci/static/lib/js
 	cp bower_components/bootstrap-material-design/dist/js/ripples.min.js dockci/static/lib/js
@@ -21,7 +22,7 @@ htmldeps:
 	npm install
 	node_modules/bower/bin/bower --allow-root install
 pythondeps:
-	virtualenv -p $(shell which python3.4) python_env
+	python3.4 -m virtualenv -p $(shell which python3.4) python_env
 	python_env/bin/pip install -r requirements.txt
 deps: htmldeps pythondeps collectstatic
 
@@ -32,7 +33,9 @@ test: styletest
 
 # Container commands
 ci: test
-run:
+migrate:
+	@python_env/bin/python -m dockci.migrations.run
+run: migrate
 	@python_env/bin/gunicorn --workers 20 --timeout 0 --bind 0.0.0.0:5000 --preload wsgi
 sh:
 	@sh
