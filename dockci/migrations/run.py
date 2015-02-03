@@ -16,7 +16,8 @@ def main():
         data_version = -1
 
     migrations_dir = os.path.dirname(os.path.realpath(__file__))
-    for filename in os.listdir(migrations_dir):
+    migrations_list = sorted(os.listdir(migrations_dir))
+    for filename in migrations_list:
         try:
             migration_number = int(filename[0:-3])
 
