@@ -16,7 +16,8 @@
       <div class="col-sm-10"><p class="form-control-static">{{ build.repo }}</p></div>
     </div>
     <div class="form-group">
-      <label class="col-sm-2 control-label">Commit</label>
+      <!-- This will update to a full hash after the git_info stage -->
+      <label class="col-sm-2 control-label">Commit ref</label>
       <div class="col-sm-10"><p class="form-control-static">{{ build.commit }}</p></div>
     </div>
     {% if build.git_author_name or build.git_author_email %}<div class="form-group">
@@ -27,9 +28,9 @@
       <label class="col-sm-2 control-label">Committer</label>
       <div class="col-sm-10"><p class="form-control-static">{{ git_user(build.git_committer_name, build.git_committer_email) }}</div>
     </div>{% endif %}
-    {% if build.version %}<div class="form-group">
-      <label class="col-sm-2 control-label">Version</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ build.version }}</p></div>
+    {% if build.tag %}<div class="form-group">
+      <label class="col-sm-2 control-label">Tag</label>
+      <div class="col-sm-10"><p class="form-control-static">{{ build.tag }}</p></div>
     </div>{% endif %}
     {% if build.image_id %}<div class="form-group">
       <label class="col-sm-2 control-label">Image ID</label>

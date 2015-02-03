@@ -67,7 +67,7 @@ class Job(Model):  # pylint:disable=too-few-public-methods
             build_passed = lambda: build.result == 'success'  # lazy load
             if passed is not None and build_passed() != passed:
                 continue
-            if versioned is not None and build.version is None:
+            if versioned is not None and build.tag is None:
                 continue
 
             return build

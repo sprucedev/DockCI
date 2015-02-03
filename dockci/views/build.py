@@ -6,7 +6,6 @@ import json
 import logging
 import mimetypes
 import os.path
-import re
 import select
 
 from flask import (abort,
@@ -21,7 +20,9 @@ from flask import (abort,
 from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP
-from dockci.util import is_valid_github, DateTimeEncoder
+from dockci.util import (is_valid_github,
+                         DateTimeEncoder,
+                         )
 from dockci.yaml_model import ValidationError
 
 
@@ -83,10 +84,6 @@ def build_new_view(job_slug):
 
         else:
             build.commit = request.form['commit']
-
-            if not re.match(r'[a-fA-F0-9]{1,40}', request.form['commit']):
-                flash(u"Invalid git commit hash", 'danger')
-                return render_template('build_new.html', build=build)
 
             try:
                 build.save()
