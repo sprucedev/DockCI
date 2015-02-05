@@ -440,7 +440,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         Get a list of changes from git between now and the most recently built
         ancestor
         """
-        if self.ancestor_build:
+        # TODO fix YAML model to return None rather than an empty model so that
+        #      if self.ancestor_build will work
+        if self.has_value('ancestor_build'):
             revision_range_string = '%s..%s' % (self.ancestor_build.commit,
                                                 self.commit)
             self._stage(
