@@ -19,6 +19,7 @@ from docker.utils import kwargs_from_env
 from flask import url_for
 from yaml_model import (LoadOnAccess,
                         Model,
+                        ModelReference,
                         OnAccess,
                         ValidationError,
                         )
@@ -134,6 +135,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     slug = OnAccess(lambda _: hex(int(datetime.now().timestamp() * 10000))[2:])
     job = OnAccess(lambda self: Job(self.job_slug))
     job_slug = OnAccess(lambda self: self.job.slug)  # TODO infinite loop
+    ancestor_build = ModelReference(lambda self: Build(
+        self.job,
+        self.ancestor_build_slug
+    ), default=lambda _: None)
     create_ts = LoadOnAccess(generate=lambda _: datetime.now())
     start_ts = LoadOnAccess(default=lambda _: None)
     complete_ts = LoadOnAccess(default=lambda _: None)
@@ -402,6 +407,15 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                     handle.write((
                         "%s is %s\n" % (display_name, value)
                     ).encode())
+
+            ancestor_build = self.job.latest_build_ancestor(workdir,
+                                                            self.commit)
+            if ancestor_build:
+                properties_empty = False
+                handle.write((
+                    "Ancestor build is %s\n" % ancestor_build.slug
+                ).encode())
+                self.ancestor_build = ancestor_build
 
             if properties_empty:
                 handle.write("No information about the git commit could be "
