@@ -81,6 +81,8 @@ class BuildStage(object):
                 # TODO escape args
                 handle.write(bytes(">CWD %s\n" % cwd, 'utf8'))
                 handle.write(bytes(">>>> %s\n" % cmd_args_single, 'utf8'))
+                handle.flush()
+
                 proc = subprocess.Popen(cmd_args_single,
                                         cwd=cwd,
                                         stdout=handle,
@@ -89,7 +91,13 @@ class BuildStage(object):
                 return proc.returncode
 
             if isinstance(cmd_args[0], (tuple, list)):
+                first_command = True
                 for cmd_args_single in cmd_args:
+                    if first_command:
+                        first_command = False
+                    else:
+                        handle.write("\n".encode())
+
                     returncode = run_one_cmd(cmd_args_single)
                     if returncode != 0:
                         return returncode
