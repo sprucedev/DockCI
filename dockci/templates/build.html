@@ -290,11 +290,11 @@
                 lastLine.text(lastLine.text() + lineCompletion);
               }
               $.each(responseLines, function(idx, value) {
-                logEl.append($(
-                  '<div class="docker-log-stream">' +
-                  ansi_up.ansi_to_html(value) +
-                  '</div>'
-                ));
+                content = ansi_up.ansi_to_html(value);
+                if (content === '') {
+                    content = '&nbsp;';
+                }
+                logEl.append($('<div>' + content + '</div>'));
               })
             }
 
