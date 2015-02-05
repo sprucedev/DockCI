@@ -17,6 +17,9 @@
 - Add data migrations that occur on run #29
 - Change build slugs from UUID1 to a hex string of create_ts values #29
 - Take a tag reference instead of a hash #19
+- Fix command output ordering in stage log #32
+- When build stages are clicked, they roll up #34
+- When build stages are complete, they roll up unless "important" #34
 
 ## v0.0.2
 - Streaming console #16
