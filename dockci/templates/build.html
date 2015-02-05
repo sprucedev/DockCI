@@ -32,6 +32,12 @@
       <label class="col-sm-2 control-label">Tag</label>
       <div class="col-sm-10"><p class="form-control-static">{{ build.tag }}</p></div>
     </div>{% endif %}
+    {% if build.has_value('ancestor_build_slug') %}<div class="form-group">
+      <label class="col-sm-2 control-label">Previous build</label>
+      <div class="col-sm-10"><p class="form-control-static">
+        <a href="/jobs/{{ build.job.slug }}/builds/{{ build.ancestor_build.slug }}">{{ build.ancestor_build_slug }}</a>
+      </p></div>
+    </div>{% endif %}
     {% if build.image_id %}<div class="form-group">
       <label class="col-sm-2 control-label">Image ID</label>
       <div class="col-sm-10"><p class="form-control-static">{{ build.image_id }}</p></div>

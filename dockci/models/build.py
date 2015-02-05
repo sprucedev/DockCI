@@ -3,6 +3,7 @@ DockCI - CI, but with that all important Docker twist
 """
 
 import json
+import logging
 import os
 import os.path
 import re
@@ -16,6 +17,12 @@ import docker.errors
 
 from docker.utils import kwargs_from_env
 from flask import url_for
+from yaml_model import (LoadOnAccess,
+                        Model,
+                        ModelReference,
+                        OnAccess,
+                        ValidationError,
+                        )
 
 from dockci.exceptions import AlreadyBuiltError
 from dockci.exceptions import AlreadyRunError
@@ -27,7 +34,6 @@ from dockci.util import (bytes_human_readable,
                          is_semantic,
                          stream_write_status,
                          )
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 
 
 class BuildStage(object):
@@ -129,6 +135,10 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     slug = OnAccess(lambda _: hex(int(datetime.now().timestamp() * 10000))[2:])
     job = OnAccess(lambda self: Job(self.job_slug))
     job_slug = OnAccess(lambda self: self.job.slug)  # TODO infinite loop
+    ancestor_build = ModelReference(lambda self: Build(
+        self.job,
+        self.ancestor_build_slug
+    ), default=lambda _: None)
     create_ts = LoadOnAccess(generate=lambda _: datetime.now())
     start_ts = LoadOnAccess(default=lambda _: None)
     complete_ts = LoadOnAccess(default=lambda _: None)
@@ -139,7 +149,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     image_id = LoadOnAccess(default=lambda _: None)
     container_id = LoadOnAccess(default=lambda _: None)
     exit_code = LoadOnAccess(default=lambda _: None)
-    build_stage_slugs = LoadOnAccess(default=lambda _: [])
+    build_stage_slugs = LoadOnAccess(generate=lambda _: [])
     build_stages = OnAccess(lambda self: [
         BuildStage(slug=slug, build=self)
         for slug
@@ -151,6 +161,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                                       self.git_author_name)
     git_committer_email = LoadOnAccess(default=lambda self:
                                        self.git_author_email)
+    git_changes = LoadOnAccess(default=lambda _: None)
     # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
 
@@ -288,6 +299,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 pre_build = (stage() for stage in (
                     lambda: self._run_prep_workdir(workdir),
                     lambda: self._run_git_info(workdir),
+                    lambda: self._run_git_changes(workdir),
                     lambda: self._run_tag_version(workdir),
                     lambda: self._run_provision(workdir),
                     lambda: self._run_build(workdir),
@@ -336,9 +348,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         stage = self._stage(
             'git_prepare', workdir=workdir,
-            cmd_args=(['git', 'clone', self.repo, workdir],
-                      ['git', 'checkout', self.commit],
-                      )
+            cmd_args=(
+                ['git', 'clone', self.repo, workdir],
+                ['git',
+                 '-c', 'advice.detachedHead=false',
+                 'checkout', self.commit
+                 ],
+            )
         )
         result = stage.returncode == 0
 
@@ -398,6 +414,15 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                         "%s is %s\n" % (display_name, value)
                     ).encode())
 
+            ancestor_build = self.job.latest_build_ancestor(workdir,
+                                                            self.commit)
+            if ancestor_build:
+                properties_empty = False
+                handle.write((
+                    "Ancestor build is %s\n" % ancestor_build.slug
+                ).encode())
+                self.ancestor_build = ancestor_build
+
             if properties_empty:
                 handle.write("No information about the git commit could be "
                              "derived\n".encode())
@@ -409,6 +434,27 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         stage = self._stage('git_info', workdir=workdir, runnable=runnable)
         return stage.returncode == 0
+
+    def _run_git_changes(self, workdir):
+        """
+        Get a list of changes from git between now and the most recently built
+        ancestor
+        """
+        # TODO fix YAML model to return None rather than an empty model so that
+        #      if self.ancestor_build will work
+        if self.has_value('ancestor_build'):
+            revision_range_string = '%s..%s' % (self.ancestor_build.commit,
+                                                self.commit)
+            self._stage(
+                'git_changes',
+                workdir=workdir,
+                cmd_args=['git',
+                          '-c', 'color.ui=always',
+                          'log', revision_range_string
+                          ]
+            )
+
+        return True  # Result is irrelevant
 
     def _run_tag_version(self, workdir):
         """
@@ -814,8 +860,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         else:
             stage = BuildStage(slug=stage_slug, build=self, runnable=runnable)
 
+        logging.getLogger('dockci.build.stages').debug(
+            "Starting '%s' build stage for build '%s'", stage_slug, self.slug
+        )
+
         self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
         self.save()
+
         stage.run()
         return stage
 
