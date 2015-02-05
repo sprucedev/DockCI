@@ -144,7 +144,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     image_id = LoadOnAccess(default=lambda _: None)
     container_id = LoadOnAccess(default=lambda _: None)
     exit_code = LoadOnAccess(default=lambda _: None)
-    build_stage_slugs = LoadOnAccess(default=lambda _: [])
+    build_stage_slugs = LoadOnAccess(generate=lambda _: [])
     build_stages = OnAccess(lambda self: [
         BuildStage(slug=slug, build=self)
         for slug
