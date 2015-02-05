@@ -18,6 +18,7 @@
 - Change build slugs from UUID1 to a hex string of create_ts values #29
 - Take a tag reference instead of a hash #19
 - Fix command output ordering in stage log #32
+- Non-existent objects correctly 404 #33
 - When build stages are clicked, they roll up #34
 - When build stages are complete, they roll up unless "important" #34
 
