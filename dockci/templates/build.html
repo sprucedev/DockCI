@@ -56,6 +56,20 @@
       .stage-panel .panel-heading {
         transition: all 1s;
       }
+      .panel-contracted .panel-body {
+        display: none;
+        overflow: scroll;
+      }
+      .stage-panel .expand-toggle:before {
+        /* TODO SASS include mdi icon */
+        content: '-';
+        width: 1em;
+        display: inline-block;
+      }
+      .panel-contracted .expand-toggle:before {
+        /* TODO SASS include mdi icon */
+        content: '+';
+      }
       #auto-scroll {
         position: fixed;
         bottom: 20px;
@@ -114,7 +128,13 @@
 <script>
   function dockciBuild() {
     var stageAjaxQueue = {},
+        importantPanels = ['docker_build', 'docker_ci', 'error']
         scrollEnabled = false, scrollAnimation = null, maxScroll = 0;
+
+    // Turn panel slugs into classes
+    $.each(importantPanels, function(idx, slug) {
+      importantPanels[idx] = 'stage-panel-' + slug;
+    })
 
     function getExistingStageEl(slug) {
       var existing = $('.stage-panel-' + slug);
@@ -131,12 +151,33 @@
             .addClass('panel-heading')
             .text(slug)
             .append(
+              $('<i></i>').addClass('expand-toggle pull-right').hide()
+            )
+            .append(
               $('<i></i>').addClass('loading mdi-device-data-usage spin pull-right')
             )
         )
+        .click(function(ev) {
+          $(ev.currentTarget).toggleClass('panel-contracted');
+        })
         .append(
           $('<pre></pre>').addClass('panel-body stage-log')
         );
+
+      // Contract unimportant panels
+      $('.stage-panel').each(function(idx, el) {
+        var isImportant = false;
+        el = $(el)
+        $.each(importantPanels, function(s_idx, panelClass) {
+          if (el.hasClass(panelClass)) {
+            isImportant = true
+            return false
+          }
+        })
+        if (!isImportant) {
+          el.addClass('panel-contracted');
+        }
+      })
 
       if (idx == 0) {
         $('#build-stages').append(created);
@@ -261,7 +302,8 @@
           }
         },
         complete: function(jqXHR, textStatus) {
-          $('i', stageData['stageEl']).hide();
+          $('i.loading', stageData['stageEl']).hide();
+          $('i.expand-toggle', stageData['stageEl']).show();
           processNextStage();
           refreshBuildInfo();
         },
