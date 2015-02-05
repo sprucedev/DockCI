@@ -20,9 +20,7 @@ from flask import (abort,
 from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP
-from dockci.util import (is_valid_github,
-                         DateTimeEncoder,
-                         )
+from dockci.util import is_valid_github, DateTimeEncoder
 from dockci.yaml_model import ValidationError
 
 
@@ -33,6 +31,8 @@ def build_view(job_slug, build_slug):
     """
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
+    if not build.exists():
+        abort(404)
 
     return render_template('build.html', build=build)
 
@@ -43,6 +43,8 @@ def build_new_view(job_slug):
     View to create a new build
     """
     job = Job(slug=job_slug)
+    if not job.exists():
+        abort(404)
 
     if request.method == 'POST':
         build = Build(job=job)
@@ -105,6 +107,8 @@ def build_output_json(job_slug, build_slug):
     """
     job = Job(slug=job_slug)
     build = Build(job=job, slug=build_slug)
+    if not build.exists():
+        abort(404)
 
     return Response(json.dumps(build.as_dict(),
                                cls=DateTimeEncoder
