@@ -16,6 +16,11 @@ import docker.errors
 
 from docker.utils import kwargs_from_env
 from flask import url_for
+from yaml_model import (LoadOnAccess,
+                        Model,
+                        OnAccess,
+                        ValidationError,
+                        )
 
 from dockci.exceptions import AlreadyBuiltError
 from dockci.exceptions import AlreadyRunError
@@ -27,7 +32,6 @@ from dockci.util import (bytes_human_readable,
                          is_semantic,
                          stream_write_status,
                          )
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 
 
 class BuildStage(object):
