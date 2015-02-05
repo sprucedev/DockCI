@@ -81,6 +81,8 @@ class BuildStage(object):
                 # TODO escape args
                 handle.write(bytes(">CWD %s\n" % cwd, 'utf8'))
                 handle.write(bytes(">>>> %s\n" % cmd_args_single, 'utf8'))
+                handle.flush()
+
                 proc = subprocess.Popen(cmd_args_single,
                                         cwd=cwd,
                                         stdout=handle,
