@@ -91,7 +91,13 @@ class BuildStage(object):
                 return proc.returncode
 
             if isinstance(cmd_args[0], (tuple, list)):
+                first_command = True
                 for cmd_args_single in cmd_args:
+                    if first_command:
+                        first_command = False
+                    else:
+                        handle.write("\n".encode())
+
                     returncode = run_one_cmd(cmd_args_single)
                     if returncode != 0:
                         return returncode
