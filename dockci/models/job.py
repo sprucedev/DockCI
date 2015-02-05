@@ -5,8 +5,9 @@ DockCI - CI, but with that all important Docker twist
 import os
 import os.path
 
-from dockci.util import is_yaml_file
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
+from yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
+
+from dockci.util import is_yaml_file, is_git_ancestor
 
 
 def all_jobs():
@@ -57,11 +58,11 @@ class Job(Model):  # pylint:disable=too-few-public-methods
         except FileNotFoundError:
             return []
 
-    def latest_build(self, passed=None, versioned=None):
+    def latest_build(self, passed=None, versioned=None, other_check=None):
         """
         Find the latest build matching the criteria
         """
-        for build in self.builds:
+        for build in reversed(list(self.builds)):
             # build_passed is used only in this loop iter
             # pylint:disable=cell-var-from-loop
             build_passed = lambda: build.result == 'success'  # lazy load
@@ -69,8 +70,28 @@ class Job(Model):  # pylint:disable=too-few-public-methods
                 continue
             if versioned is not None and build.tag is None:
                 continue
+            if other_check is not None and not other_check(build):
+                continue
 
             return build
+
+    def latest_build_ancestor(self,
+                              workdir,
+                              commit,
+                              passed=None,
+                              versioned=None):
+        """
+        Find the latest build, matching the criteria, who's a git ancestor of
+        the given commit
+        """
+
+        def check_build(build):
+            """
+            Use git merge-base to check
+            """
+            return is_git_ancestor(workdir, build.commit, commit)
+
+        return self.latest_build(passed, versioned, check_build)
 
     def validate(self):
         with self.parent_validation(Job):

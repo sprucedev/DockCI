@@ -8,8 +8,9 @@ import socket
 from urllib.parse import urlparse
 from uuid import uuid4
 
+from yaml_model import LoadOnAccess, SingletonModel, ValidationError
+
 from dockci.util import default_gateway
-from dockci.yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
 
 def default_docker_host(format_string, local_default=None):

@@ -8,6 +8,7 @@ import os
 import re
 import socket
 import struct
+import subprocess
 import json
 import datetime
 
@@ -15,8 +16,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 
 from flask import flash, request
-
-from dockci.yaml_model import ValidationError
+from yaml_model import ValidationError
 
 
 def is_yaml_file(filename):
@@ -162,6 +162,24 @@ def is_docker_id(value):
     Validate a Docker Id (image, container) for validity
     """
     return is_hex_string(value, 64)
+
+
+def is_git_ancestor(workdir, parent_check, child_check):
+    """
+    Figures out if the second is a child of the first.
+
+    See git merge-base --is-ancestor
+    """
+    if parent_check == child_check:
+        return False
+
+    proc = subprocess.Popen(
+        ['git', 'merge-base', '--is-ancestor', parent_check, child_check],
+        cwd=workdir,
+    )
+    proc.wait()
+
+    return proc.returncode == 0
 
 
 def setup_templates(app):
