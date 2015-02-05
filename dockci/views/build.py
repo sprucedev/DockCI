@@ -16,12 +16,12 @@ from flask import (abort,
                    Response,
                    url_for,
                    )
+from yaml_model import ValidationError
 
 from dockci.models.build import Build
 from dockci.models.job import Job
 from dockci.server import APP
 from dockci.util import is_valid_github, DateTimeEncoder
-from dockci.yaml_model import ValidationError
 
 
 @APP.route('/jobs/<job_slug>/builds/<build_slug>', methods=('GET',))

@@ -15,8 +15,7 @@ from contextlib import contextmanager
 from ipaddress import ip_address
 
 from flask import flash, request
-
-from dockci.yaml_model import ValidationError
+from yaml_model import ValidationError
 
 
 def is_yaml_file(filename):

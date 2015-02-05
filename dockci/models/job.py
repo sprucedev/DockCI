@@ -5,8 +5,9 @@ DockCI - CI, but with that all important Docker twist
 import os
 import os.path
 
+from yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
+
 from dockci.util import is_yaml_file
-from dockci.yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 
 
 def all_jobs():
