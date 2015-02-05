@@ -161,6 +161,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                                       self.git_author_name)
     git_committer_email = LoadOnAccess(default=lambda self:
                                        self.git_author_email)
+    git_changes = LoadOnAccess(default=lambda _: None)
     # pylint:disable=unnecessary-lambda
     build_config = OnAccess(lambda self: BuildConfig(self))
 
@@ -298,6 +299,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 pre_build = (stage() for stage in (
                     lambda: self._run_prep_workdir(workdir),
                     lambda: self._run_git_info(workdir),
+                    lambda: self._run_git_changes(workdir),
                     lambda: self._run_tag_version(workdir),
                     lambda: self._run_provision(workdir),
                     lambda: self._run_build(workdir),
@@ -346,9 +348,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         """
         stage = self._stage(
             'git_prepare', workdir=workdir,
-            cmd_args=(['git', 'clone', self.repo, workdir],
-                      ['git', 'checkout', self.commit],
-                      )
+            cmd_args=(
+                ['git', 'clone', self.repo, workdir],
+                ['git',
+                 '-c', 'advice.detachedHead=false',
+                 'checkout', self.commit
+                 ],
+            )
         )
         result = stage.returncode == 0
 
@@ -428,6 +434,25 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
 
         stage = self._stage('git_info', workdir=workdir, runnable=runnable)
         return stage.returncode == 0
+
+    def _run_git_changes(self, workdir):
+        """
+        Get a list of changes from git between now and the most recently built
+        ancestor
+        """
+        if self.ancestor_build:
+            revision_range_string = '%s..%s' % (self.ancestor_build.commit,
+                                                self.commit)
+            self._stage(
+                'git_changes',
+                workdir=workdir,
+                cmd_args=['git',
+                          '-c', 'color.ui=always',
+                          'log', revision_range_string
+                          ]
+            )
+
+        return True  # Result is irrelevant
 
     def _run_tag_version(self, workdir):
         """
