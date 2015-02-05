@@ -3,6 +3,7 @@ DockCI - CI, but with that all important Docker twist
 """
 
 import json
+import logging
 import os
 import os.path
 import re
@@ -818,8 +819,13 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         else:
             stage = BuildStage(slug=stage_slug, build=self, runnable=runnable)
 
+        logging.getLogger('dockci.build.stages').debug(
+            "Starting '%s' build stage for build '%s'", stage_slug, self.slug
+        )
+
         self.build_stage_slugs.append(stage_slug)  # pylint:disable=no-member
         self.save()
+
         stage.run()
         return stage
 
