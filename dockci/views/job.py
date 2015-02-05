@@ -2,7 +2,7 @@
 Views related to job management
 """
 
-from flask import redirect, render_template, request
+from flask import abort, redirect, render_template, request
 
 from dockci.models.job import Job
 from dockci.server import APP
@@ -15,6 +15,9 @@ def job_view(slug):
     View to display a job
     """
     job = Job(slug)
+    if not job.exists():
+        abort(404)
+
     request_fill(job, ('name', 'repo', 'github_secret',
                        'hipchat_api_token', 'hipchat_room'))
 
@@ -26,8 +29,12 @@ def job_edit_view(slug):
     """
     View to edit a job
     """
+    job = Job(slug)
+    if not job.exists():
+        abort(404)
+
     return render_template('job_edit.html',
-                           job=Job(slug),
+                           job=job,
                            edit_operation='edit')
 
 
