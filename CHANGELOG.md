@@ -21,6 +21,7 @@
 - Non-existent objects correctly 404 #33
 - When build stages are clicked, they roll up #34
 - When build stages are complete, they roll up unless "important" #34
+- Build ancestor detection from git history
 
 ## v0.0.2
 - Streaming console #16
