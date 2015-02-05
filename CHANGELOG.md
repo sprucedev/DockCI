@@ -22,6 +22,7 @@
 - When build stages are clicked, they roll up #34
 - When build stages are complete, they roll up unless "important" #34
 - Build ancestor detection from git history
+- Git changes from last ancestor in build log
 
 ## v0.0.2
 - Streaming console #16
