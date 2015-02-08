@@ -134,7 +134,8 @@
 <script>
   function dockciBuild() {
     var stageAjaxQueue = {},
-        importantPanels = ['docker_build', 'docker_test', 'error']
+        importantPanels = ['docker_build', 'docker_test', 'error'],
+        dockerStages = ['docker_provision', 'docker_build', 'docker_push'],
         scrollEnabled = false, scrollAnimation = null, maxScroll = 0;
 
     // Turn panel slugs into classes
@@ -206,18 +207,24 @@
       }
     }
     function dockerBuildLine(panelEl, logEl, obj) {
-      var idRow;
+      var idRow, objLine, errorMessage
+          isObj = typeof(obj) === 'object';
 
-      if ('errorDetail' in obj) {
+      if (isObj && ('errorDetail' in obj || 'error' in obj)) {
+        if ('errorDetail' in obj) {
+            errorMessage = obj['errorDetail']['message'];
+        } else {
+            errorMessage = obj['error'];
+        }
         logEl.append(
           '<div class="docker-log-error alert alert-danger">' +
-          ansi_up.ansi_to_html(obj['errorDetail']['message']) +
+          ansi_up.ansi_to_html(errorMessage) +
           '</div>'
         );
         panelEl.removeClass('panel-info panel-contracted')
         panelEl.addClass('panel-danger');
 
-      } else if ('stream' in obj) {
+      } else if (isObj && 'stream' in obj) {
 
         lineEl = $('.docker-log-stream:last', logEl);
         if (lineEl.length === 0) {
@@ -231,26 +238,31 @@
           logEl.append('<div class="docker-log-stream"></div>');
         }
 
-      } else if ('id' in obj) {
+      } else if (isObj && 'id' in obj) {
         idRow = $('.docker-log-' + obj['id'], logEl);
         if (idRow.length < 1) {
           idRow = $('<div class="docker-log-' + obj['id'] + '"></div>');
           logEl.append(idRow);
         }
 
-        messageComps = [obj['id']]
+        messageComps = [dockerIdText(obj['id'])]
         if ('status' in obj) { messageComps.push(ansi_up.ansi_to_html(obj['status'])) }
         if ('progress' in obj) { messageComps.push(ansi_up.ansi_to_html(obj['progress'])) }
 
         idRow.html(messageComps.join(' | '))
-      } else if ('status' in obj) {
+      } else if (isObj && 'status' in obj) {
         logEl.append(
           '<div class="docker-log-status">' +
           ansi_up.ansi_to_html(obj['status']) +
           '</div>'
         );
       } else {
-        logEl.append('<div style="color: red">' + obj_line + '</div>');
+        if (isObj) {
+          objLine = JSON.stringify(obj);
+        } else {
+          objLine = obj;
+        }
+        logEl.append('<div style="color: red">' + objLine + '</div>');
       }
     }
     function processNextStage() {
@@ -279,7 +291,7 @@
             responseLines = responseText.split('\n');
             processedChars = totalLength;
 
-            if (stageData['slug'] === 'docker_build' || stageData['slug'] === 'docker_push') {
+            if (dockerStages.indexOf(stageData['slug']) !== -1) {
               // Combine the first line with the previous incomplete line
               responseLines[0] = incompleteLineBuffer + responseLines[0];
 
@@ -288,7 +300,10 @@
 
               $.each(responseLines, function(idx, value) {
                 if (value === '') { return; }
-                value = $.parseJSON(value);
+                try {
+                  value = $.parseJSON(value);
+                } catch (err) {}
+
                 dockerBuildLine(stageData['stageEl'], logEl, value);
               }, '');
             } else {
