@@ -15,6 +15,8 @@ import datetime
 from contextlib import contextmanager
 from ipaddress import ip_address
 
+import docker.errors
+
 from flask import flash, request
 from yaml_model import ValidationError
 
@@ -193,3 +195,46 @@ def setup_templates(app):
         Jinja test to see if the value is array-like (tuple, list)
         """
         return isinstance(val, (tuple, list))
+
+
+def docker_ensure_image(client,
+                        image_id,
+                        pull_repo,
+                        pull_tag,
+                        insecure_registry=False,
+                        handle=None):
+    """
+    Ensure that an image id exists, pulling from repo/tag if not available. If
+    handle is given (a handle to write to), the pull output will be streamed
+    through.
+
+    Returns the image id (might be different, if repo/tag is used and doesn't
+    match the ID pulled down... This is bad, but no way around it)
+    """
+    try:
+        return client.inspect_image(image_id)['Id']
+
+    except docker.errors.APIError:
+        if handle:
+            docker_data = client.pull(pull_repo,
+                                      pull_tag,
+                                      insecure_registry=insecure_registry,
+                                      stream=True,
+                                      )
+
+        else:
+            docker_data = client.pull(pull_repo,
+                                      pull_tag,
+                                      insecure_registry=insecure_registry,
+                                      ).split('\n')
+
+        latest_id = None
+        for line in docker_data:
+            if handle:
+                handle.write(line.encode())
+
+            data = json.loads(line)
+            if 'id' in data:
+                latest_id = data['id']
+
+        return latest_id
