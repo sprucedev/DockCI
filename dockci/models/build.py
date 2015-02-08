@@ -36,6 +36,9 @@ from dockci.util import (bytes_human_readable,
                          )
 
 
+TAG_RE = re.compile('[a-z0-9_.]')
+
+
 class BuildStage(object):
     """
     A logged stage to a build
@@ -473,9 +476,14 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             # TODO opening file to get this is kinda awful
             data_file_path = os.path.join(*stage.data_file_path())
             with open(data_file_path, 'r') as handle:
-                line = handle.readline().strip()
-                if line:
-                    self.tag = line
+                last_line = None
+                for line in handle:
+                    line = line.strip()
+                    if line and TAG_RE.match(line):
+                        last_line = line
+
+                if last_line:
+                    self.tag = last_line
                     self.save()
 
         except KeyError:
