@@ -238,3 +238,36 @@ def docker_ensure_image(client,
                 latest_id = data['id']
 
         return latest_id
+
+
+class FauxDockerLog(object):
+    """
+    A contextual logger to output JSON lines to a handle
+    """
+    def __init__(self, handle):
+        self.handle = handle
+        self.defaults = {}
+
+    @contextmanager
+    def more_defaults(self, **kwargs):
+        """
+        Set some defaults to write to the JSON
+        """
+        if not kwargs:
+            yield
+            return
+
+        pre_defaults = self.defaults
+        self.defaults = dict(tuple(self.defaults.items()) +
+                             tuple(kwargs.items()))
+        yield
+        self.defaults = pre_defaults
+
+    def update(self, **kwargs):
+        """
+        Write a JSON line with kwargs, and defaults combined
+        """
+        with self.more_defaults(**kwargs):
+            self.handle.write(json.dumps(self.defaults).encode())
+            self.handle.write('\n'.encode())
+            self.handle.flush()
