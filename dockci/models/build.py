@@ -30,6 +30,8 @@ from dockci.models.job import Job
 # TODO fix and reenable pylint check for cyclic-import
 from dockci.server import CONFIG
 from dockci.util import (bytes_human_readable,
+                         docker_ensure_image,
+                         FauxDockerLog,
                          is_docker_id,
                          is_semantic,
                          stream_write_status,
@@ -503,54 +505,69 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
             all_okay = True
             # pylint:disable=no-member
             for job_slug, service_config in self.build_config.services.items():
-                service_job = Job(job_slug)
-                if not service_job.exists():
-                    handle.write((
-                        "No job found matching %s\n" % job_slug
-                    ).encode())
-                    all_okay = False
-                    continue
+                faux_log = FauxDockerLog(handle)
 
-                service_build = service_job.latest_build(passed=True,
-                                                         versioned=True)
-                if not service_build:
-                    handle.write((
-                        "No successful, versioned build for %s - %s\n" % (
-                            job_slug, service_job.name
+                defaults = {'status': "Finding service %s" % job_slug,
+                            'id': 'docker_provision_%s' % job_slug}
+                with faux_log.more_defaults(**defaults):
+                    faux_log.update()
+
+                    service_job = Job(job_slug)
+                    if not service_job.exists():
+                        faux_log.update(error="No job found")
+                        all_okay = False
+                        continue
+
+                    service_build = service_job.latest_build(passed=True,
+                                                             versioned=True)
+                    if not service_build:
+                        faux_log.update(
+                            error="No successful, versioned build for %s" % (
+                                service_job.name
+                            ),
                         )
-                    ).encode())
-                    all_okay = False
-                    continue
+                        all_okay = False
+                        continue
 
-                handle.write(("%sStarting service %s - %s %s" % (
-                    "" if all_okay else "NOT ",
-                    job_slug, service_job.name, service_build.version
-                )).encode())
+                defaults = {
+                    'status': "Starting service %s %s" % (
+                        service_job.name,
+                        service_build.tag,
+                    ),
+                    'id': 'docker_provision_%s' % job_slug}
+                with faux_log.more_defaults(**defaults):
+                    faux_log.update()
 
-                try:
-                    service_kwargs = {
-                        key: value for key, value in service_config.items()
-                        if key in ('command', 'environment')
-                    }
-                    service_container = self.docker_client.create_container(
-                        image=service_build.image_id,
-                        **service_kwargs
-                    )
-                    self.docker_client.start(service_container['Id'])
+                    try:
+                        image_id = docker_ensure_image(
+                            self.docker_client,
+                            service_build.image_id,
+                            service_build.docker_image_name,
+                            service_build.tag,
+                            insecure_registry=CONFIG.docker_registry_insecure,
+                            handle=handle,
+                        )
+                        service_kwargs = {
+                            key: value for key, value in service_config.items()
+                            if key in ('command', 'environment')
+                        }
+                        container = self.docker_client.create_container(
+                            image=image_id,
+                            **service_kwargs
+                        )
+                        self.docker_client.start(container['Id'])
 
-                    # Store the provisioning info
-                    self._provisioned_containers.append({
-                        'job_slug': job_slug,
-                        'config': service_config,
-                        'id': service_container['Id']
-                    })
-                    handle.write("... STARTED!\n".encode())
+                        # Store the provisioning info
+                        self._provisioned_containers.append({
+                            'job_slug': job_slug,
+                            'config': service_config,
+                            'id': container['Id']
+                        })
+                        faux_log.update(progress="Done")
 
-                except docker.errors.APIError as ex:
-                    handle.write((
-                        "... FAILED!\n    %s" % ex.explanation.decode()
-                    ).encode())
-                    all_okay = False
+                    except docker.errors.APIError as ex:
+                        faux_log.update(error=ex.explanation.decode())
+                        all_okay = False
 
             return all_okay
 
