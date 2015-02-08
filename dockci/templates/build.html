@@ -172,9 +172,10 @@
 
       // Contract unimportant panels
       $('.stage-panel').each(function(idx, el) {
-        var isImportant = false;
+        var isImportant = false,
+            allImportant = importantPanels.concat(['panel-danger']);
         el = $(el)
-        $.each(importantPanels, function(s_idx, panelClass) {
+        $.each(allImportant, function(s_idx, panelClass) {
           if (el.hasClass(panelClass)) {
             isImportant = true
             return false
@@ -213,7 +214,8 @@
           ansi_up.ansi_to_html(obj['errorDetail']['message']) +
           '</div>'
         );
-        panelEl.toggleClass('panel-info panel-danger');
+        panelEl.removeClass('panel-info panel-contracted')
+        panelEl.addClass('panel-danger');
 
       } else if ('stream' in obj) {
 
@@ -319,12 +321,14 @@
             panelClass = 'panel-danger';
           }
 
-          stageData['stageEl'].toggleClass('panel-info ' + panelClass);
+          stageData['stageEl'].removeClass('panel-info');
+          stageData['stageEl'].addClass(panelClass);
         },
         error: function(jqXHR, textStatus, errorText) {
           var stagePanelHeadingEl = $('.panel-heading', stageData['stageEl'])
           stagePanelHeadingEl.text(stageData['slug'] + ' - ' + errorText);
-          stageData['stageEl'].toggleClass('panel-info panel-danger');
+          stageData['stageEl'].removeClass('panel-info');
+          stageData['stageEl'].addClass('panel-danger');
         }
       })
     }
