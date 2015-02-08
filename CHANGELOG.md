@@ -23,6 +23,7 @@
 - When build stages are complete, they roll up unless "important" #34
 - Build ancestor detection from git history #36
 - Git changes from last ancestor in build log #36
+- Pull Docker images on provision #39
 
 ## v0.0.2
 - Streaming console #16
