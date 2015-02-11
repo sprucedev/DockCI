@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import os.path
+import random
 import re
 import subprocess
 import tempfile
@@ -206,12 +207,17 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     def docker_client(self):
         """
         Get the cached (or new) Docker Client object being used for this build
+
+        CACHED VALUES NOT AVAILABLE OUTSIDE FORK
         """
         if not self._docker_client:
             if CONFIG.docker_use_env_vars:
                 docker_client_args = kwargs_from_env()
             else:
-                docker_client_args = {'base_url': CONFIG.docker_host}
+                docker_client_args = {
+                    # TODO real load balancing, queueing
+                    'base_url': random.choice(CONFIG.docker_hosts),
+                }
 
             self._docker_client = docker.Client(**docker_client_args)
 
