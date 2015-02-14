@@ -11,9 +11,9 @@
     "url": "http://github.com/RickyCook/DockCI.git"
   },
   "dependencies": {
-    "bootstrap": "~3.2.0",
     "ansi_up": "https://github.com/drudru/ansi_up.git",
     "bootstrap-material-design": "~0.2.1",
-    "blueimp-md5": "~1.1.0"
+    "blueimp-md5": "~1.1.0",
+    "bootstrap-sass": "~3.2.0"
   }
 }
