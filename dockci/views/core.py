@@ -33,7 +33,12 @@ def config_edit_view():
     )
 
     saved = request_fill(CONFIG, all_fields)
-    CONFIG.load()
+
+    try:
+        CONFIG.load()
+
+    except FileNotFoundError:
+        pass
 
     if saved:
         restart_needed = any((
