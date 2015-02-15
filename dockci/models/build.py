@@ -155,6 +155,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     image_id = LoadOnAccess(default=lambda _: None)
     container_id = LoadOnAccess(default=lambda _: None)
     exit_code = LoadOnAccess(default=lambda _: None)
+    docker_client_host = LoadOnAccess(
+        generate=lambda self: self.docker_client.base_url,
+    )
     build_stage_slugs = LoadOnAccess(generate=lambda _: [])
     build_stages = OnAccess(lambda self: [
         BuildStage(slug=slug, build=self)
@@ -211,8 +214,12 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
         CACHED VALUES NOT AVAILABLE OUTSIDE FORK
         """
         if not self._docker_client:
-            if CONFIG.docker_use_env_vars:
+            if self.has_value('docker_client_host'):
+                docker_client_args = {'base_url': self.docker_client_host}
+
+            elif CONFIG.docker_use_env_vars:
                 docker_client_args = kwargs_from_env()
+
             else:
                 docker_client_args = {
                     # TODO real load balancing, queueing
@@ -220,6 +227,7 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
                 }
 
             self._docker_client = docker.Client(**docker_client_args)
+            self.save()
 
         return self._docker_client
 
