@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
-from dockci.util import default_gateway
+from dockci.util import default_gateway, guess_multi_value
 
 
 def default_docker_host(format_string, local_default=None):
@@ -38,9 +38,12 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
 
     docker_use_env_vars = LoadOnAccess(default=lambda _: False,
                                        input_transform=bool)
-    docker_host = LoadOnAccess(default=lambda _: default_docker_host(
-        "tcp://{ip}:2375", "unix:///var/run/docker.sock"
-    ))
+    docker_hosts = LoadOnAccess(
+        input_transform=guess_multi_value,
+        default=lambda _: [default_docker_host(
+            "tcp://{ip}:2375", "unix:///var/run/docker.sock"
+        )]
+    )
     docker_use_registry = LoadOnAccess(default=lambda _: False,
                                        input_transform=bool)
     docker_registry = LoadOnAccess(default=lambda _: default_docker_host(
@@ -100,12 +103,13 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             errors = []
 
             import docker
-            try:
-                # pylint:disable=unused-variable
-                client = docker.Client(self.docker_host)
-            except docker.errors.DockerException as ex:
-                message, = ex.args  # pylint:disable=unpacking-non-sequence
-                errors.append(message)
+            for docker_host in self.docker_hosts:
+                try:
+                    # pylint:disable=unused-variable
+                    client = docker.Client(docker_host)
+                except docker.errors.DockerException as ex:
+                    message, = ex.args  # pylint:disable=unpacking-non-sequence
+                    errors.append(message)
 
             registry_url = urlparse(self.docker_registry)
             if registry_url.scheme.lower() not in ('http', 'https'):

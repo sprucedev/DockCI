@@ -271,3 +271,18 @@ class FauxDockerLog(object):
             self.handle.write(json.dumps(self.defaults).encode())
             self.handle.write('\n'.encode())
             self.handle.flush()
+
+
+def guess_multi_value(value):
+    """
+    Make the best kind of list from `value`. If it's already a list, or tuple,
+    do nothing. If it's a value with new lines, split. If it's a single value
+    without new lines, wrap in a list
+    """
+    if isinstance(value, (tuple, list)):
+        return value
+
+    if isinstance(value, str) and '\n' in value:
+        return [line.strip() for line in value.split('\n')]
+
+    return [value]
