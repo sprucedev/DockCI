@@ -25,20 +25,20 @@ def job_view(slug):
     page_offset = int(request.args.get('page_offset', 0))
     versioned = 'versioned' in request.args
 
+    if versioned:
+        builds = list(job.filtered_builds(passed=True, versioned=True))
+    else:
+        builds = job.builds
+
     prev_page_offset = max(page_offset - page_size, 0)
     if page_offset < 1:
         prev_page_offset = None
 
     next_page_offset = page_offset + page_size
-    if next_page_offset > len(job.builds):
+    if next_page_offset > len(builds):
         next_page_offset = None
 
-    if versioned:
-        builds = job.filtered_builds(passed=True, versioned=True)
-    else:
-        builds = job.builds
-
-    builds = list(builds)[page_offset:page_offset + page_size]
+    builds = builds[page_offset:page_offset + page_size]
     return render_template('job.html',
                            job=job,
                            builds=builds,
