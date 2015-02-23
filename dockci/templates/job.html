@@ -13,7 +13,7 @@
 </label></div>
 <table id="builds-list" class="table table-striped">
   <tr><th>Created</th><th>Tag</th><th>Commit ref</th><th>Author</th><th>State</th></tr>
-  {% for build in job.builds | sort(attribute='create_ts', reverse=True) -%}
+  {% for build in builds -%}
     <tr class="build-detail {{ 'stable-release' if build.is_stable_release else '' }}">
       <td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.create_ts }}</a></td>
       <td>{{ build.tag if build.tag else '' }}</td>
@@ -23,6 +23,12 @@
     </tr>
   {%- endfor %}
 </table>
+{% if prev_page_offset is not none -%}
+    <a id="pagePrev" href="{{ '/jobs/%s?page_offset=%d&page_size=%d' % (job.slug, prev_page_offset, page_size) }}" class="btn btn-default btn-lg">Previous</a>
+{% endif -%}
+{% if next_page_offset is not none -%}
+    <a id="pageNext" href="{{ '/jobs/%s?page_offset=%d&page_size=%d' % (job.slug, next_page_offset, page_size) }}" class="btn btn-default btn-lg pull-right">Next</a>
+{% endif -%}
 <script>
   $(document).ready(function() {
     var unstableBuilds = $('.build-detail:not(.stable-release)');
