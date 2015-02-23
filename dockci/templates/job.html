@@ -9,12 +9,12 @@
 {% endblock %}
 {% block content %}
 <div class="checkbox"><label>
-  <input id="filterStable" type="checkbox">Only stable releases
+  <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
 </label></div>
 <table id="builds-list" class="table table-striped">
   <tr><th>Created</th><th>Tag</th><th>Commit ref</th><th>Author</th><th>State</th></tr>
-  {% for build in job.builds | sort(attribute='create_ts', reverse=True) -%}
-    <tr class="build-detail {{ 'stable-release' if build.is_stable_release else '' }}">
+  {% for build in builds -%}
+    <tr class="build-detail">
       <td><a href="/jobs/{{ job.slug }}/builds/{{ build.slug }}">{{ build.create_ts }}</a></td>
       <td>{{ build.tag if build.tag else '' }}</td>
       <td>{{ build.commit }}</td>
@@ -23,14 +23,26 @@
     </tr>
   {%- endfor %}
 </table>
+{% set versioned_str = '&versioned' if versioned else '' %}
+{% if prev_page_offset is not none -%}
+    <a href="{{ '/jobs/%s?page_offset=%d&page_size=%d%s' % (job.slug, prev_page_offset, page_size, versioned_str) }}" class="pagination btn btn-default btn-lg">Previous</a>
+{% endif -%}
+{% if next_page_offset is not none -%}
+    <a href="{{ '/jobs/%s?page_offset=%d&page_size=%d%s' % (job.slug, next_page_offset, page_size, versioned_str) }}" class="pagination btn btn-default btn-lg pull-right">Next</a>
+{% endif -%}
 <script>
   $(document).ready(function() {
-    var unstableBuilds = $('.build-detail:not(.stable-release)');
     $('#filterStable').change(function(ev) {
       if (ev.target.checked) {
-        unstableBuilds.hide();
+        document.location = URI(document.location)
+          .addQuery('versioned')
+          .removeQuery('page_offset')
+          .toString();
       } else {
-        unstableBuilds.show();
+        document.location = URI(document.location)
+          .removeQuery('versioned')
+          .removeQuery('page_offset')
+          .toString();
       }
     })
   })

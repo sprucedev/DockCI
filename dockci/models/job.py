@@ -33,7 +33,7 @@ class Job(Model):  # pylint:disable=too-few-public-methods
         super(Job, self).__init__()
         self.slug = slug
 
-    def _all_builds(self):
+    def _all_builds(self, reverse_=True):
         """
         Get all the builds associated with this job
         """
@@ -45,7 +45,7 @@ class Job(Model):  # pylint:disable=too-few-public-methods
             builds = []
 
             all_files = os.listdir(os.path.join(*my_data_dir_path))
-            all_files.sort()
+            all_files.sort(reverse=reverse_)
 
             for filename in all_files:
                 full_path = Build.data_dir_path() + [self.slug, filename]
@@ -62,7 +62,17 @@ class Job(Model):  # pylint:disable=too-few-public-methods
         """
         Find the latest build matching the criteria
         """
-        for build in reversed(list(self.builds)):
+        try:
+            return next(self.filtered_builds(passed, versioned, other_check))
+
+        except StopIteration:
+            return None
+
+    def filtered_builds(self, passed=None, versioned=None, other_check=None):
+        """
+        Generator, filtering builds matching the criteria
+        """
+        for build in list(self.builds):
             # build_passed is used only in this loop iter
             # pylint:disable=cell-var-from-loop
             build_passed = lambda: build.result == 'success'  # lazy load
@@ -73,7 +83,7 @@ class Job(Model):  # pylint:disable=too-few-public-methods
             if other_check is not None and not other_check(build):
                 continue
 
-            return build
+            yield build
 
     def latest_build_ancestor(self,
                               workdir,

@@ -21,7 +21,31 @@ def job_view(slug):
     request_fill(job, ('name', 'repo', 'github_secret',
                        'hipchat_api_token', 'hipchat_room'))
 
-    return render_template('job.html', job=job)
+    page_size = int(request.args.get('page_size', 20))
+    page_offset = int(request.args.get('page_offset', 0))
+    versioned = 'versioned' in request.args
+
+    if versioned:
+        builds = list(job.filtered_builds(passed=True, versioned=True))
+    else:
+        builds = job.builds
+
+    prev_page_offset = max(page_offset - page_size, 0)
+    if page_offset < 1:
+        prev_page_offset = None
+
+    next_page_offset = page_offset + page_size
+    if next_page_offset > len(builds):
+        next_page_offset = None
+
+    builds = builds[page_offset:page_offset + page_size]
+    return render_template('job.html',
+                           job=job,
+                           builds=builds,
+                           versioned=versioned,
+                           prev_page_offset=prev_page_offset,
+                           next_page_offset=next_page_offset,
+                           page_size=page_size)
 
 
 @APP.route('/jobs/<slug>/edit', methods=('GET',))
