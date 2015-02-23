@@ -23,10 +23,6 @@ def job_view(slug):
 
     page_size = int(request.args.get('page_size', 20))
     page_offset = int(request.args.get('page_offset', 0))
-    reverse_page_offset = (-1 * page_offset) - (page_size + 1)
-    reverse_page_end = (-1 * page_offset) - 1
-    if reverse_page_end >= 0:
-        reverse_page_end = None
 
     prev_page_offset = max(page_offset - page_size, 0)
     if page_offset < 1:
@@ -36,8 +32,7 @@ def job_view(slug):
     if next_page_offset > len(job.builds):
         next_page_offset = None
 
-    builds = job.builds[reverse_page_offset:reverse_page_end]
-    builds.reverse()
+    builds = job.builds[page_offset:page_offset + page_size]
     return render_template('job.html',
                            job=job,
                            builds=builds,
