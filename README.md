@@ -75,7 +75,8 @@ accepted! You can probably find something that you can work on in the
 [GitHub issues](https://github.com/RickyCook/DockCI/issues). There's also a
 [waffle.io project board](https://waffle.io/rickycook/dockci) with issues
 ranked (approximately) highest to lowest priority. Just choose something that
-isn't already labeled as `in progress`, or already has someone assigned to it.
+isn't already labeled as `in progress`, or already has someone assigned to it
+([here's a filter](https://github.com/RickyCook/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)).
 
 The main code base is also really hastily written, so anything that you'd like
 to refactor, got nuts! It _really_ needs to be done!
@@ -93,4 +94,5 @@ If you want to have a talk about ideas, project priorities, etc feel free to
 drop me an email at mail[at]thatpanda.com.
 
 ## Useful issues filters
-- **Ticket type unlabeled**: https://github.com/RickyCook/DockCI/issues?q=is%3Aissue+is%3Aopen+-label%3Abug+-label%3Aenhancement+-label%3Atask
+- [Ticket type unlabeled](https://github.com/RickyCook/DockCI/issues?q=is%3Aissue+is%3Aopen+-label%3Abug+-label%3Aenhancement+-label%3Atask)
+- [Things to work on](https://github.com/RickyCook/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)
