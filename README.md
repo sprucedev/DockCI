@@ -74,7 +74,8 @@ If you want to help DockCI see the light of day, pull requests are certainly
 accepted! You can probably find something that you can work on in the
 [GitHub issues](https://github.com/RickyCook/DockCI/issues). There's also a
 [waffle.io project board](https://waffle.io/rickycook/dockci) with issues
-ranked (approximately) highest to lowest priority.
+ranked (approximately) highest to lowest priority. Just choose something that
+isn't already labeled as `in progress`, or already has someone assigned to it.
 
 The main code base is also really hastily written, so anything that you'd like
 to refactor, got nuts! It _really_ needs to be done!
@@ -90,3 +91,6 @@ add the PR number.
 
 If you want to have a talk about ideas, project priorities, etc feel free to
 drop me an email at mail[at]thatpanda.com.
+
+## Useful issues filters
+- **Ticket type unlabeled**: https://github.com/RickyCook/DockCI/issues?q=is%3Aissue+is%3Aopen+-label%3Abug+-label%3Aenhancement+-label%3Atask
