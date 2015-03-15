@@ -58,9 +58,10 @@ make run
 
 ## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly
-accepted! You can probably find something that you can work on on the Trello
-project board: https://trello.com/b/zaFPjsli . These are listed in highest to
-lowest priority.
+accepted! You can probably find something that you can work on in the
+[GitHub issues](https://github.com/RickyCook/DockCI/issues). There's also a
+[waffle.io project board](https://waffle.io/rickycook/dockci) with issues
+ranked (approximately) highest to lowest priority.
 
 The main code base is also really hastily written, so anything that you'd like
 to refactor, got nuts! It _really_ needs to be done!
