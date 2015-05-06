@@ -37,7 +37,7 @@ def config_edit_view():
     try:
         CONFIG.load()
 
-    except FileNotFoundError:
+    except py.error.ENOENT:
         pass
 
     if saved:

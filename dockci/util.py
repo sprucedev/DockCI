@@ -25,7 +25,7 @@ def is_yaml_file(filename):
     """
     Check if the filename provided points to a file, and ends in .yaml
     """
-    return os.path.isfile(filename) and filename.endswith('.yaml')
+    return filename.check(file=True) and filename.ext == '.yaml'
 
 
 def request_fill(model_obj, fill_atts, save=True):
@@ -177,7 +177,7 @@ def is_git_ancestor(workdir, parent_check, child_check):
 
     proc = subprocess.Popen(
         ['git', 'merge-base', '--is-ancestor', parent_check, child_check],
-        cwd=workdir,
+        cwd=workdir.strpath,
     )
     proc.wait()
 
