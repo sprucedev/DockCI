@@ -5,7 +5,6 @@ Views related to build management
 import json
 import logging
 import mimetypes
-import os.path
 import select
 
 from flask import (abort,

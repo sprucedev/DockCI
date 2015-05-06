@@ -2,6 +2,8 @@
 Core app views
 """
 
+import py.error  # pylint:disable=import-error
+
 from flask import render_template, request
 
 from dockci.models.job import all_jobs

@@ -4,8 +4,6 @@ DockCI - CI, but with that all important Docker twist
 
 import json
 import logging
-import os
-import os.path
 import random
 import re
 import subprocess
@@ -15,7 +13,7 @@ from datetime import datetime
 
 import docker
 import docker.errors
-import py.path
+import py.path  # pylint:disable=import-error
 
 from docker.utils import kwargs_from_env
 from flask import url_for
@@ -284,7 +282,9 @@ class Build(Model):  # pylint:disable=too-many-instance-attributes
     def data_file_path(self):
         # Add the job name before the build slug in the path
         data_file_path = super(Build, self).data_file_path()
-        return data_file_path.join('..', self.job.slug, data_file_path.basename)
+        return data_file_path.join(
+            '..', self.job.slug, data_file_path.basename
+        )
 
     def build_output_path(self):
         """

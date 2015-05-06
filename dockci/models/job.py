@@ -2,10 +2,7 @@
 DockCI - CI, but with that all important Docker twist
 """
 
-import os
-import os.path
-
-import py.error
+import py.error  # pylint:disable=import-error
 
 from yaml_model import LoadOnAccess, Model, OnAccess, ValidationError
 

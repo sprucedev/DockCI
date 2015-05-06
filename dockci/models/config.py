@@ -2,11 +2,12 @@
 Application configuration models
 """
 
-import os.path
 import socket
 
 from urllib.parse import urlparse
 from uuid import uuid4
+
+import py.path  # pylint:disable=import-error
 
 from yaml_model import LoadOnAccess, SingletonModel, ValidationError
 

@@ -4,7 +4,6 @@ Generic DockCI utils
 import hashlib
 import hmac
 import logging
-import os
 import re
 import socket
 import struct
@@ -33,7 +32,6 @@ def request_fill(model_obj, fill_atts, save=True):
     Fill given model attrs from a POST request (and ignore other requests).
     Will save only if the save flag is True
     """
-    print(request.method)
     if request.method == 'POST':
         for att in fill_atts:
             if att in request.form:
