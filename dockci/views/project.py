@@ -23,16 +23,24 @@ def shields_io_sanitize(text):
     return text.replace('-', '--').replace('_', '__').replace(' ', '_')
 
 
-@APP.route('/project/<slug>.svg', methods=('GET',))
-def project_shield_view(slug):
+@APP.route('/project/<slug>.<extension>', methods=('GET',))
+def project_shield_view(slug, extension):
+    """ View to give shields for each project """
     project = Project(slug)
     if not project.exists():
         abort(404)
 
-    return redirect('https://img.shields.io/badge/{name}-{shield_status}-{shield_color}.svg'.format(
+    try:
+        query = '?style=%s' % request.args['style']
+    except KeyError:
+        query = ''
+
+    return redirect('https://img.shields.io/badge/{name}-{shield_status}-{shield_color}.{extension}{query}'.format(
         name=shields_io_sanitize(project.name),
         shield_status=shields_io_sanitize(project.shield_status),
         shield_color=shields_io_sanitize(project.shield_color),
+        extension=extension,
+        query=query,
     ))
 
 
