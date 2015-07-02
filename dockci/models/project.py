@@ -125,6 +125,12 @@ class Project(Model):  # pylint:disable=too-few-public-methods
 
             yield job
 
+    def latest_completed_job(self):
+        """ Find the latest job that is completed """
+        return self.latest_job(other_check=lambda job: job.result in (
+            'success', 'fail', 'broken'
+        ))
+
     def latest_job_ancestor(self,
                             workdir,
                             commit,
@@ -207,6 +213,33 @@ class Project(Model):  # pylint:disable=too-few-public-methods
                 self.save()
 
         return result
+
+    @property
+    def shield_status(self):
+        """ Status of this project to show on shields.io shields """
+        latest_completed_job = self.latest_completed_job()
+        if latest_completed_job is not None:
+            status = latest_completed_job.result.title()
+            if status == 'Success':
+                return "Passing"
+            elif status == 'Fail':
+                return "Failing"
+            else:
+                return status
+
+        else:
+            return "Not Run"
+
+    @property
+    def shield_color(self):
+        """ Color for shields.io status shield of this project """
+        status = self.shield_status
+        if status == 'Passing':
+            return 'green'
+        elif status in ('Failing', 'Broken'):
+            return 'red'
+        else:
+            return 'lightgrey'
 
     @property
     def github_api_repo_endpoint(self):
