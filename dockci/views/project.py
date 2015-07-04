@@ -39,7 +39,7 @@ def project_shield_view(slug, extension):
         'https://img.shields.io/badge/'
         '{name}-{shield_status}-{shield_color}.{extension}{query}'.format(
             name=shields_io_sanitize(project.name),
-            shield_status=shields_io_sanitize(project.shield_status),
+            shield_status=shields_io_sanitize(project.shield_text),
             shield_color=shields_io_sanitize(project.shield_color),
             extension=extension,
             query=query,

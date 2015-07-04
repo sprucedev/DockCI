@@ -18,7 +18,7 @@
 {%- endmacro %}
 {% macro project_shield(project) -%}
   <a href="#" data-toggle="modal" data-target="#{{ project.slug }}-shield-dialog">
-    <img src="{{ url_for('project_shield_view', slug=project.slug, extension='svg', _external=True) }}" alt="{{ project.name }} | {{ project.shield_status }}" />
+    <img src="{{ url_for('project_shield_view', slug=project.slug, extension='svg', _external=True) }}" alt="{{ project.name }} | {{ project.shield_text }}" />
   </a>
   <div id="{{ project.slug }}-shield-dialog" class="modal fade" tabindex="-1">
     <div class="modal-dialog">

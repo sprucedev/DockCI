@@ -215,28 +215,35 @@ class Project(Model):  # pylint:disable=too-few-public-methods
         return result
 
     @property
-    def shield_status(self):
-        """ Status of this project to show on shields.io shields """
+    def status(self):
+        """ Status of the last job for this project """
         latest_completed_job = self.latest_completed_job()
         if latest_completed_job is not None:
-            status = latest_completed_job.result.title()
-            if status == 'Success':
-                return "Passing"
-            elif status == 'Fail':
-                return "Failing"
-            else:
-                return status
+            return latest_completed_job.result
 
         else:
+            return None
+
+    @property
+    def shield_text(self):
+        """ Status of this project to show on shields.io shields """
+        status = self.status
+        if status == 'success':
+            return "Passing"
+        elif status == 'fail':
+            return "Failing"
+        elif status is None:
             return "Not Run"
+
+        return status.title()
 
     @property
     def shield_color(self):
         """ Color for shields.io status shield of this project """
-        status = self.shield_status
-        if status == 'Passing':
+        status = self.status
+        if status == 'success':
             return 'green'
-        elif status in ('Failing', 'Broken'):
+        elif status in ('fail', 'broken'):
             return 'red'
         else:
             return 'lightgrey'
