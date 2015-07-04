@@ -11,7 +11,8 @@
   {% endif %}
 {% endblock %}
 {% block content %}
-<div class="checkbox"><label>
+<span class="pull-right">{{ project_shield(project) }}</span>
+<div class="checkbox col-sm-5" style="margin-top: 0px"><label>
   <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
 </label></div>
 {% if current_user.is_authenticated() %}

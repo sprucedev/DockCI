@@ -10,6 +10,8 @@
 {% endblock %}
 {% block content %}
 <table class="table table-striped">
-    {% for project in projects %}<tr><td><a href="/projects/{{ project.slug }}">{{ project.name }}</a></tr></td>{% endfor %}
+    {% for project in projects %}<tr><td>
+        <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
+    </td></tr>{% endfor %}
 </table>
 {% endblock %}

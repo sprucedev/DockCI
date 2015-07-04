@@ -18,6 +18,35 @@ from dockci.util import (auth_token_data,
                          )
 
 
+def shields_io_sanitize(text):
+    """ Replace chars in shields.io fields """
+    return text.replace('-', '--').replace('_', '__').replace(' ', '_')
+
+
+@APP.route('/project/<slug>.<extension>', methods=('GET',))
+def project_shield_view(slug, extension):
+    """ View to give shields for each project """
+    project = Project(slug)
+    if not project.exists():
+        abort(404)
+
+    try:
+        query = '?style=%s' % request.args['style']
+    except KeyError:
+        query = ''
+
+    return redirect(
+        'https://img.shields.io/badge/'
+        '{name}-{shield_status}-{shield_color}.{extension}{query}'.format(
+            name=shields_io_sanitize(project.name),
+            shield_status=shields_io_sanitize(project.shield_text),
+            shield_color=shields_io_sanitize(project.shield_color),
+            extension=extension,
+            query=query,
+        )
+    )
+
+
 @APP.route('/projects/<slug>', methods=('GET', 'POST'))
 def project_view(slug):
     """
