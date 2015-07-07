@@ -3,6 +3,7 @@ Stages in a Job
 """
 
 import logging
+import shlex
 import subprocess
 
 import requests.exceptions
@@ -112,9 +113,10 @@ class CommandJobStage(JobStageBase):  # pylint:disable=abstract-method
             """
             Run a process
             """
-            # TODO escape args
-            handle.write(bytes(">CWD %s\n" % self.workdir, 'utf8'))
-            handle.write(bytes(">>>> %s\n" % cmd_args_single, 'utf8'))
+            quoted_args = ' '.join((
+                shlex.quote(arg) for arg in cmd_args_single
+            ))
+            handle.write(bytes("> %s\n" % quoted_args, 'utf8'))
             handle.flush()
 
             proc = subprocess.Popen(cmd_args_single,
