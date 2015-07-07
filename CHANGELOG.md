@@ -6,6 +6,7 @@
   - Any characters that don't match `[a-z0-9-_.]` will be replaced with `_`
 - Fix display of validation errors when saving a new project #192
 - Add shields.io for projects #197
+- Redirect to new project on creation #202
 
 ### v0.0.4-1
 - Fix issue browsing anonymously #187
