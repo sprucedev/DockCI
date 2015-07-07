@@ -2,11 +2,18 @@
 Preparation for the main job stages
 """
 
+import glob
+import json
 import re
 import subprocess
+import time
+
+from datetime import datetime
+from itertools import chain
 
 import docker
 import docker.errors
+import py.error  # pylint:disable=import-error
 
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
@@ -149,6 +156,122 @@ class GitChangesStage(CommandJobStage):
             return super(GitChangesStage, self).runnable(handle)
 
         return True
+
+
+class GitMtimeStage(JobStageBase):
+    """
+    Change the modified time to the commit time for any files in an ADD
+    directive of a Dockerfile
+    """
+
+    slug = 'git_mtime'
+
+    def __init__(self, job, workdir):
+        super(GitMtimeStage, self).__init__(job)
+        self.workdir = workdir
+
+    def dockerfile_globs(self):
+        """ Get all glob patterns from the Dockerfile """
+        dockerfile = self.workdir.join('Dockerfile')
+        with dockerfile.open() as handle:
+            for line in handle:
+                if line[:4] == 'ADD ':
+                    add_value = line[4:]
+                    try:
+                        for path in json.loads(add_value)[:-1]:
+                            yield path
+
+                    except ValueError:
+                        add_file, _ = add_value.split(' ', 1)
+                        yield add_file
+
+        yield 'Dockerfile'
+        yield '.dockerignore'
+
+    def timestamp_for(self, path):
+        """ Get the timestamp for the given path """
+        if path.samefile(self.workdir):
+            git_cmd = [
+                'git', 'log', '-1', '--format=format:%ct',
+            ]
+        else:
+            git_cmd = [
+                'git', 'log', '-1', '--format=format:%ct', '--', path.strpath,
+            ]
+
+        # Get the timestamp
+        return int(subprocess.check_output(
+            git_cmd,
+            stderr=subprocess.STDOUT,
+            cwd=self.workdir.strpath,
+        ))
+
+    def runnable(self, handle):
+        """ Scrape the Dockerfile, update any ``mtime``s """
+        try:
+            globs = self.dockerfile_globs()
+
+        except py.error.ENOENT:
+            handle.write("No Dockerfile! Can not continue".encode())
+            handle.flush()
+            return 1
+
+        # Join with workdir, unglob, and turn into py.path.local
+        all_files = chain(*(
+            (
+                py.path.local(path)
+                for path in glob.iglob(self.workdir.join(repo_glob).strpath)
+            )
+            for repo_glob in globs
+        ))
+
+        for path in all_files:
+            # Ensure path is inside workdir
+            if not path.common(self.workdir).samefile(self.workdir):
+                handle.write((
+                    "%s not in the workdir; failing" % path.strpath
+                ).encode())
+                handle.flush()
+                return 1
+
+            if not path.check():
+                continue
+
+            # Show the file, relative to workdir
+            relpath = self.workdir.bestrelpath(path)
+            handle.write(("%s: " % relpath).encode())
+
+            try:
+                timestamp = self.timestamp_for(path)
+
+            except subprocess.CalledProcessError as ex:
+                # Something happened with the git command
+                handle.write(("Could not retrieve commit time from git. Exit "
+                              "code %d:\n" % ex.returncode).encode())
+                handle.write(ex.output)
+                handle.flush()
+                return 1
+
+            except ValueError as ex:
+                # A non-int value returned
+                handle.write((
+                    "Unexpected output from git: %s\n" % ex.args[0]
+                ).encode())
+                handle.flush()
+                return 1
+
+            # Set the time!
+            mtime = datetime.fromtimestamp(timestamp)
+            handle.write((
+                "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S')
+            ).encode())
+            handle.flush()
+
+            path.setmtime(timestamp)
+            handle.write("DONE!\n".encode())
+            handle.flush()
+
+        return 0
 
 
 class TagVersionStage(CommandJobStage):
