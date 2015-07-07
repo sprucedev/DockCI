@@ -7,6 +7,7 @@
 - Fix display of validation errors when saving a new project #192
 - Add shields.io for projects #197
 - Redirect to new project on creation #202
+- Command output is a string, rather than a Python array dump #204
 
 ### v0.0.4-1
 - Fix issue browsing anonymously #187
