@@ -171,7 +171,7 @@ def handle_github_hook(project):
 def project_input_view(project, edit_operation, fields):
     """ Generic view for project editing """
     if request.method == 'POST':
-        project_input_view_post(project, edit_operation, fields)
+        return project_input_view_post(project, edit_operation, fields)
 
     if 'repo_type' in request.args:
         default_repo_type = request.args['repo_type']
@@ -226,7 +226,7 @@ def project_input_view_post(project, edit_operation, fields):
             saved = handle_github_hook(project)
 
         else:
-            model_flash(project)
+            saved = model_flash(project)
 
     elif request.args.get('repo_type', None) == 'github':
         saved = handle_github_hook(project)
