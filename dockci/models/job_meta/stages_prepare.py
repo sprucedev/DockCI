@@ -312,11 +312,13 @@ class GitMtimeStage(JobStageBase):
 
             extra_txt = ("(and %d more) " % extra) if extra > 0 else ""
             handle.write("{}DONE!\n".format(extra_txt).encode())
-            if not path.common(self.workdir).samefile(self.workdir):
-                handle.write("** Note: Performance benefits may be gained by "
-                             "adding only necessary files, rather than the "
-                             "whole source tree **\n".encode())
-            handle.flush()
+            if path.samefile(self.workdir):
+                self.line(
+                    handle,
+                    "** Note: Performance benefits may be gained by adding "
+                    "only necessary files, rather than the whole source tree "
+                    "**\n",
+                )
 
         return 0
 
