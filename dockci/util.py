@@ -433,3 +433,18 @@ def validate_auth_token(secret, form_data, user, model):
 
     return hmac.compare_digest(req_auth_token,
                                form_data.get('auth_token', None))
+
+
+def write_all(handle, lines, flush=True):
+    """ Encode, write, then flush the line """
+    if isinstance(lines, (tuple, list)):
+        for line in lines:
+            write_all(handle, line, False)
+    else:
+        if isinstance(lines, bytes):
+            handle.write(lines)
+        else:
+            handle.write(str(lines).encode())
+
+        if flush:
+            handle.flush()
