@@ -296,7 +296,7 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
 
                 prepare = (stage() for stage in (
                     lambda: GitChangesStage(self, workdir).run(0),
-                    lambda: GitMtimeStage(self, workdir).run(0),
+                    lambda: GitMtimeStage(self, workdir).run(None),
                     lambda: TagVersionStage(self, workdir).run(None),
                     lambda: ProvisionStage(self).run(0),
                     lambda: BuildStage(self, workdir).run(0),
