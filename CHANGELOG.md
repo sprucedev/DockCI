@@ -8,6 +8,7 @@
 - Add shields.io for projects #197
 - Redirect to new project on creation #202
 - Command output is a string, rather than a Python array dump #204
+- Set mtime of files with ADD directive in a Dockerfile #206
 
 ### v0.0.4-1
 - Fix issue browsing anonymously #187
