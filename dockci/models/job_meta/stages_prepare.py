@@ -238,14 +238,27 @@ class GitMtimeStage(JobStageBase):
 
         return extra
 
+    def line(self, handle, lines, flush=True):
+        """ Encode, write, then flush the line """
+        if isinstance(lines, (tuple, list)):
+            for line in lines:
+                self.line(handle, line, False)
+        else:
+            if isinstance(lines, bytes):
+                handle.write(lines)
+            else:
+                handle.write(str(lines).encode())
+
+            if flush:
+                handle.flush()
+
     def runnable(self, handle):
         """ Scrape the Dockerfile, update any ``mtime``s """
         try:
             globs = self.sorted_dockerfile_globs()
 
         except py.error.ENOENT:
-            handle.write("No Dockerfile! Can not continue".encode())
-            handle.flush()
+            self.line(handle, "No Dockerfile! Can not continue")
             return 1
 
         # Join with workdir, unglob, and turn into py.path.local
@@ -260,10 +273,8 @@ class GitMtimeStage(JobStageBase):
         for path in all_files:
             # Ensure path is inside workdir
             if not path.common(self.workdir).samefile(self.workdir):
-                handle.write((
-                    "%s not in the workdir; failing" % path.strpath
-                ).encode())
-                handle.flush()
+                self.line(handle,
+                          "%s not in the workdir; failing" % path.strpath)
                 return 1
 
             if not path.check():
@@ -271,33 +282,30 @@ class GitMtimeStage(JobStageBase):
 
             # Show the file, relative to workdir
             relpath = self.workdir.bestrelpath(path)
-            handle.write(("%s: " % relpath).encode())
+            self.line(handle, "%s: " % relpath)
 
             try:
                 timestamp = self.timestamp_for(path)
 
             except subprocess.CalledProcessError as ex:
                 # Something happened with the git command
-                handle.write(("Could not retrieve commit time from git. Exit "
-                              "code %d:\n" % ex.returncode).encode())
-                handle.write(ex.output)
-                handle.flush()
+                self.line(handle, [
+                    "Could not retrieve commit time from git. Exit "
+                    "code %d:\n" % ex.returncode,
+
+                    ex.output,
+                ])
                 return 1
 
             except ValueError as ex:
                 # A non-int value returned
-                handle.write((
-                    "Unexpected output from git: %s\n" % ex.args[0]
-                ).encode())
-                handle.flush()
+                self.line(handle,
+                          "Unexpected output from git: %s\n" % ex.args[0])
                 return 1
 
             # User output
             mtime = datetime.fromtimestamp(timestamp)
-            handle.write((
-                "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S')
-            ).encode())
-            handle.flush()
+            self.line(handle, "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S'))
 
             # Set the time!
             extra = self.recursive_mtime(path, timestamp)
