@@ -6,7 +6,6 @@ import glob
 import json
 import re
 import subprocess
-import time
 
 from datetime import datetime
 from itertools import chain
@@ -19,7 +18,7 @@ from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
 from dockci.server import CONFIG
-from dockci.util import docker_ensure_image, FauxDockerLog
+from dockci.util import docker_ensure_image, FauxDockerLog, write_all
 
 
 class WorkdirStage(CommandJobStage):
@@ -158,6 +157,24 @@ class GitChangesStage(CommandJobStage):
         return True
 
 
+def recursive_mtime(path, timestamp):
+    """
+    Recursively set mtime on the given path, returning the number of
+    additional files or directories changed
+    """
+    path.setmtime(timestamp)
+    extra = 0
+    if path.isdir():
+        for subpath in path.visit():
+            try:
+                subpath.setmtime(timestamp)
+                extra += 1
+            except py.error.ENOENT:
+                pass
+
+    return extra
+
+
 class GitMtimeStage(JobStageBase):
     """
     Change the modified time to the commit time for any files in an ADD
@@ -193,6 +210,7 @@ class GitMtimeStage(JobStageBase):
         Sorted globs from the Dockerfile. Paths are sorted based on depth
         """
         def keyfunc(glob_str):
+            """ Compare paths, ranking higher level dirs lower """
             path = self.workdir.join(glob_str)
             try:
                 if path.samefile(self.workdir):
@@ -221,44 +239,13 @@ class GitMtimeStage(JobStageBase):
             cwd=self.workdir.strpath,
         ))
 
-    def recursive_mtime(self, path, timestamp):
-        """
-        Recursively set mtime on the given path, returning the number of
-        additional files or directories changed
-        """
-        path.setmtime(timestamp)
-        extra = 0
-        if path.isdir():
-            for subpath in path.visit():
-                try:
-                    subpath.setmtime(timestamp)
-                    extra += 1
-                except py.error.ENOENT:
-                    pass
-
-        return extra
-
-    def line(self, handle, lines, flush=True):
-        """ Encode, write, then flush the line """
-        if isinstance(lines, (tuple, list)):
-            for line in lines:
-                self.line(handle, line, False)
-        else:
-            if isinstance(lines, bytes):
-                handle.write(lines)
-            else:
-                handle.write(str(lines).encode())
-
-            if flush:
-                handle.flush()
-
     def runnable(self, handle):
         """ Scrape the Dockerfile, update any ``mtime``s """
         try:
             globs = self.sorted_dockerfile_globs()
 
         except py.error.ENOENT:
-            self.line(handle, "No Dockerfile! Can not continue")
+            write_all(handle, "No Dockerfile! Can not continue")
             return 1
 
         # Join with workdir, unglob, and turn into py.path.local
@@ -273,7 +260,7 @@ class GitMtimeStage(JobStageBase):
         for path in all_files:
             # Ensure path is inside workdir
             if not path.common(self.workdir).samefile(self.workdir):
-                self.line(handle,
+                write_all(handle,
                           "%s not in the workdir; failing" % path.strpath)
                 return 1
 
@@ -282,14 +269,14 @@ class GitMtimeStage(JobStageBase):
 
             # Show the file, relative to workdir
             relpath = self.workdir.bestrelpath(path)
-            self.line(handle, "%s: " % relpath)
+            write_all(handle, "%s: " % relpath)
 
             try:
                 timestamp = self.timestamp_for(path)
 
             except subprocess.CalledProcessError as ex:
                 # Something happened with the git command
-                self.line(handle, [
+                write_all(handle, [
                     "Could not retrieve commit time from git. Exit "
                     "code %d:\n" % ex.returncode,
 
@@ -299,21 +286,21 @@ class GitMtimeStage(JobStageBase):
 
             except ValueError as ex:
                 # A non-int value returned
-                self.line(handle,
+                write_all(handle,
                           "Unexpected output from git: %s\n" % ex.args[0])
                 return 1
 
             # User output
             mtime = datetime.fromtimestamp(timestamp)
-            self.line(handle, "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S'))
+            write_all(handle, "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S'))
 
             # Set the time!
-            extra = self.recursive_mtime(path, timestamp)
+            extra = recursive_mtime(path, timestamp)
 
             extra_txt = ("(and %d more) " % extra) if extra > 0 else ""
             handle.write("{}DONE!\n".format(extra_txt).encode())
             if path.samefile(self.workdir):
-                self.line(
+                write_all(
                     handle,
                     "** Note: Performance benefits may be gained by adding "
                     "only necessary files, rather than the whole source tree "
