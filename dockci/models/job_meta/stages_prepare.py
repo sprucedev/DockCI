@@ -240,6 +240,10 @@ class GitMtimeStage(JobStageBase):
         ))
 
     def path_mtime(self, handle, path):
+        """
+        Set the mtime on the given path, writitng messages to the file handle
+        given as necessary
+        """
         # Ensure path is inside workdir
         if not path.common(self.workdir).samefile(self.workdir):
             write_all(handle,
