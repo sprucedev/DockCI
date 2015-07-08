@@ -239,6 +239,58 @@ class GitMtimeStage(JobStageBase):
             cwd=self.workdir.strpath,
         ))
 
+    def path_mtime(self, handle, path):
+        # Ensure path is inside workdir
+        if not path.common(self.workdir).samefile(self.workdir):
+            write_all(handle,
+                      "%s not in the workdir; failing" % path.strpath)
+            return False
+
+        if not path.check():
+            return True
+
+        # Show the file, relative to workdir
+        relpath = self.workdir.bestrelpath(path)
+        write_all(handle, "%s: " % relpath)
+
+        try:
+            timestamp = self.timestamp_for(path)
+
+        except subprocess.CalledProcessError as ex:
+            # Something happened with the git command
+            write_all(handle, [
+                "Could not retrieve commit time from git. Exit "
+                "code %d:\n" % ex.returncode,
+
+                ex.output,
+            ])
+            return False
+
+        except ValueError as ex:
+            # A non-int value returned
+            write_all(handle,
+                      "Unexpected output from git: %s\n" % ex.args[0])
+            return False
+
+        # User output
+        mtime = datetime.fromtimestamp(timestamp)
+        write_all(handle, "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S'))
+
+        # Set the time!
+        extra = recursive_mtime(path, timestamp)
+
+        extra_txt = ("(and %d more) " % extra) if extra > 0 else ""
+        handle.write("{}DONE!\n".format(extra_txt).encode())
+        if path.samefile(self.workdir):
+            write_all(
+                handle,
+                "** Note: Performance benefits may be gained by adding "
+                "only necessary files, rather than the whole source tree "
+                "**\n",
+            )
+
+        return True
+
     def runnable(self, handle):
         """ Scrape the Dockerfile, update any ``mtime``s """
         try:
@@ -257,57 +309,11 @@ class GitMtimeStage(JobStageBase):
             for repo_glob in globs
         ))
 
+        success = True
         for path in all_files:
-            # Ensure path is inside workdir
-            if not path.common(self.workdir).samefile(self.workdir):
-                write_all(handle,
-                          "%s not in the workdir; failing" % path.strpath)
-                return 1
+            success &= self.path_mtime(handle, path)
 
-            if not path.check():
-                continue
-
-            # Show the file, relative to workdir
-            relpath = self.workdir.bestrelpath(path)
-            write_all(handle, "%s: " % relpath)
-
-            try:
-                timestamp = self.timestamp_for(path)
-
-            except subprocess.CalledProcessError as ex:
-                # Something happened with the git command
-                write_all(handle, [
-                    "Could not retrieve commit time from git. Exit "
-                    "code %d:\n" % ex.returncode,
-
-                    ex.output,
-                ])
-                return 1
-
-            except ValueError as ex:
-                # A non-int value returned
-                write_all(handle,
-                          "Unexpected output from git: %s\n" % ex.args[0])
-                return 1
-
-            # User output
-            mtime = datetime.fromtimestamp(timestamp)
-            write_all(handle, "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S'))
-
-            # Set the time!
-            extra = recursive_mtime(path, timestamp)
-
-            extra_txt = ("(and %d more) " % extra) if extra > 0 else ""
-            handle.write("{}DONE!\n".format(extra_txt).encode())
-            if path.samefile(self.workdir):
-                write_all(
-                    handle,
-                    "** Note: Performance benefits may be gained by adding "
-                    "only necessary files, rather than the whole source tree "
-                    "**\n",
-                )
-
-        return 0
+        return 0 if success else 1
 
 
 class TagVersionStage(CommandJobStage):
