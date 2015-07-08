@@ -221,6 +221,23 @@ class GitMtimeStage(JobStageBase):
             cwd=self.workdir.strpath,
         ))
 
+    def recursive_mtime(self, path, timestamp):
+        """
+        Recursively set mtime on the given path, returning the number of
+        additional files or directories changed
+        """
+        path.setmtime(timestamp)
+        extra = 0
+        if path.isdir():
+            for subpath in path.visit():
+                try:
+                    subpath.setmtime(timestamp)
+                    extra += 1
+                except py.error.ENOENT:
+                    pass
+
+        return extra
+
     def runnable(self, handle):
         """ Scrape the Dockerfile, update any ``mtime``s """
         try:
@@ -275,21 +292,15 @@ class GitMtimeStage(JobStageBase):
                 handle.flush()
                 return 1
 
-            # Set the time!
+            # User output
             mtime = datetime.fromtimestamp(timestamp)
             handle.write((
                 "%s... " % mtime.strftime('%Y-%m-%d %H:%M:%S')
             ).encode())
             handle.flush()
 
-            path.setmtime(timestamp)
-            extra = 0
-            if path.isdir():
-                for subpath in path.visit():
-                    if not subpath.check():
-                        continue
-                    extra += 1
-                    subpath.setmtime(timestamp)
+            # Set the time!
+            extra = self.recursive_mtime(path, timestamp)
 
             extra_txt = ("(and %d more) " % extra) if extra > 0 else ""
             handle.write("{}DONE!\n".format(extra_txt).encode())
