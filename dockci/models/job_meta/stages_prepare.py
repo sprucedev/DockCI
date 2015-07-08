@@ -286,6 +286,8 @@ class GitMtimeStage(JobStageBase):
             extra = 0
             if path.isdir():
                 for subpath in path.visit():
+                    if not subpath.check():
+                        continue
                     extra += 1
                     subpath.setmtime(timestamp)
 
