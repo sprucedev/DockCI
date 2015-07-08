@@ -188,6 +188,21 @@ class GitMtimeStage(JobStageBase):
         yield 'Dockerfile'
         yield '.dockerignore'
 
+    def sorted_dockerfile_globs(self, reverse=False):
+        """
+        Sorted globs from the Dockerfile. Paths are sorted based on depth
+        """
+        def keyfunc(glob_str):
+            path = self.workdir.join(glob_str)
+            try:
+                if path.samefile(self.workdir):
+                    return -1
+            except py.error.ENOENT:
+                pass
+
+            return len(path.parts())
+        return sorted(self.dockerfile_globs(), key=keyfunc, reverse=reverse)
+
     def timestamp_for(self, path):
         """ Get the timestamp for the given path """
         if path.samefile(self.workdir):
@@ -209,7 +224,7 @@ class GitMtimeStage(JobStageBase):
     def runnable(self, handle):
         """ Scrape the Dockerfile, update any ``mtime``s """
         try:
-            globs = self.dockerfile_globs()
+            globs = self.sorted_dockerfile_globs()
 
         except py.error.ENOENT:
             handle.write("No Dockerfile! Can not continue".encode())
@@ -268,7 +283,18 @@ class GitMtimeStage(JobStageBase):
             handle.flush()
 
             path.setmtime(timestamp)
-            handle.write("DONE!\n".encode())
+            extra = 0
+            if path.isdir():
+                for subpath in path.visit():
+                    extra += 1
+                    subpath.setmtime(timestamp)
+
+            extra_txt = ("(and %d more) " % extra) if extra > 0 else ""
+            handle.write("{}DONE!\n".format(extra_txt).encode())
+            if not path.common(self.workdir).samefile(self.workdir):
+                handle.write("** Note: Performance benefits may be gained by "
+                             "adding only necessary files, rather than the "
+                             "whole source tree **\n".encode())
             handle.flush()
 
         return 0
