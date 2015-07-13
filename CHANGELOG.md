@@ -1,5 +1,8 @@
 # Changelog
 
+### v0.0.6
+- Docker 1.7.0 (Server 1.19)
+
 ### v0.0.5 (Breaking)
 - **BREAKING** Force project slugs to comply with Docker regex #192
   - All slugs will be lower-cased

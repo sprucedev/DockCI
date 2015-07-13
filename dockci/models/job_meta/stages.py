@@ -174,7 +174,9 @@ class DockerStage(JobStageBase):
         """
         try:
             output = self.runnable_docker()
+            self.job.docker_client.close()
         except requests.exceptions.ConnectionError as ex:
+            self.job.docker_client.close()
             raise DockerUnreachableError(self.job.docker_client, ex)
 
         if not output:
