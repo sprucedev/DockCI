@@ -113,9 +113,12 @@ class Project(Model):  # pylint:disable=too-few-public-methods
         Generator, filtering jobs matching the criteria
         """
         for job in list(self.jobs):
-            # job_passed is used only in this loop iter
-            # pylint:disable=cell-var-from-loop
-            job_passed = lambda: job.result == 'success'  # lazy load
+            def job_passed():
+                """ Lazy load of ``job.result`` """
+                # job_passed is used only in this loop iter
+                # pylint:disable=cell-var-from-loop
+                return job.result == 'success'
+
             if passed is not None and job_passed() != passed:
                 continue
             if versioned is not None and job.tag is None:
