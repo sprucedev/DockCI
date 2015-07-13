@@ -1,5 +1,8 @@
 # Changelog
 
+### v0.0.6
+- Significant decrease in browser load on jobs with error stage #215
+
 ### v0.0.5 (Breaking)
 - **BREAKING** Force project slugs to comply with Docker regex #192
   - All slugs will be lower-cased
