@@ -153,11 +153,7 @@
         }
       })
 
-      if (idx == 0) {
-        $('#job-stages').append(created);
-      } else {
-        created.insertAfter($('#job-stages').children()[idx - 1]);
-      }
+      $('#job-stages').append(created);
 
       return created
     }
