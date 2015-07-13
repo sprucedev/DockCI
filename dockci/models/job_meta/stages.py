@@ -174,7 +174,9 @@ class DockerStage(JobStageBase):
         """
         try:
             output = self.runnable_docker()
+            self.job.docker_client.close()
         except requests.exceptions.ConnectionError as ex:
+            self.job.docker_client.close()
             raise DockerUnreachableError(self.job.docker_client, ex)
 
         if not output:
@@ -186,6 +188,10 @@ class DockerStage(JobStageBase):
                 handle.write(line)
             else:
                 handle.write(line.encode())
+
+            # Issues with push not having new lines
+            if line[-1] != ord('\n'):
+                handle.write(b'\n')
 
             handle.flush()
 

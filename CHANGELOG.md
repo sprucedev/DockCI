@@ -2,6 +2,7 @@
 
 ### v0.0.6
 - Significant decrease in browser load on jobs with error stage #215
+- Docker 1.7.0 (Server 1.19) #216
 
 ### v0.0.5 (Breaking)
 - **BREAKING** Force project slugs to comply with Docker regex #192
