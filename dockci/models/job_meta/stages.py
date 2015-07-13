@@ -189,6 +189,10 @@ class DockerStage(JobStageBase):
             else:
                 handle.write(line.encode())
 
+            # Issues with push not having new lines
+            if line[-1] != ord('\n'):
+                handle.write(b'\n')
+
             handle.flush()
 
             self.on_line(line)
