@@ -14,6 +14,7 @@ from dockci.util import (auth_token_data,
                          create_auth_token,
                          model_flash,
                          request_fill,
+                         str2bool,
                          validate_auth_token,
                          )
 
@@ -161,8 +162,10 @@ def project_new_view():
     View to make a new project
     """
     project = Project()
+    project.utility = str2bool(request.args.get('utility', ''))
+
     return project_input_view(project, 'new', [
-        'slug', 'name', 'repo', 'github_secret', 'github_repo_id',
+        'slug', 'name', 'repo', 'github_secret', 'github_repo_id', 'utility',
         'hipchat_api_token', 'hipchat_room',
     ])
 
