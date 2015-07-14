@@ -1,5 +1,8 @@
 # Changelog
 
+### v0.0.7
+- Fix 500 error when new project is saved with validation issue
+
 ### v0.0.6
 - Significant decrease in browser load on jobs with error stage #215
 - Docker 1.7.0 (Server 1.19) #216
