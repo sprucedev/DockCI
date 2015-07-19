@@ -512,7 +512,71 @@ class UtilStage(InlineProjectStage):
         return project_slug
 
     def runnable_inline(self, service_job, image_id, handle, faux_log):
-        raise NotImplementedError("Not yet!")
+        utility_project = service_job.project
+        defaults = {'status': "Starting %s utility %s" % (
+            utility_project.name,
+            service_job.tag,
+        )}
+        with faux_log.more_defaults(**defaults):
+            faux_log.update()
+
+            service_kwargs = {
+                key: value for key, value in self.config.items()
+                if key in ('command', 'environment')
+            }
+
+            try:
+                container = self.job.docker_client.create_container(
+                    image=image_id,
+                    **service_kwargs
+                )
+                stream = self.job.docker_client.attach(
+                    container['Id'],
+                    stream=True,
+                )
+                self.job.docker_client.start(container['Id'])
+
+            except docker.errors.APIError as ex:
+                faux_log.update(error=ex.explanation.decode())
+                return False
+
+        for line in stream:
+            if isinstance(line, bytes):
+                handle.write(line)
+            else:
+                handle.write(line.encode())
+
+            handle.flush()
+
+        defaults = {
+            'id': "%s-cleanup" % self.id_for_project(utility_project.slug),
+        }
+        with faux_log.more_defaults(**defaults):
+            faux_log.update(status="Collecting status")
+            details = self.job.docker_client.inspect_container(container['Id'])
+
+            defaults = {
+                'status': "Cleaning up %s utility" % utility_project.name
+            }
+            with faux_log.more_defaults(**defaults):
+                try:
+                    self.job.docker_client.remove_container(
+                        container['Id'],
+                    )
+                    faux_log.update(progress="Done")
+                except docker.errors.APIError as ex:
+                    faux_log.update(error=ex.explanation.decode())
+
+        if details['State']['ExitCode'] != 0:
+            faux_log.update(
+                id="%s-exit" % self.id_for_project(utility_project.slug),
+                error="Exit code was %d" % (
+                    details['State']['ExitCode'],
+                )
+            )
+            return False
+
+        return True
 
     @classmethod
     def slug_suffixes(cls, utility_names):
