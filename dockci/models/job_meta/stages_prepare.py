@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 
+from collections import defaultdict
 from datetime import datetime
 from itertools import chain
 
@@ -366,6 +367,11 @@ class InlineProjectStage(JobStageBase):
             "You must override the 'get_project_slugs' method"
         )
 
+    def id_for_project(self, project_slug):
+        """ Get the event series ID for a given project's slug """
+        # pylint:disable=no-member
+        return '%s_%s' % (self.slug, project_slug)
+
     def runnable(self, handle):
         """
         Resolve project containers, and pass control to ``runnable_inline``
@@ -375,7 +381,7 @@ class InlineProjectStage(JobStageBase):
         for project_slug in self.get_project_slugs():
 
             # pylint:disable=no-member
-            defaults = {'id': '%s_%s' % (self.slug, project_slug)}
+            defaults = {'id': self.id_for_project(project_slug)}
             with faux_log.more_defaults(**defaults):
 
                 defaults = {'status': "Finding service %s" % project_slug}
@@ -424,6 +430,8 @@ class InlineProjectStage(JobStageBase):
                         faux_log.update(error="Not found")
                         all_okay = False
                         continue
+
+                    faux_log.update(progress="Done")
 
                 all_okay &= self.runnable_inline(
                     service_job,
@@ -488,3 +496,44 @@ class ProvisionStage(InlineProjectStage):
                 return False
 
         return True
+
+
+class UtilStage(InlineProjectStage):
+    """ Create, and run a utility stage container """
+    def __init__(self, job, slug_suffix, config):
+        super(UtilStage, self).__init__(job)
+        self.slug = "utility_%s" % slug_suffix
+        self.config = config
+
+    def get_project_slugs(self):
+        return (self.config['name'],)
+
+    def id_for_project(self, project_slug):
+        return project_slug
+
+    def runnable_inline(self, service_job, image_id, handle, faux_log):
+        raise NotImplementedError("Not yet!")
+
+    @classmethod
+    def slug_suffixes(cls, utility_names):
+        """ See ``slug_suffixes_gen`` """
+        return list(cls.slug_suffixes_gen(utility_names))
+
+    @classmethod
+    def slug_suffixes_gen(cls, utility_names):
+        """
+        Generate utility names into unique slug suffixes by adding a counter to
+        the end, if there are duplicates
+        """
+        totals = defaultdict(int)
+        for name in utility_names:
+            totals[name] += 1
+
+        counters = defaultdict(int)
+        for name in utility_names:
+            if totals[name] > 1:
+                counters[name] += 1
+                yield '%s_%d' % (name, counters[name])
+
+            else:
+                yield name

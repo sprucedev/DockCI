@@ -26,6 +26,7 @@ class JobConfig(Model):  # pylint:disable=too-few-public-methods
 
     job_output = LoadOnAccess(default=lambda _: {})
     services = LoadOnAccess(default=lambda _: {})
+    utilities = LoadOnAccess(default=lambda _: [])
 
     skip_tests = LoadOnAccess(default=False)
 
