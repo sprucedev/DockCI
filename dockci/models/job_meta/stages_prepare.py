@@ -358,85 +358,133 @@ class TagVersionStage(CommandJobStage):
         return returncode
 
 
-class ProvisionStage(JobStageBase):
+class InlineProjectStage(JobStageBase):
+    """ Stage to run project containers inline in another project job """
+    def get_project_slugs(self):
+        """ Get all project slugs that relate to this inline stage """
+        raise NotImplementedError(
+            "You must override the 'get_project_slugs' method"
+        )
+
+    def runnable(self, handle):
+        """
+        Resolve project containers, and pass control to ``runnable_inline``
+        """
+        all_okay = True
+        faux_log = FauxDockerLog(handle)
+        for project_slug in self.get_project_slugs():
+
+            # pylint:disable=no-member
+            defaults = {'id': '%s_%s' % (self.slug, project_slug)}
+            with faux_log.more_defaults(**defaults):
+
+                defaults = {'status': "Finding service %s" % project_slug}
+                with faux_log.more_defaults(**defaults):
+                    faux_log.update()
+
+                    service_project = Project(project_slug)
+                    if not service_project.exists():
+                        faux_log.update(error="No project found")
+                        all_okay = False
+                        continue
+
+                    service_job = service_project.latest_job(passed=True,
+                                                             versioned=True)
+                    if not service_job:
+                        faux_log.update(
+                            error="No successful, versioned job for %s" % (
+                                service_project.name
+                            ),
+                        )
+                        all_okay = False
+                        continue
+
+                defaults = {'status': "Pulling container image %s:%s" % (
+                    service_job.docker_image_name, service_job.tag
+                )}
+                with faux_log.more_defaults(**defaults):
+                    faux_log.update()
+
+                    try:
+                        image_id = docker_ensure_image(
+                            self.job.docker_client,
+                            service_job.image_id,
+                            service_job.docker_image_name,
+                            service_job.tag,
+                            insecure_registry=CONFIG.docker_registry_insecure,
+                            handle=handle,
+                        )
+
+                    except docker.errors.APIError as ex:
+                        faux_log.update(error=ex.explanation.decode())
+                        all_okay = False
+                        continue
+
+                    if image_id is None:
+                        faux_log.update(error="Not found")
+                        all_okay = False
+                        continue
+
+                all_okay &= self.runnable_inline(
+                    service_job,
+                    image_id,
+                    handle,
+                    faux_log,
+                )
+
+        return 0 if all_okay else 1
+
+    def runnable_inline(self, service_job, image_id, handle, faux_log):
+        """ Executed for each service job """
+        raise NotImplementedError(
+            "You must override the 'get_project_slugs' method"
+        )
+
+
+class ProvisionStage(InlineProjectStage):
     """
     Provision the services that are required for this job
     """
 
     slug = 'docker_provision'
 
-    def runnable(self, handle):
-        """
-        Resolve projects and start services
-        """
-        all_okay = True
-        # pylint:disable=no-member
-        services = self.job.job_config.services
-        for project_slug, service_config in services.items():
-            faux_log = FauxDockerLog(handle)
+    def get_project_slugs(self):
+        return set(self.job.job_config.services.keys())
 
-            defaults = {'status': "Finding service %s" % project_slug,
-                        'id': 'docker_provision_%s' % project_slug}
-            with faux_log.more_defaults(**defaults):
-                faux_log.update()
+    def runnable_inline(self, service_job, image_id, handle, faux_log):
+        service_project = service_job.project
+        service_config = self.job.job_config.services[service_project.slug]
 
-                service_project = Project(project_slug)
-                if not service_project.exists():
-                    faux_log.update(error="No project found")
-                    all_okay = False
-                    continue
+        defaults = {'status': "Starting service %s %s" % (
+            service_project.name,
+            service_job.tag,
+        )}
+        with faux_log.more_defaults(**defaults):
+            faux_log.update()
 
-                service_job = service_project.latest_job(passed=True,
-                                                         versioned=True)
-                if not service_job:
-                    faux_log.update(
-                        error="No successful, versioned job for %s" % (
-                            service_project.name
-                        ),
-                    )
-                    all_okay = False
-                    continue
-
-            defaults = {
-                'status': "Starting service %s %s" % (
-                    service_project.name,
-                    service_job.tag,
-                ),
-                'id': 'docker_provision_%s' % project_slug,
+            service_kwargs = {
+                key: value for key, value in service_config.items()
+                if key in ('command', 'environment')
             }
-            with faux_log.more_defaults(**defaults):
-                faux_log.update()
 
-                try:
-                    image_id = docker_ensure_image(
-                        self.job.docker_client,
-                        service_job.image_id,
-                        service_job.docker_image_name,
-                        service_job.tag,
-                        insecure_registry=CONFIG.docker_registry_insecure,
-                        handle=handle,
-                    )
-                    service_kwargs = {
-                        key: value for key, value in service_config.items()
-                        if key in ('command', 'environment')
-                    }
-                    container = self.job.docker_client.create_container(
-                        image=image_id,
-                        **service_kwargs
-                    )
-                    self.job.docker_client.start(container['Id'])
+            try:
+                container = self.job.docker_client.create_container(
+                    image=image_id,
+                    **service_kwargs
+                )
+                self.job.docker_client.start(container['Id'])
 
-                    # Store the provisioning info
-                    # pylint:disable=protected-access
-                    self.job._provisioned_containers.append({
-                        'project_slug': project_slug,
-                        'config': service_config,
-                        'id': container['Id']
-                    })
-                    faux_log.update(progress="Done")
+                # Store the provisioning info
+                # pylint:disable=protected-access
+                self.job._provisioned_containers.append({
+                    'project_slug': service_project.slug,
+                    'config': service_config,
+                    'id': container['Id']
+                })
+                faux_log.update(progress="Done")
 
-                except docker.errors.APIError as ex:
-                    faux_log.update(error=ex.explanation.decode())
-                    all_okay = False
+            except docker.errors.APIError as ex:
+                faux_log.update(error=ex.explanation.decode())
+                return False
 
-        return 0 if all_okay else 1
+        return True
