@@ -101,7 +101,7 @@
   function dockciJob() {
     var stageAjaxQueue = {},
         importantPanels = ['docker_build', 'docker_test', 'error'],
-        dockerStages = ['docker_provision', 'docker_build', 'docker_push'],
+        dockerStages = ['docker_provision', 'docker_build', 'docker_push', /^utility_.*/],
         scrollEnabled = false, scrollAnimation = null, maxScroll = 0;
 
     // Turn panel slugs into classes
@@ -236,6 +236,17 @@
         logEl.append('<div style="color: red">' + objLine + '</div>');
       }
     }
+    function isDockerStage(stageSlug) {
+      var idx = 0
+
+      if (dockerStages.indexOf(stageSlug) !== -1) { return true }
+      for (idx = 0; idx < dockerStages.length; idx++) {
+        if (dockerStages[idx] instanceof RegExp) {
+          return dockerStages[idx].test(stageSlug)
+        }
+      }
+      return false
+    }
     function processNextStage() {
       var sortedQueueIndexes = Object.keys(stageAjaxQueue).sort(),
           incompleteLineBuffer = "", processedChars = 0,
@@ -262,7 +273,7 @@
             responseLines = responseText.split('\n');
             processedChars = totalLength;
 
-            if (dockerStages.indexOf(stageData['slug']) !== -1) {
+            if (isDockerStage(stageData['slug'])) {
               // Combine the first line with the previous incomplete line
               responseLines[0] = incompleteLineBuffer + responseLines[0];
 
