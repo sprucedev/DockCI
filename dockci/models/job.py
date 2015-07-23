@@ -6,6 +6,7 @@ import random
 import sys
 import tempfile
 
+from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 
@@ -246,6 +247,20 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         """
         return self.result == 'success' and self.tag is not None
 
+    @property
+    def utilities(self):
+        """ Dictionary of utility slug suffixes and their configuration """
+        utility_suffixes = UtilStage.slug_suffixes_gen([
+            config['name']  # TODO handle KeyError gracefully
+            # pylint:disable=no-member
+            for config in self.job_config.utilities
+        ])
+        utilities = zip(
+            # pylint:disable=no-member
+            utility_suffixes, self.job_config.utilities
+        )
+        return OrderedDict(utilities)
+
     @classmethod
     def delete_all_in_project(cls, project):
         """ Delete all jobs and data for the given project """
@@ -300,16 +315,6 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
                     self.result = 'broken'
                     return False
 
-                utility_suffixes = UtilStage.slug_suffixes_gen([
-                    config['name']
-                    # pylint:disable=no-member
-                    for config in self.job_config.utilities
-                ])
-                utilities = zip(
-                    # pylint:disable=no-member
-                    utility_suffixes, self.job_config.utilities
-                )
-
                 def create_util_stage(suffix, config):
                     """ Create a UtilStage wrapped in lambda for running """
                     return lambda: UtilStage(self, suffix, config).run(0)
@@ -321,7 +326,8 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
                         lambda: TagVersionStage(self, workdir).run(None),
                     ), (
                         create_util_stage(suffix_outer, config_outer)
-                        for suffix_outer, config_outer in utilities
+                        for suffix_outer, config_outer
+                        in self.utilities.items()
                     ), (
                         lambda: ProvisionStage(self).run(0),
                         lambda: BuildStage(self, workdir).run(0),
