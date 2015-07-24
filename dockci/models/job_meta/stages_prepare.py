@@ -14,6 +14,7 @@ from itertools import chain
 import docker
 import docker.errors
 import py.error  # pylint:disable=import-error
+import py.path
 
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
@@ -500,8 +501,9 @@ class ProvisionStage(InlineProjectStage):
 
 class UtilStage(InlineProjectStage):
     """ Create, and run a utility stage container """
-    def __init__(self, job, slug_suffix, config):
+    def __init__(self, job, workdir, slug_suffix, config):
         super(UtilStage, self).__init__(job)
+        self.workdir = workdir
         self.slug = "utility_%s" % slug_suffix
         self.config = config
 
@@ -513,6 +515,58 @@ class UtilStage(InlineProjectStage):
 
     def runnable_inline(self, service_job, image_id, handle, faux_log):
         utility_project = service_job.project
+
+        defaults = {
+            'id': "%s-input" % self.id_for_project(utility_project.slug),
+        }
+        # TODO try/finally remove image_id BUT ONLY if it's changed
+        with faux_log.more_defaults(**defaults):
+            faux_log.update(status="Adding files")
+
+            success = True
+
+            # Create the temp Dockerfile
+            tmp_file = py.path.local.mkdtemp(self.workdir).join("Dockerfile")
+            with tmp_file.open('w') as h_dockerfile:
+                h_dockerfile.write('FROM %s\n' % image_id)
+                for file_line in self.config.get('input', ()):
+                    h_dockerfile.write('ADD %s\n' % file_line)
+
+            # Run the build
+            rel_workdir = self.workdir.bestrelpath(tmp_file)
+            output = self.job.docker_client.build(
+                path=self.workdir.strpath,
+                dockerfile=rel_workdir,
+                nocache=True,
+                rm=True,
+                forcerm=True,
+                stream=True,
+            )
+
+            # Watch for errors
+            for line in output:
+                data = json.loads(line.decode())
+                if 'errorDetail' in data:
+                    faux_log.update(**data)
+                    success = False
+
+            self.job.docker_client.close()
+
+            if success:
+                # TODO dedupe from build stage
+                built_re = re.compile(r'Successfully built ([0-9a-f]+)')
+                re_match = built_re.search(data.get('stream', ''))
+                if re_match:
+                    image_id = re_match.group(1)
+                else:
+                    faux_log.update(status="Couldn't determine new image ID",
+                                    progress="Failed")
+                    return False
+
+            else:
+                faux_log.update(progress="Failed")
+                return False
+
         defaults = {'status': "Starting %s utility %s" % (
             utility_project.name,
             service_job.tag,
