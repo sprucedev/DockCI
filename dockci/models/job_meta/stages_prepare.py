@@ -534,6 +534,7 @@ class UtilStage(InlineProjectStage):
 
         input_files = self.config.get('input', ())
         if not input_files:
+            faux_log.update(progress="Skipped")
             return base_image_id
 
         # Create the temp Dockerfile
@@ -570,6 +571,7 @@ class UtilStage(InlineProjectStage):
                                 progress="Failed")
                 return False
 
+            faux_log.update(progress="Done")
             return image_id
 
         else:
@@ -701,9 +703,10 @@ class UtilStage(InlineProjectStage):
 
         defaults = {
             'id': "%s-input" % self.id_for_project(utility_project.slug),
+            'status': "Adding files",
         }
         with faux_log.more_defaults(**defaults):
-            faux_log.update(status="Adding files")
+            faux_log.update()
             image_id = self.add_files(base_image_id, faux_log)
             if image_id == False:
                 return False
