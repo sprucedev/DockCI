@@ -513,86 +513,95 @@ class UtilStage(InlineProjectStage):
     def id_for_project(self, project_slug):
         return project_slug
 
-    def runnable_inline(self, service_job, image_id, handle, faux_log):
-        utility_project = service_job.project
+    def add_files(self, base_image_id, faux_log):
+        """
+        Add files in the util config to a temporary image that will be used for
+        running the util
 
-        defaults = {
-            'id': "%s-input" % self.id_for_project(utility_project.slug),
+        Args:
+          base_image_id (str): Image ID to use in the Dockerfile FROM
+          faux_log: The faux docker log object
+
+        Returns:
+          str: New image ID with files added
+          bool: False if failure
+        """
+        success = True
+
+        # Create the temp Dockerfile
+        tmp_file = py.path.local.mkdtemp(self.workdir).join("Dockerfile")
+        with tmp_file.open('w') as h_dockerfile:
+            h_dockerfile.write('FROM %s\n' % base_image_id)
+            for file_line in self.config.get('input', ()):
+                h_dockerfile.write('ADD %s\n' % file_line)
+
+        # Run the build
+        rel_workdir = self.workdir.bestrelpath(tmp_file)
+        output = self.job.docker_client.build(
+            path=self.workdir.strpath,
+            dockerfile=rel_workdir,
+            nocache=True,
+            rm=True,
+            forcerm=True,
+            stream=True,
+        )
+
+        # Watch for errors
+        for line in output:
+            data = json.loads(line.decode())
+            if 'errorDetail' in data:
+                faux_log.update(**data)
+                success = False
+
+        self.job.docker_client.close()
+
+        if success:
+            # TODO dedupe from build stage
+            built_re = re.compile(r'Successfully built ([0-9a-f]+)')
+            re_match = built_re.search(data.get('stream', ''))
+            if re_match:
+                return re_match.group(1)
+            else:
+                faux_log.update(status="Couldn't determine new image ID",
+                                progress="Failed")
+                return False
+
+        else:
+            faux_log.update(progress="Failed")
+            return False
+
+    def run_util(self, image_id, handle, faux_log):
+        """
+        Run the temp util image with the config command, and output the stream
+        to the given file handle
+
+        Args:
+          image_id (str): New util image to run, with files added
+          handle: File-like object to stream the Docker output to
+          faux_log: The faux docker log object
+
+        Returns:
+          tuple(str, bool): Container ID, and success/fail
+        """
+        service_kwargs = {
+            key: value for key, value in self.config.items()
+            if key in ('command', 'environment')
         }
-        # TODO try/finally remove image_id BUT ONLY if it's changed
-        with faux_log.more_defaults(**defaults):
-            faux_log.update(status="Adding files")
-
-            success = True
-
-            # Create the temp Dockerfile
-            tmp_file = py.path.local.mkdtemp(self.workdir).join("Dockerfile")
-            with tmp_file.open('w') as h_dockerfile:
-                h_dockerfile.write('FROM %s\n' % image_id)
-                for file_line in self.config.get('input', ()):
-                    h_dockerfile.write('ADD %s\n' % file_line)
-
-            # Run the build
-            rel_workdir = self.workdir.bestrelpath(tmp_file)
-            output = self.job.docker_client.build(
-                path=self.workdir.strpath,
-                dockerfile=rel_workdir,
-                nocache=True,
-                rm=True,
-                forcerm=True,
+        container = {}
+        try:
+            container = self.job.docker_client.create_container(
+                image=image_id,
+                **service_kwargs
+            )
+            stream = self.job.docker_client.attach(
+                container['Id'],
                 stream=True,
             )
+            self.job.docker_client.start(container['Id'])
 
-            # Watch for errors
-            for line in output:
-                data = json.loads(line.decode())
-                if 'errorDetail' in data:
-                    faux_log.update(**data)
-                    success = False
-
-            self.job.docker_client.close()
-
-            if success:
-                # TODO dedupe from build stage
-                built_re = re.compile(r'Successfully built ([0-9a-f]+)')
-                re_match = built_re.search(data.get('stream', ''))
-                if re_match:
-                    image_id = re_match.group(1)
-                else:
-                    faux_log.update(status="Couldn't determine new image ID",
-                                    progress="Failed")
-                    return False
-
-            else:
-                faux_log.update(progress="Failed")
-                return False
-
-        defaults = {'status': "Starting %s utility %s" % (
-            utility_project.name,
-            service_job.tag,
-        )}
-        with faux_log.more_defaults(**defaults):
-            faux_log.update()
-
-            service_kwargs = {
-                key: value for key, value in self.config.items()
-                if key in ('command', 'environment')
-            }
-
-            try:
-                container = self.job.docker_client.create_container(
-                    image=image_id,
-                    **service_kwargs
-                )
-                stream = self.job.docker_client.attach(
-                    container['Id'],
-                    stream=True,
-                )
-                self.job.docker_client.start(container['Id'])
-
-            except docker.errors.APIError as ex:
-                faux_log.update(error=ex.explanation.decode())
-                return False
+        except docker.errors.APIError as ex:
+            faux_log.update(error=ex.explanation.decode())
+            return container.get('Id', None), False
 
         for line in stream:
             if isinstance(line, bytes):
@@ -602,24 +611,84 @@ class UtilStage(InlineProjectStage):
 
             handle.flush()
 
+        return container['Id'], True
+
+    def cleanup(self, base_image_id, image_id, container_id, faux_log):
+        """
+        Cleanup after the util stage is done processing. Removes the contanier,
+        and temp image. Doesn't remove the image if it hasn't changed from the
+        base image
+
+        Args:
+          base_image_id (str): Original ID of the utility base image
+          image_id (str): ID of the image used by the utility run
+          container_id (str): ID of the container the utility run created
+          faux_log: The faux docker log object
+
+        Returns:
+          bool: Whether the cleanup was successful or not
+        """
+        try:
+            self.job.docker_client.remove_container(
+                container_id,
+            )
+            faux_log.update(progress="Done")
+            return True
+
+        except docker.errors.APIError as ex:
+            faux_log.update(error=ex.explanation.decode())
+            return False
+
+
+    def runnable_inline(self, service_job, base_image_id, handle, faux_log):
+        """
+        Inline runner for utility projects. Adds files, runs the container,
+        and cleans up
+
+        Args:
+          service_job (dockci.models.job.Job): External Job model that this
+            stage uses the image from
+          base_image_id (str): Image ID of the versioned job to use
+          handle: Stream handle for raw output
+          faux_log: The faux docker log object
+
+        Returns:
+          bool: True on all success, False on at least 1 failure
+        """
+        utility_project = service_job.project
+
+        defaults = {
+            'id': "%s-input" % self.id_for_project(utility_project.slug),
+        }
+        with faux_log.more_defaults(**defaults):
+            faux_log.update(status="Adding files")
+            image_id = self.add_files(base_image_id, faux_log)
+            if image_id == False:
+                return False
+
+        # TODO try/finally remove image_id BUT ONLY if it's changed
+        defaults = {'status': "Starting %s utility %s" % (
+            utility_project.name,
+            service_job.tag,
+        )}
+        with faux_log.more_defaults(**defaults):
+            faux_log.update()
+            container_id, success = self.run_util(image_id, handle, faux_log)
+            if not success:
+                return False  # TODO cleanup container
+
         defaults = {
             'id': "%s-cleanup" % self.id_for_project(utility_project.slug),
         }
         with faux_log.more_defaults(**defaults):
             faux_log.update(status="Collecting status")
-            details = self.job.docker_client.inspect_container(container['Id'])
+            details = self.job.docker_client.inspect_container(container_id)
 
-            defaults = {
-                'status': "Cleaning up %s utility" % utility_project.name
-            }
-            with faux_log.more_defaults(**defaults):
-                try:
-                    self.job.docker_client.remove_container(
-                        container['Id'],
-                    )
-                    faux_log.update(progress="Done")
-                except docker.errors.APIError as ex:
-                    faux_log.update(error=ex.explanation.decode())
+        defaults = {
+            'status': "Cleaning up %s utility" % utility_project.name
+        }
+        with faux_log.more_defaults(**defaults):
+            success = self.cleanup(base_image_id, image_id, container_id, faux_log)
 
         if details['State']['ExitCode'] != 0:
             faux_log.update(
@@ -630,7 +699,7 @@ class UtilStage(InlineProjectStage):
             )
             return False
 
-        return True
+        return success
 
     @classmethod
     def slug_suffixes(cls, utility_names):
