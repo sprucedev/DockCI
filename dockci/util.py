@@ -460,3 +460,15 @@ def str2bool(value):
         pass
 
     return value in ('yes', 'true', 'y', 't')
+
+
+BUILT_RE = re.compile(r'Successfully built ([0-9a-f]+)')
+
+
+def built_docker_image_id(data):
+    """ Get an image ID out of the Docker stream data """
+    re_match = BUILT_RE.search(data.get('stream', ''))
+    if re_match:
+        return re_match.group(1)
+
+    return None

@@ -20,7 +20,11 @@ from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
 from dockci.server import CONFIG
-from dockci.util import docker_ensure_image, FauxDockerLog, write_all
+from dockci.util import (built_docker_image_id,
+                         docker_ensure_image,
+                         FauxDockerLog,
+                         write_all,
+                         )
 
 
 class WorkdirStage(CommandJobStage):
@@ -560,15 +564,13 @@ class UtilStage(InlineProjectStage):
         self.job.docker_client.close()
 
         if success:
-            # TODO dedupe from build stage
-            built_re = re.compile(r'Successfully built ([0-9a-f]+)')
-            re_match = built_re.search(data.get('stream', ''))
-            if re_match:
-                return re_match.group(1)
-            else:
+            image_id = built_docker_image_id(data)
+            if image_id is None:
                 faux_log.update(status="Couldn't determine new image ID",
                                 progress="Failed")
                 return False
+
+            return image_id
 
         else:
             faux_log.update(progress="Failed")
