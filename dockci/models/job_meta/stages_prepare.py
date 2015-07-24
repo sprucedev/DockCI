@@ -711,6 +711,7 @@ class UtilStage(InlineProjectStage):
                 return False
 
         container_id = None
+        success = True
         cleanup_id = "%s-cleanup" % self.id_for_project(utility_project.slug)
         try:
             defaults = {'status': "Starting %s utility %s" % (
@@ -722,33 +723,41 @@ class UtilStage(InlineProjectStage):
                 container_id, success = self.run_util(
                     image_id, handle, faux_log,
                 )
-                if not success:
-                    return False
 
-            with faux_log.more_defaults(id=cleanup_id):
-                faux_log.update(status="Collecting status")
-                exit_code = self.job.docker_client.inspect_container(
-                    container_id
-                )['State']['ExitCode']
+            if success:
+                with faux_log.more_defaults(id=cleanup_id):
+                    faux_log.update(status="Collecting status")
+                    exit_code = self.job.docker_client.inspect_container(
+                        container_id
+                    )['State']['ExitCode']
 
-            if exit_code != 0:
-                faux_log.update(
-                    id="%s-exit" % self.id_for_project(utility_project.slug),
-                    error="Exit code was %d" % exit_code
-                )
-                return False
+                if exit_code != 0:
+                    faux_log.update(
+                        id="%s-exit" % self.id_for_project(
+                            utility_project.slug,
+                        ),
+                        error="Exit code was %d" % exit_code
+                    )
+                    success = False
 
-            return True
+        except Exception:
+            self.cleanup(base_image_id,
+                         image_id,
+                         container_id,
+                         faux_log,
+                         cleanup_id,
+                         )
+            raise
 
-        finally:
-            success = self.cleanup(base_image_id,
-                                   image_id,
-                                   container_id,
-                                   faux_log,
-                                   cleanup_id,
-                                   )
-            if not success:
-                return False  # Overrides default return!!
+        else:
+            success = success & self.cleanup(base_image_id,
+                                             image_id,
+                                             container_id,
+                                             faux_log,
+                                             cleanup_id,
+                                             )
+
+        return success
 
     @classmethod
     def slug_suffixes(cls, utility_names):
