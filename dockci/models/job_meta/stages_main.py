@@ -3,7 +3,6 @@ Main job stages that constitute a job
 """
 
 import json
-import re
 
 import docker
 import docker.errors

@@ -14,7 +14,7 @@ from itertools import chain
 import docker
 import docker.errors
 import py.error  # pylint:disable=import-error
-import py.path
+import py.path  # pylint:disable=import-error
 
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
@@ -683,7 +683,6 @@ class UtilStage(InlineProjectStage):
 
         return success
 
-
     def runnable_inline(self, service_job, base_image_id, handle, faux_log):
         """
         Inline runner for utility projects. Adds files, runs the container,
@@ -708,7 +707,7 @@ class UtilStage(InlineProjectStage):
         with faux_log.more_defaults(**defaults):
             faux_log.update()
             image_id = self.add_files(base_image_id, faux_log)
-            if image_id == False:
+            if image_id is False:
                 return False
 
         container_id = None
@@ -720,7 +719,9 @@ class UtilStage(InlineProjectStage):
             )}
             with faux_log.more_defaults(**defaults):
                 faux_log.update()
-                container_id, success = self.run_util(image_id, handle, faux_log)
+                container_id, success = self.run_util(
+                    image_id, handle, faux_log,
+                )
                 if not success:
                     return False
 
