@@ -528,11 +528,15 @@ class UtilStage(InlineProjectStage):
         """
         success = True
 
+        input_files = self.config.get('input', ())
+        if not input_files:
+            return base_image_id
+
         # Create the temp Dockerfile
         tmp_file = py.path.local.mkdtemp(self.workdir).join("Dockerfile")
         with tmp_file.open('w') as h_dockerfile:
             h_dockerfile.write('FROM %s\n' % base_image_id)
-            for file_line in self.config.get('input', ()):
+            for file_line in input_files:
                 h_dockerfile.write('ADD %s\n' % file_line)
 
         # Run the build
@@ -613,7 +617,13 @@ class UtilStage(InlineProjectStage):
 
         return container['Id'], True
 
-    def cleanup(self, base_image_id, image_id, container_id, faux_log):
+    def cleanup(self,
+                base_image_id,
+                image_id,
+                container_id,
+                faux_log,
+                cleanup_id,
+                ):
         """
         Cleanup after the util stage is done processing. Removes the contanier,
         and temp image. Doesn't remove the image if it hasn't changed from the
@@ -624,20 +634,50 @@ class UtilStage(InlineProjectStage):
           image_id (str): ID of the image used by the utility run
           container_id (str): ID of the container the utility run created
           faux_log: The faux docker log object
+          cleanup_id (str): Base ID for the faux_log
 
         Returns:
           bool: Whether the cleanup was successful or not
         """
-        try:
-            self.job.docker_client.remove_container(
-                container_id,
-            )
-            faux_log.update(progress="Done")
+        def cleanup_container():
+            """ Remove the container """
+            self.job.docker_client.remove_container(container_id)
             return True
 
-        except docker.errors.APIError as ex:
-            faux_log.update(error=ex.explanation.decode())
-            return False
+        def cleanup_image():
+            """ Remove the image, unless it's base """
+            if image_id is None:
+                return False
+            min_len = min(len(base_image_id), len(image_id))
+            if base_image_id[:min_len] == image_id[:min_len]:
+                return False
+
+            self.job.docker_client.remove_image(image_id)
+            return True
+
+        success = True
+        cleanups = (
+            ('container', cleanup_container, container_id),
+            ('image', cleanup_image, image_id),
+        )
+        for obj_name, func, obj_id in cleanups:
+            defaults = {
+                'id': '%s-%s' % (cleanup_id, obj_id),
+                'status': "Cleaning up %s" % obj_name
+            }
+            with faux_log.more_defaults(**defaults):
+                faux_log.update()
+                try:
+                    done = func()
+                    faux_log.update(
+                        progress="Done" if done else "Skipped"
+                    )
+
+                except docker.errors.APIError as ex:
+                    faux_log.update(error=ex.explanation.decode())
+                    success = False
+
+        return success
 
 
     def runnable_inline(self, service_job, base_image_id, handle, faux_log):
@@ -666,40 +706,43 @@ class UtilStage(InlineProjectStage):
             if image_id == False:
                 return False
 
-        # TODO try/finally remove image_id BUT ONLY if it's changed
-        defaults = {'status': "Starting %s utility %s" % (
-            utility_project.name,
-            service_job.tag,
-        )}
-        with faux_log.more_defaults(**defaults):
-            faux_log.update()
-            container_id, success = self.run_util(image_id, handle, faux_log)
-            if not success:
-                return False  # TODO cleanup container
+        container_id = None
+        cleanup_id = "%s-cleanup" % self.id_for_project(utility_project.slug)
+        try:
+            defaults = {'status': "Starting %s utility %s" % (
+                utility_project.name,
+                service_job.tag,
+            )}
+            with faux_log.more_defaults(**defaults):
+                faux_log.update()
+                container_id, success = self.run_util(image_id, handle, faux_log)
+                if not success:
+                    return False
 
-        defaults = {
-            'id': "%s-cleanup" % self.id_for_project(utility_project.slug),
-        }
-        with faux_log.more_defaults(**defaults):
-            faux_log.update(status="Collecting status")
-            details = self.job.docker_client.inspect_container(container_id)
+            with faux_log.more_defaults(id=cleanup_id):
+                faux_log.update(status="Collecting status")
+                exit_code = self.job.docker_client.inspect_container(
+                    container_id
+                )['State']['ExitCode']
 
-        defaults = {
-            'status': "Cleaning up %s utility" % utility_project.name
-        }
-        with faux_log.more_defaults(**defaults):
-            success = self.cleanup(base_image_id, image_id, container_id, faux_log)
-
-        if details['State']['ExitCode'] != 0:
-            faux_log.update(
-                id="%s-exit" % self.id_for_project(utility_project.slug),
-                error="Exit code was %d" % (
-                    details['State']['ExitCode'],
+            if exit_code != 0:
+                faux_log.update(
+                    id="%s-exit" % self.id_for_project(utility_project.slug),
+                    error="Exit code was %d" % exit_code
                 )
-            )
-            return False
+                return False
 
-        return success
+            return True
+
+        finally:
+            success = self.cleanup(base_image_id,
+                                   image_id,
+                                   container_id,
+                                   faux_log,
+                                   cleanup_id,
+                                   )
+            if not success:
+                return False  # Overrides default return!!
 
     @classmethod
     def slug_suffixes(cls, utility_names):
