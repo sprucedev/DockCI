@@ -3,14 +3,13 @@ Main job stages that constitute a job
 """
 
 import json
-import re
 
 import docker
 import docker.errors
 
 from dockci.exceptions import AlreadyBuiltError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.util import is_semantic
+from dockci.util import built_docker_image_id, is_semantic
 
 
 class ExternalStatusStage(JobStageBase):
@@ -71,7 +70,6 @@ class BuildStage(DockerStage):
     """
 
     slug = 'docker_build'
-    built_re = re.compile(r'Successfully built ([0-9a-f]+)')
 
     def __init__(self, job, workdir):
         super(BuildStage, self).__init__(job)
@@ -134,9 +132,8 @@ class BuildStage(DockerStage):
                 line = line.decode()
 
             line_data = json.loads(line)
-            re_match = self.built_re.search(line_data.get('stream', ''))
-            if re_match:
-                self.job.image_id = re_match.group(1)
+            self.job.image_id = built_docker_image_id(line_data)
+            if self.job.image_id is not None:
                 return 0
 
         return 1

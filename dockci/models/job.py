@@ -317,7 +317,9 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
 
                 def create_util_stage(suffix, config):
                     """ Create a UtilStage wrapped in lambda for running """
-                    return lambda: UtilStage(self, suffix, config).run(0)
+                    return lambda: UtilStage(
+                        self, workdir, suffix, config,
+                    ).run(0)
 
                 prepare = (stage() for stage in chain(
                     (

@@ -179,7 +179,7 @@
       return lineId;
     }
     function dockerJobLine(panelEl, logEl, obj, lenient) {
-      var idRow, objLine, errorMessage
+      var idRow, objLine, errorMessage, idHash,
           isObj = typeof(obj) === 'object';
 
       if (isObj && ('errorDetail' in obj || 'error' in obj)) {
@@ -211,9 +211,10 @@
         }
 
       } else if (isObj && 'id' in obj) {
-        idRow = $('.docker-log-' + obj['id'], logEl);
+        idHash = md5(obj['id']);
+        idRow = $('.docker-log-' + idHash, logEl);
         if (idRow.length < 1) {
-          idRow = $('<div class="docker-log-' + obj['id'] + '"></div>');
+          idRow = $('<div class="docker-log-' + idHash + '"></div>');
           logEl.append(idRow);
         }
 
