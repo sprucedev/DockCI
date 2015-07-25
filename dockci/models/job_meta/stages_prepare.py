@@ -23,6 +23,7 @@ from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
+                         path_contained,
                          write_all,
                          )
 
@@ -251,7 +252,7 @@ class GitMtimeStage(JobStageBase):
         given as necessary
         """
         # Ensure path is inside workdir
-        if not path.common(self.workdir).samefile(self.workdir):
+        if not path_contained(self.workdir, path):
             write_all(handle,
                       "%s not in the workdir; failing" % path.strpath)
             return False

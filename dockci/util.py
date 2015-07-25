@@ -472,3 +472,14 @@ def built_docker_image_id(data):
         return re_match.group(1)
 
     return None
+
+
+def path_contained(outer_path, inner_path):
+    """ Ensure that ``inner_path`` is contained within ``outer_path`` """
+    common = inner_path.common(outer_path)
+    try:
+        # Account for symlinks
+        return common.samefile(outer_path)
+
+    except py.errors.ENOENT:
+        return common == outer_path
