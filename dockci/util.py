@@ -18,6 +18,7 @@ from functools import wraps
 from ipaddress import ip_address
 
 import docker.errors
+import py.error  # pylint:disable=import-error
 
 from flask import flash, request
 from flask_security import current_user, login_required
@@ -481,5 +482,5 @@ def path_contained(outer_path, inner_path):
         # Account for symlinks
         return common.samefile(outer_path)
 
-    except py.errors.ENOENT:
+    except py.error.ENOENT:
         return common == outer_path

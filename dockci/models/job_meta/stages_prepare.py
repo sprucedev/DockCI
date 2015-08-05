@@ -624,6 +624,19 @@ class UtilStage(InlineProjectStage):
         return container['Id'], True
 
     def retrieve_files(self, container_id, faux_log, files_id):
+        """
+        Retrieve the files in the job config from the utility container
+
+        Args:
+          container_id (str): ID of a container to copy files from. Most likely
+            the completed utility container
+          faux_log: The faux docker log object
+          files_id: Log ID for the output retrieval stage. Used as both an ID,
+            and a prefix
+
+        Returns:
+          bool: True when all files retrieved as expected, False otherwise
+        """
         output_files = self.config.get('output', [])
         success = True
         if not output_files:
