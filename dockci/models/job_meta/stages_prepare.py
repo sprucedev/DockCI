@@ -6,6 +6,7 @@ import glob
 import json
 import re
 import subprocess
+import tarfile
 
 from collections import defaultdict
 from datetime import datetime
@@ -622,6 +623,61 @@ class UtilStage(InlineProjectStage):
 
         return container['Id'], True
 
+    def retrieve_files(self, container_id, faux_log, files_id):
+        output_files = self.config.get('output', [])
+        success = True
+        if not output_files:
+            faux_log.update(id=files_id, progress="Skipped")
+
+        for output_idx, output_set in enumerate(output_files):
+            if isinstance(output_set, dict):
+                try:
+                    remote_spath = output_set['from']
+                except KeyError:
+                    defaults = {
+                        'id': '%s-%s' % (files_id, output_idx),
+                        'progress': 'Failed',
+                    }
+                    with faux_log.more_defaults(**defaults):
+                        faux_log.update(status="Reading configuration")
+                        faux_log.update(error="No required 'from' parameter")
+                    success = False
+                    continue
+
+                local_spath = output_set.get('to', '.')
+            else:
+                local_spath = '.'
+                remote_spath = output_set
+
+            defaults = {
+                'id': '%s-%s' % (files_id, local_spath),
+                'status': "Copying from '%s'" % remote_spath,
+            }
+            with faux_log.more_defaults(**defaults):
+                faux_log.update()
+                local_path = self.workdir.join(local_spath)
+                if not path_contained(self.workdir, local_path):
+                    faux_log.update(
+                        error="Path not contained within the working "
+                              "directory",
+                        progress="Failed",
+                    )
+                    success = False
+                    continue
+
+                response = self.job.docker_client.copy(
+                    container_id, remote_spath
+                )
+
+                intermediate = tarfile.open(name='output.tar',
+                                            mode='r|',
+                                            fileobj=response)
+                intermediate.extractall(local_path.strpath)
+
+                faux_log.update(progress="Done")
+
+        return success
+
     def cleanup(self,
                 base_image_id,
                 image_id,
@@ -740,6 +796,16 @@ class UtilStage(InlineProjectStage):
                         error="Exit code was %d" % exit_code
                     )
                     success = False
+
+            if success:
+                files_id = (
+                    "%s-output" % self.id_for_project(utility_project.slug))
+                defaults = {'status': "Getting files"}
+                with faux_log.more_defaults(**defaults):
+                    faux_log.update()
+                    success = success & self.retrieve_files(
+                        container_id, faux_log, files_id,
+                    )
 
         except Exception:
             self.cleanup(base_image_id,
