@@ -649,7 +649,7 @@ class UtilStage(InlineProjectStage):
                 except KeyError:
                     defaults = {
                         'id': '%s-%s' % (files_id, output_idx),
-                        'progress': 'Failed',
+                        'progress': "Failed",
                     }
                     with faux_log.more_defaults(**defaults):
                         faux_log.update(status="Reading configuration")
@@ -756,7 +756,7 @@ class UtilStage(InlineProjectStage):
     def runnable_inline(self, service_job, base_image_id, handle, faux_log):
         """
         Inline runner for utility projects. Adds files, runs the container,
-        and cleans up
+        retrieves output, and cleans up
 
         Args:
           service_job (dockci.models.job.Job): External Job model that this
