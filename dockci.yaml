@@ -1,0 +1,7 @@
+dockerfile: Dockerfile-dockci
+utilities:
+  - name: bower
+    input:
+      - bower.json /work/bower.json
+    output:
+      - /work/bower_components

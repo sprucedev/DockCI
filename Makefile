@@ -1,4 +1,4 @@
-collectstatic: htmldeps
+collectstatic:
 	mkdir -p dockci/static/lib/css
 	mkdir -p dockci/static/lib/fonts
 	mkdir -p dockci/static/lib/js
