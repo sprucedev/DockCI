@@ -4,6 +4,7 @@
 - Fix 500 error when new project is saved with validation issue #220
 - Create utility project #220
 - Run utility projects given in `dockci.yaml` #223
+- Add/retrieve generated data from utilities #225
 - Add `skip_tests` option to `dockci.yaml` for use with utilites #223
 
 ### v0.0.6

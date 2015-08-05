@@ -20,9 +20,10 @@ from yaml_model import ValidationError
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import APP
-from dockci.util import (login_or_github_required,
+from dockci.util import (DateTimeEncoder,
                          is_valid_github,
-                         DateTimeEncoder,
+                         login_or_github_required,
+                         path_contained
                          )
 
 
@@ -133,10 +134,7 @@ def job_output_view(project_slug, job_slug, filename):
     data_file_path = job_output_path.join(filename)
 
     # Ensure no security issues opening path above our output dir
-    file_in_path = job_output_path.samefile(
-        data_file_path.common(job_output_path)
-    )
-    if not file_in_path:
+    if not path_contained(job_output_path, data_file_path):
         abort(404)
 
     if not data_file_path.check(file=True):

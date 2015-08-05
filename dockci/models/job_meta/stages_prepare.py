@@ -6,6 +6,7 @@ import glob
 import json
 import re
 import subprocess
+import tarfile
 
 from collections import defaultdict
 from datetime import datetime
@@ -23,6 +24,7 @@ from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
+                         path_contained,
                          write_all,
                          )
 
@@ -251,7 +253,7 @@ class GitMtimeStage(JobStageBase):
         given as necessary
         """
         # Ensure path is inside workdir
-        if not path.common(self.workdir).samefile(self.workdir):
+        if not path_contained(self.workdir, path):
             write_all(handle,
                       "%s not in the workdir; failing" % path.strpath)
             return False
@@ -621,6 +623,74 @@ class UtilStage(InlineProjectStage):
 
         return container['Id'], True
 
+    def retrieve_files(self, container_id, faux_log, files_id):
+        """
+        Retrieve the files in the job config from the utility container
+
+        Args:
+          container_id (str): ID of a container to copy files from. Most likely
+            the completed utility container
+          faux_log: The faux docker log object
+          files_id: Log ID for the output retrieval stage. Used as both an ID,
+            and a prefix
+
+        Returns:
+          bool: True when all files retrieved as expected, False otherwise
+        """
+        output_files = self.config.get('output', [])
+        success = True
+        if not output_files:
+            faux_log.update(id=files_id, progress="Skipped")
+
+        for output_idx, output_set in enumerate(output_files):
+            if isinstance(output_set, dict):
+                try:
+                    remote_spath = output_set['from']
+                except KeyError:
+                    defaults = {
+                        'id': '%s-%s' % (files_id, output_idx),
+                        'progress': "Failed",
+                    }
+                    with faux_log.more_defaults(**defaults):
+                        faux_log.update(status="Reading configuration")
+                        faux_log.update(error="No required 'from' parameter")
+                    success = False
+                    continue
+
+                local_spath = output_set.get('to', '.')
+            else:
+                local_spath = '.'
+                remote_spath = output_set
+
+            defaults = {
+                'id': '%s-%s' % (files_id, local_spath),
+                'status': "Copying from '%s'" % remote_spath,
+            }
+            with faux_log.more_defaults(**defaults):
+                faux_log.update()
+                local_path = self.workdir.join(local_spath)
+                if not path_contained(self.workdir, local_path):
+                    faux_log.update(
+                        error="Path not contained within the working "
+                              "directory",
+                        progress="Failed",
+                    )
+                    success = False
+                    continue
+
+                response = self.job.docker_client.copy(
+                    container_id, remote_spath
+                )
+
+                intermediate = tarfile.open(name='output.tar',
+                                            mode='r|',
+                                            fileobj=response)
+                intermediate.extractall(local_path.strpath)
+
+                faux_log.update(progress="Done")
+
+        return success
+
     def cleanup(self,
                 base_image_id,
                 image_id,
@@ -686,7 +756,7 @@ class UtilStage(InlineProjectStage):
     def runnable_inline(self, service_job, base_image_id, handle, faux_log):
         """
         Inline runner for utility projects. Adds files, runs the container,
-        and cleans up
+        retrieves output, and cleans up
 
         Args:
           service_job (dockci.models.job.Job): External Job model that this
@@ -739,6 +809,16 @@ class UtilStage(InlineProjectStage):
                         error="Exit code was %d" % exit_code
                     )
                     success = False
+
+            if success:
+                files_id = (
+                    "%s-output" % self.id_for_project(utility_project.slug))
+                defaults = {'status': "Getting files"}
+                with faux_log.more_defaults(**defaults):
+                    faux_log.update()
+                    success = success & self.retrieve_files(
+                        container_id, faux_log, files_id,
+                    )
 
         except Exception:
             self.cleanup(base_image_id,

@@ -18,6 +18,7 @@ from functools import wraps
 from ipaddress import ip_address
 
 import docker.errors
+import py.error  # pylint:disable=import-error
 
 from flask import flash, request
 from flask_security import current_user, login_required
@@ -472,3 +473,14 @@ def built_docker_image_id(data):
         return re_match.group(1)
 
     return None
+
+
+def path_contained(outer_path, inner_path):
+    """ Ensure that ``inner_path`` is contained within ``outer_path`` """
+    common = inner_path.common(outer_path)
+    try:
+        # Account for symlinks
+        return common.samefile(outer_path)
+
+    except py.error.ENOENT:
+        return common == outer_path
