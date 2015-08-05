@@ -195,10 +195,10 @@ class GitMtimeStage(JobStageBase):
         super(GitMtimeStage, self).__init__(job)
         self.workdir = workdir
 
-    def dockerfile_globs(self):
+    def dockerfile_globs(self, dockerfile='Dockerfile'):
         """ Get all glob patterns from the Dockerfile """
-        dockerfile = self.workdir.join('Dockerfile')
-        with dockerfile.open() as handle:
+        dockerfile_path = self.workdir.join(dockerfile)
+        with dockerfile_path.open() as handle:
             for line in handle:
                 if line[:4] == 'ADD ':
                     add_value = line[4:]
@@ -210,10 +210,10 @@ class GitMtimeStage(JobStageBase):
                         add_file, _ = add_value.split(' ', 1)
                         yield add_file
 
-        yield 'Dockerfile'
+        yield dockerfile
         yield '.dockerignore'
 
-    def sorted_dockerfile_globs(self, reverse=False):
+    def sorted_dockerfile_globs(self, reverse=False, dockerfile='Dockerfile'):
         """
         Sorted globs from the Dockerfile. Paths are sorted based on depth
         """
@@ -227,7 +227,10 @@ class GitMtimeStage(JobStageBase):
                 pass
 
             return len(path.parts())
-        return sorted(self.dockerfile_globs(), key=keyfunc, reverse=reverse)
+
+        return sorted(self.dockerfile_globs(dockerfile),
+                      key=keyfunc,
+                      reverse=reverse)
 
     def timestamp_for(self, path):
         """ Get the timestamp for the given path """
@@ -305,11 +308,15 @@ class GitMtimeStage(JobStageBase):
 
     def runnable(self, handle):
         """ Scrape the Dockerfile, update any ``mtime``s """
+        dockerfile = self.job.job_config.dockerfile
         try:
-            globs = self.sorted_dockerfile_globs()
+            globs = self.sorted_dockerfile_globs(dockerfile=dockerfile)
 
         except py.error.ENOENT:
-            write_all(handle, "No Dockerfile! Can not continue")
+            write_all(
+                handle,
+                "Dockerfile '%s' not found! Can not continue" % dockerfile,
+            )
             return 1
 
         # Join with workdir, unglob, and turn into py.path.local
