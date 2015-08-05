@@ -6,6 +6,7 @@
 - Run utility projects given in `dockci.yaml` #223
 - Add/retrieve generated data from utilities #225
 - Add `skip_tests` option to `dockci.yaml` for use with utilites #223
+- Specify `Dockerfile` to use in `dockci.yaml` #227
 
 ### v0.0.6
 - Significant decrease in browser load on jobs with error stage #215
