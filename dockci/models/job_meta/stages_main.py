@@ -116,8 +116,10 @@ class BuildStage(DockerStage):
 
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.job.tag is not None)
+        dockerfile = self.job.job_config.dockerfile
 
         return self.job.docker_client.build(path=self.workdir.strpath,
+                                            dockerfile=dockerfile,
                                             tag=tag,
                                             nocache=no_cache,
                                             rm=True,
