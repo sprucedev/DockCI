@@ -18,6 +18,7 @@ from functools import wraps
 from ipaddress import ip_address
 
 import docker.errors
+import py.error  # pylint:disable=import-error
 
 from flask import flash, request
 from flask_security import current_user, login_required
@@ -448,3 +449,38 @@ def write_all(handle, lines, flush=True):
 
         if flush:
             handle.flush()
+
+
+def str2bool(value):
+    """ Convert a string to a boolean, accounting for english-like terms """
+    value = value.lower()
+
+    try:
+        return bool(int(value))
+    except ValueError:
+        pass
+
+    return value in ('yes', 'true', 'y', 't')
+
+
+BUILT_RE = re.compile(r'Successfully built ([0-9a-f]+)')
+
+
+def built_docker_image_id(data):
+    """ Get an image ID out of the Docker stream data """
+    re_match = BUILT_RE.search(data.get('stream', ''))
+    if re_match:
+        return re_match.group(1)
+
+    return None
+
+
+def path_contained(outer_path, inner_path):
+    """ Ensure that ``inner_path`` is contained within ``outer_path`` """
+    common = inner_path.common(outer_path)
+    try:
+        # Account for symlinks
+        return common.samefile(outer_path)
+
+    except py.error.ENOENT:
+        return common == outer_path
