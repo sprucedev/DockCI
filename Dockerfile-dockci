@@ -1,7 +1,7 @@
 FROM debian:jessie
 
 EXPOSE 5000
-ENTRYPOINT ["/usr/bin/make"]
+ENTRYPOINT ["/code/manage.sh"]
 CMD ["run"]
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -14,16 +14,16 @@ ENV LANG en_AU.UTF-8
 
 RUN mkdir -p /code/data
 WORKDIR /code
-ADD Makefile /code/Makefile
+ADD ./manage.sh /code/manage.sh
 
 ADD ./util_bower_components /code/bower_components
 ADD _collect_static.sh /code/_collect_static.sh
-RUN make collectstatic
+RUN ./manage.sh collectstatic
 
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
 ADD ./util_wheelhouse /code/wheelhouse
-RUN make pythondeps
+RUN ./manage.sh pythondeps
 
 ADD dockci /code/dockci
 ADD tests /code/tests
