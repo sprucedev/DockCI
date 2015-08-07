@@ -6,9 +6,11 @@ utilities:
       - test-requirements.txt /work/test-requirements.txt
     command: pip wheel -r requirements.txt -r test-requirements.txt
     output:
-      - /work/wheelhouse
+      - from: /work/wheelhouse
+        to: util_wheelhouse
   - name: bower
     input:
       - bower.json /work/bower.json
     output:
-      - /work/bower_components
+      - from: /work/bower_components
+        to: util_bower_components

@@ -16,13 +16,13 @@ RUN mkdir -p /code/data
 WORKDIR /code
 ADD Makefile /code/Makefile
 
-ADD ./bower_components /code/bower_components
+ADD ./util_bower_components /code/bower_components
 ADD _collect_static.sh /code/_collect_static.sh
 RUN make collectstatic
 
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
-ADD ./wheelhouse /code/wheelhouse
+ADD ./util_wheelhouse /code/wheelhouse
 RUN make pythondeps
 
 ADD dockci /code/dockci
