@@ -117,7 +117,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     # pylint:disable=unused-variable
                     client = docker.Client(docker_host)
                 except docker.errors.DockerException as ex:
-                    message, = ex.args  # pylint:disable=unpacking-non-sequence
+                    message, *_ = ex.args  # pylint:disable=unpacking-non-sequence
                     errors.append(message)
 
             registry_url = urlparse(self.docker_registry)
