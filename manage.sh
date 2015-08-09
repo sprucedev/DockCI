@@ -4,7 +4,7 @@ case $1 in
     pythondeps) pythondeps ;;
     ci) ci ;;
     *)
-        echo "Unknown command '$1'" > &2
+        echo "Unknown command '$1'" >&2
         exit 1
 esac
 
