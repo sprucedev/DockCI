@@ -10,7 +10,7 @@ function env_create {
 }
 function env_install_reqs {
     [[ -e python_env ]] || env_create
-    python_env/bin/wheel install --wheel-dir wheelhouse -r "$1"
+    python_env/bin/pip install --use-wheel --no-index --find-links=wheelhouse -r "$1"
 }
 function pythondeps {
     env_install_reqs requirements.txt
