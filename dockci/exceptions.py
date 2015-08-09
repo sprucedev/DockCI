@@ -71,9 +71,15 @@ class DockerUnreachableError(Exception, HumanOutputError):
         if exception is None:
             raise ValueError("No exception given")
 
-        if isinstance(exception, requests.exceptions.ConnectionError):
+        if isinstance(exception, requests.exceptions.SSLError):
+            if isinstance(exception.args[0], Exception):
+                return self.root_exception(exception.args[0])
+
+            return exception.args[1]
+
+        elif isinstance(exception, requests.exceptions.ConnectionError):
             return self.root_exception(exception.args[0])
-        if isinstance(exception, ProtocolError):
+        elif isinstance(exception, ProtocolError):
             return self.root_exception(exception.args[1])
 
         return exception
