@@ -3,7 +3,7 @@ function collectstatic {
     mkdir -p dockci/static/lib/css
     mkdir -p dockci/static/lib/fonts
     mkdir -p dockci/static/lib/js
-    ./_collect_static.sh; exit $?
+    ./manage_collectstatic.sh; exit $?
 }
 function pythondeps {
     python3.4 -m virtualenv -p $(shell which python3.4) python_env
