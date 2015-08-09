@@ -48,11 +48,15 @@ function shell {
 
 case $1 in
     collectstatic) collectstatic ;;
+    htmldeps) htmldeps ;;
     pythondeps) pythondeps ;;
+    styletest) styletest ;;
+    unittest) unittest ;;
+    tests) tests ;;
     ci) ci ;;
-    shell) shell ;;
     migrate) migrate ;;
     run) run ;;
+    shell) shell ;;
     *)
         echo "Unknown command '$1'" >&2
         exit 1
