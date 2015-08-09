@@ -8,10 +8,15 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import py.path  # pylint:disable=import-error
+import requests.exceptions
 
 from yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
-from dockci.util import default_gateway, guess_multi_value
+from dockci.exceptions import DockerUnreachableError
+from dockci.util import (client_kwargs_from_config,
+                         default_gateway,
+                         guess_multi_value,
+                         )
 
 
 def default_docker_host(format_string, local_default=None):
@@ -113,12 +118,22 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
 
             import docker
             for docker_host in self.docker_hosts:
+                docker_client_args = client_kwargs_from_config(docker_host)
+
                 try:
                     # pylint:disable=unused-variable
-                    client = docker.Client(docker_host)
+                    client = docker.Client(**docker_client_args)
+                    client.ping()
+
                 except docker.errors.DockerException as ex:
-                    message, = ex.args  # pylint:disable=unpacking-non-sequence
+                    # pylint:disable=unpacking-non-sequence
+                    message, *_ = ex.args
                     errors.append(message)
+
+                except requests.exceptions.SSLError as ex:
+                    errors.append(str(DockerUnreachableError(
+                        docker_client_args['base_url'], ex,
+                    )))
 
             registry_url = urlparse(self.docker_registry)
             if registry_url.scheme.lower() not in ('http', 'https'):
