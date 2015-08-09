@@ -1,8 +1,4 @@
 #!/bin/sh -x
-ls -la bower_components/
-ls -la bower_components/bootstrap/
-ls -la bower_components/bootstrap/dist/
-ls -la bower_components/bootstrap/dist/css/
 cp bower_components/bootstrap/dist/css/bootstrap.min.css dockci/static/lib/css
 cp bower_components/bootstrap-material-design/dist/css/material.min.css dockci/static/lib/css
 cp bower_components/bootstrap-material-design/dist/css/material-wfont.min.css dockci/static/lib/css
