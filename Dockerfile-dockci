@@ -29,3 +29,12 @@ ADD dockci /code/dockci
 ADD tests /code/tests
 ADD pylint.conf /code/pylint.conf
 ADD wsgi.py /code/wsgi.py
+
+RUN python_env/bin/wheel --help
+RUN ls -la wheelhouse/
+RUN ls -la python_env/bin/
+RUN ls -la python_env/lib/python3.4/site-packages/
+RUN find / -name pylint 2>/dev/null
+RUN find / -name pep8 2>/dev/null
+RUN find / -name py.test 2>/dev/null
+RUN find / -name pytest 2>/dev/null
