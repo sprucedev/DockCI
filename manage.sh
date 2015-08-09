@@ -29,11 +29,15 @@ function ci {
     testdeps
     tests
 }
+function shell {
+    /bin/bash
+}
 
 case $1 in
     collectstatic) collectstatic ;;
     pythondeps) pythondeps ;;
     ci) ci ;;
+    shell) shell ;;
     *)
         echo "Unknown command '$1'" >&2
         exit 1
