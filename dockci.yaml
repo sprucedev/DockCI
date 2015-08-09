@@ -7,10 +7,10 @@ utilities:
     command: pip wheel -r requirements.txt -r test-requirements.txt
     output:
       - from: /work/wheelhouse
-        to: util_wheelhouse
+        to: util
   - name: bower
     input:
       - bower.json /work/bower.json
     output:
       - from: /work/bower_components
-        to: util_bower_components
+        to: util

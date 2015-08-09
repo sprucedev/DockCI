@@ -16,13 +16,13 @@ RUN mkdir -p /code/data
 WORKDIR /code
 ADD ./manage.sh /code/manage.sh
 
-ADD ./util_bower_components /code/bower_components
+ADD ./util/bower_components /code/bower_components
 ADD manage_collectstatic.sh /code/manage_collectstatic.sh
 RUN ./manage.sh collectstatic
 
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
-ADD ./util_wheelhouse /code/wheelhouse
+ADD ./util/wheelhouse /code/wheelhouse
 RUN ./manage.sh pythondeps
 
 ADD dockci /code/dockci
