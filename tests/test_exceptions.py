@@ -1,7 +1,7 @@
 import docker
 import pytest
 
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, SSLError
 from requests.packages.urllib3.exceptions import ProtocolError
 
 from dockci.exceptions import *
@@ -73,6 +73,28 @@ class TestDockerUnreachableError(object):
                     ProtocolError('Connection aborted.', CONN_REFUSED))
             ),
             "Error with the Docker server 'http://localhost:2375': "
+            "[Errno 61] Connection refused",
+        ),
+        (
+            (
+                docker.Client('http://localhost:2375'),
+                SSLError(SSLError(SSLError(
+                    1,
+                    '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify '
+                    'failed (_ssl.c:600)'
+                )))
+            ),
+            "Error with the Docker server 'http://localhost:2375': "
+            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify "
+            "failed (_ssl.c:600)",
+        ),
+        (
+            ('http://strserv:2375', None, 'testing'),
+            "Error with the Docker server 'http://strserv:2375': testing",
+        ),
+        (
+            ('http://strserv:2375', CONN_REFUSED),
+            "Error with the Docker server 'http://strserv:2375': "
             "[Errno 61] Connection refused",
         ),
     ])

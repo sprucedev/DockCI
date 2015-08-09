@@ -43,7 +43,10 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    )
 from dockci.models.project import Project
 from dockci.server import CONFIG, OAUTH_APPS
-from dockci.util import bytes_human_readable, is_docker_id
+from dockci.util import (bytes_human_readable,
+                         client_kwargs_from_config,
+                         is_docker_id,
+                         )
 
 
 class Job(Model):  # pylint:disable=too-many-instance-attributes
@@ -179,16 +182,20 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         """
         if not self._docker_client:
             if self.has_value('docker_client_host'):
-                docker_client_args = {'base_url': self.docker_client_host}
+                for host_str in CONFIG.docker_hosts:
+                    if host_str.startswith(self.docker_client_host):
+                        docker_client_args = client_kwargs_from_config(
+                            host_str,
+                        )
 
             elif CONFIG.docker_use_env_vars:
                 docker_client_args = kwargs_from_env()
 
             else:
-                docker_client_args = {
+                docker_client_args = client_kwargs_from_config(
                     # TODO real load balancing, queueing
-                    'base_url': random.choice(CONFIG.docker_hosts),
-                }
+                    random.choice(CONFIG.docker_hosts),
+                )
 
             self._docker_client = docker.Client(**docker_client_args)
             self.save()

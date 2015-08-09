@@ -6,7 +6,9 @@ import hmac
 import logging
 import pickle
 import re
+import shlex
 import socket
+import ssl
 import struct
 import subprocess
 import json
@@ -484,3 +486,40 @@ def path_contained(outer_path, inner_path):
 
     except py.error.ENOENT:
         return common == outer_path
+
+
+def client_kwargs_from_config(host_str):
+    """ Generate Docker Client kwargs from the host string """
+    docker_host, *arg_strings = shlex.split(host_str)
+    docker_client_args = {
+        'base_url': docker_host,
+    }
+
+    tls_args = {}
+    for arg_string in arg_strings:
+        arg_name, arg_val = arg_string.split('=', 1)
+        if arg_name == 'cert_path':
+            cert_path = py.path.local(arg_val)
+            tls_args['client_cert'] = (
+                cert_path.join('cert.pem').strpath,
+                cert_path.join('key.pem').strpath,
+            )
+
+            # Assign the CA if it exists, and verify isn't overridden
+            ca_path = cert_path.join('ca.pem')
+            if ca_path.check() and tls_args.get('verify', None) != False:
+                tls_args['verify'] = ca_path.strpath
+
+        elif arg_name == 'assert_hostname':
+            tls_args[arg_name] = str2bool(arg_val)
+
+        elif arg_name == 'verify':
+            tls_args[arg_name] = str2bool(arg_val)
+
+        elif arg_name == 'ssl_version':
+            tls_args['ssl_version'] = getattr(ssl, 'PROTOCOL_%s' % arg_val)
+
+    if tls_args:
+        docker_client_args['tls'] = docker.tls.TLSConfig(**tls_args)
+
+    return docker_client_args

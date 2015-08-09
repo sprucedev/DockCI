@@ -55,8 +55,10 @@ class DockerUnreachableError(Exception, HumanOutputError):
         else:
             message = str(self.root_exception())
 
+        host = getattr(self.client, 'base_url', str(self.client))
+
         return "Error with the Docker server '{host}': {message}".format(
-            host=self.client.base_url,
+            host=host,
             message=message,
         )
 
@@ -71,9 +73,15 @@ class DockerUnreachableError(Exception, HumanOutputError):
         if exception is None:
             raise ValueError("No exception given")
 
-        if isinstance(exception, requests.exceptions.ConnectionError):
+        if isinstance(exception, requests.exceptions.SSLError):
+            if isinstance(exception.args[0], Exception):
+                return self.root_exception(exception.args[0])
+
+            return exception.args[1]
+
+        elif isinstance(exception, requests.exceptions.ConnectionError):
             return self.root_exception(exception.args[0])
-        if isinstance(exception, ProtocolError):
+        elif isinstance(exception, ProtocolError):
             return self.root_exception(exception.args[1])
 
         return exception
