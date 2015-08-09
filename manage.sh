@@ -51,6 +51,8 @@ case $1 in
     pythondeps) pythondeps ;;
     ci) ci ;;
     shell) shell ;;
+    migrate) migrate ;;
+    run) run ;;
     *)
         echo "Unknown command '$1'" >&2
         exit 1
