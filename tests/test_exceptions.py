@@ -87,7 +87,16 @@ class TestDockerUnreachableError(object):
             "Error with the Docker server 'http://localhost:2375': "
             "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify "
             "failed (_ssl.c:600)",
-        )
+        ),
+        (
+            ('http://strserv:2375', None, 'testing'),
+            "Error with the Docker server 'http://strserv:2375': testing",
+        ),
+        (
+            ('http://strserv:2375', CONN_REFUSED),
+            "Error with the Docker server 'http://strserv:2375': "
+            "[Errno 61] Connection refused",
+        ),
     ])
     def test_str(self, args, expected):
         """

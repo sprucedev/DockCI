@@ -55,8 +55,10 @@ class DockerUnreachableError(Exception, HumanOutputError):
         else:
             message = str(self.root_exception())
 
+        host = getattr(self.client, 'base_url', str(self.client))
+
         return "Error with the Docker server '{host}': {message}".format(
-            host=self.client.base_url,
+            host=host,
             message=message,
         )
 
