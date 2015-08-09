@@ -1,4 +1,4 @@
-#!/bin/bash +x
+#!/bin/bash -x
 function collectstatic {
     mkdir -p dockci/static/lib/css
     mkdir -p dockci/static/lib/fonts
