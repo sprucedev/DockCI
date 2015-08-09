@@ -5,6 +5,10 @@ function collectstatic {
     mkdir -p dockci/static/lib/js
     ./manage_collectstatic.sh; exit $?
 }
+function htmldeps {
+    npm install
+    node_modules/bower/bin/bower --allow-root install
+}
 function env_create {
     python3 -m virtualenv -p $(which python3) python_env
 }
@@ -30,6 +34,13 @@ function tests {
 }
 function ci {
     tests
+}
+function migrate {
+    python_env/bin/python -m dockci.migrations.run
+}
+function run {
+    migrate
+    python_env/bin/gunicorn --workers 20 --timeout 0 --bind 0.0.0.0:5000 --preload wsgi
 }
 function shell {
     /bin/bash
