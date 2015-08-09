@@ -11,7 +11,10 @@ import py.path  # pylint:disable=import-error
 
 from yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
-from dockci.util import default_gateway, guess_multi_value
+from dockci.util import (client_kwargs_from_config,
+                         default_gateway,
+                         guess_multi_value,
+                         )
 
 
 def default_docker_host(format_string, local_default=None):
@@ -113,9 +116,12 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
 
             import docker
             for docker_host in self.docker_hosts:
+                docker_client_args = client_kwargs_from_config(docker_host)
+
                 try:
                     # pylint:disable=unused-variable
-                    client = docker.Client(docker_host)
+                    client = docker.Client(**docker_client_args)
+
                 except docker.errors.DockerException as ex:
                     message, *_ = ex.args  # pylint:disable=unpacking-non-sequence
                     errors.append(message)
