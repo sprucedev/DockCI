@@ -6,7 +6,7 @@ function collectstatic {
     ./manage_collectstatic.sh; exit $?
 }
 function pythondeps {
-    python3.4 -m virtualenv -p $(shell which python3.4) python_env
+    python3 -m virtualenv -p $(which python3) python_env
     python_env/bin/pip install -r requirements.txt
 }
 function testdeps {
@@ -18,7 +18,7 @@ function styletest {
     python_env/bin/pylint --rcfile pylint.conf dockci
 }
 function unittest {
-    export PYTHONPATH = $(shell pwd)
+    export PYTHONPATH = $(pwd)
     python_env/bin/py.test -vv tests
 }
 function tests {
