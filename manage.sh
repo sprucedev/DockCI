@@ -23,7 +23,7 @@ function styletest {
     python_env/bin/pylint --rcfile pylint.conf dockci
 }
 function unittest {
-    export PYTHONPATH = $(pwd)
+    export PYTHONPATH=$(pwd)
     python_env/bin/py.test -vv tests
 }
 function tests {
