@@ -5,13 +5,19 @@ function collectstatic {
     mkdir -p dockci/static/lib/js
     ./manage_collectstatic.sh; exit $?
 }
-function pythondeps {
+function env_create {
     python3 -m virtualenv -p $(which python3) python_env
-    python_env/bin/pip install -r requirements.txt
+}
+function env_install_reqs {
+    [[ -e python_env ]] || env_create
+    python_env/bin/wheel install --wheel-dir wheelhouse -r "$1"
+}
+function pythondeps {
+    env_install_reqs requirements.txt
 }
 function testdeps {
     pythondeps
-    python_env/bin/pip install -r test-requirements.txt
+    env_install_reqs test-requirements.txt
 }
 function styletest {
     python_env/bin/pep8 dockci
