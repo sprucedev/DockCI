@@ -5,9 +5,11 @@ python:
 sudo: false
 install:
   - pip3 install virtualenv
-  - make deps
-  - make testdeps
-script: make test
+  - ./manage.sh htmldeps
+  - ./manage.sh collectstatic
+  - ./manage.sh pythondeps
+  - ./manage.sh testdeps
+script: ./manage.sh test
 notifications:
   webhooks:
     urls:
