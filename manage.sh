@@ -14,8 +14,6 @@ function env_install_reqs {
 }
 function pythondeps {
     env_install_reqs requirements.txt
-}
-function testdeps {
     env_install_reqs test-requirements.txt
 }
 function styletest {
@@ -31,7 +29,6 @@ function tests {
     unittest
 }
 function ci {
-    testdeps  # pythondeps done by this point
     tests
 }
 function shell {
