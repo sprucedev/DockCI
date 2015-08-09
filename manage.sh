@@ -1,13 +1,4 @@
 #!/bin/bash
-case $1 in
-    collectstatic) collectstatic ;;
-    pythondeps) pythondeps ;;
-    ci) ci ;;
-    *)
-        echo "Unknown command '$1'" >&2
-        exit 1
-esac
-
 function collectstatic {
     mkdir -p dockci/static/lib/css
     mkdir -p dockci/static/lib/fonts
@@ -38,3 +29,12 @@ function ci {
     testdeps
     tests
 }
+
+case $1 in
+    collectstatic) collectstatic ;;
+    pythondeps) pythondeps ;;
+    ci) ci ;;
+    *)
+        echo "Unknown command '$1'" >&2
+        exit 1
+esac
