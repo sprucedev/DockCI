@@ -126,7 +126,8 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     client.ping()
 
                 except docker.errors.DockerException as ex:
-                    message, *_ = ex.args  # pylint:disable=unpacking-non-sequence
+                    # pylint:disable=unpacking-non-sequence
+                    message, *_ = ex.args
                     errors.append(message)
 
                 except requests.exceptions.SSLError as ex:
