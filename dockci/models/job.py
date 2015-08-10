@@ -94,6 +94,7 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         for slug
         in self.job_stage_slugs
     ])
+    git_branch = LoadOnAccess(default=lambda _: None)
     git_author_name = LoadOnAccess(default=lambda _: None)
     git_author_email = LoadOnAccess(default=lambda _: None)
     git_committer_name = LoadOnAccess(default=lambda self:

@@ -11,6 +11,11 @@
   {% endif %}
 {% endblock %}
 {% block content %}
+<style type="text/css">
+  .jobs-list-git-branch {
+    overflow: hidden;
+  }
+</style>
 <span class="pull-right">{{ project_shield(project) }}</span>
 <div class="checkbox col-sm-5" style="margin-top: 0px"><label>
   <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
@@ -42,14 +47,22 @@
   </div>
 {% endif %}
 <table id="jobs-list" class="table table-striped">
-  <tr><th>Created</th><th>Tag</th><th>Commit ref</th><th>Author</th><th>State</th></tr>
+  <tr>
+    <th class="jobs-list-create-ts">Created</th>
+    <th class="jobs-list-git-branch">Branch</th>
+    <th class="jobs-list-tag">Tag</th>
+    <th class="jobs-list-commit">Commit ref</th>
+    <th class="jobs-list-author">Author</th>
+    <th class="jobs-list-state">State</th>
+  </tr>
   {% for job in jobs -%}
     <tr class="job-detail">
-      <td><a href="/projects/{{ project.slug }}/jobs/{{ job.slug }}">{{ job.create_ts }}</a></td>
-      <td>{{ job.tag if job.tag else '' }}</td>
-      <td>{{ job.commit }}</td>
-      <td>{{ git_user(job.git_author_name, job.git_author_email) if job.git_author_name or job.git_author_email else ''}}</td>
-      <td>{{ job_state_glyph(job.state) }}</td>
+      <td class="jobs-list-create-ts"><a href="/projects/{{ project.slug }}/jobs/{{ job.slug }}">{{ job.create_ts }}</a></td>
+      <td class="jobs-list-git-branch">{{ job.git_branch if job.git_branch else '' }}</td>
+      <td class="jobs-list-tag">{{ job.tag if job.tag else '' }}</td>
+      <td class="jobs-list-commit">{{ job.commit }}</td>
+      <td class="jobs-list-author">{{ git_user(job.git_author_name, job.git_author_email) if job.git_author_name or job.git_author_email else ''}}</td>
+      <td class="jobs-list-state">{{ job_state_glyph(job.state) }}</td>
     </tr>
   {%- endfor %}
 </table>
