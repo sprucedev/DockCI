@@ -523,3 +523,16 @@ def client_kwargs_from_config(host_str):
         docker_client_args['tls'] = docker.tls.TLSConfig(**tls_args)
 
     return docker_client_args
+
+
+GIT_NAME_REV_BRANCH = re.compile(r'^(remotes/origin/|refs/heads/)([^~]+)')
+
+
+def parse_branch_from_ref(ref):
+    """ Get a branch name from a git symbolic name """
+    branch_match = GIT_NAME_REV_BRANCH.search(ref)
+
+    if branch_match:
+        return branch_match.groups()[1]
+    else:
+        return ref

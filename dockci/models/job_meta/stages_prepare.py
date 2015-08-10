@@ -24,12 +24,10 @@ from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
+                         parse_branch_from_ref,
                          path_contained,
                          write_all,
                          )
-
-
-GIT_NAME_REV_BRANCH = re.compile(r'^remotes/origin/([^~]+)')
 
 
 class WorkdirStage(CommandJobStage):
@@ -126,23 +124,23 @@ class GitInfoStage(JobStageBase):
             ).encode())
             self.job.ancestor_job = ancestor_job
 
-        proc = run_proc('git', 'name-rev',
-                        '--name-only', '--no-undefined',
-                        'HEAD')
-        if proc.returncode == 0:
+        if self.job.git_branch is None:
+            proc = run_proc('git', 'name-rev',
+                            '--name-only', '--no-undefined',
+                            'HEAD')
+            if proc.returncode == 0:
+                properties_empty = False
+                self.job.git_branch = parse_branch_from_ref(
+                    proc.stdout.read().decode().strip(),
+                )
+
+        else:
             properties_empty = False
-            raw_out = proc.stdout.read().decode().strip()
-            branch_match = GIT_NAME_REV_BRANCH.search(raw_out)
-
-            if branch_match:
-                self.job.git_branch = branch_match.groups()[0]
-            else:
-                self.job.git_branch = raw_out
-
-            handle.write(("Branch is %s\n" % self.job.git_branch).encode())
 
         if self.job.git_branch is None:
             handle.write("Branch name could not be determined\n".encode())
+        else:
+            handle.write(("Branch is %s\n" % self.job.git_branch).encode())
 
         if properties_empty:
             handle.write("No information about the git commit could be "
