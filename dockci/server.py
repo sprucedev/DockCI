@@ -7,10 +7,11 @@ import mimetypes
 
 from flask import Flask
 from flask_oauthlib.client import OAuth
-from flask_security import Security
+from flask_security import Security, SQLAlchemyUserDatastore
 from flask_mail import Mail
+from flask_sqlalchemy import SQLAlchemy
 
-from dockci.data_adapters.flask_security import YAMLModelUserDataStore
+#from dockci.data_adapters.flask_security import YAMLModelUserDataStore
 from dockci.models.config import Config
 from dockci.util import setup_templates, tokengetter_for
 
@@ -19,6 +20,7 @@ APP = Flask(__name__)
 MAIL = Mail()
 CONFIG = Config()
 SECURITY = Security()
+DB = SQLAlchemy()
 OAUTH = OAuth(APP)
 
 APP.config.model = CONFIG  # For templates
@@ -31,7 +33,7 @@ OAUTH_APPS_SCOPE_SERIALIZERS = {
 }
 
 
-def app_init():
+def app_init(app_args={}):
     """
     Pre-run app setup
     """
@@ -56,10 +58,16 @@ def app_init():
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
+    APP.config['SQLALCHEMY_DATABASE_URI'] = app_args.get(
+        'db_uri', 'sqlite:////tmp/data.db'
+    )
+
     mimetypes.add_type('application/x-yaml', 'yaml')
 
-    SECURITY.init_app(APP, YAMLModelUserDataStore())
+    from dockci.models.auth import User, Role
+    SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
     MAIL.init_app(APP)
+    DB.init_app(APP)
     app_init_oauth()
     app_init_views()
 
@@ -109,7 +117,7 @@ def run(app_args):
     Setup, and run the DockCI application server, using the args given to
     configure it
     """
-    app_init()
+    app_init(app_args)
     server_args = {
         key: val
         for key, val in app_args.items()

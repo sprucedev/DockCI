@@ -34,7 +34,7 @@ def default_repo_type():
     elif current_user is None or not current_user.is_authenticated():
         return 'manual'
 
-    elif 'github' in current_user.oauth_tokens:
+    elif current_user.oauth_tokens.filter_by(service='github').count():
         return 'github'
 
     else:

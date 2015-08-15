@@ -336,14 +336,14 @@ def get_token_for(oauth_app):
     Get a token for the currently logged in user
     """
     if current_user.is_authenticated():
-        from dockci.server import OAUTH_APPS_SCOPES
-        try:
-            detail = current_user.oauth_tokens[oauth_app.name]
-            if detail['scope'] == OAUTH_APPS_SCOPES[oauth_app.name]:
-                return (detail['key'], detail['secret'])
+        token = current_user.oauth_tokens.filter_by(
+            service=oauth_app.name,
+        ).first()
 
-        except (KeyError, TypeError):
-            pass
+        if token:
+            from dockci.server import OAUTH_APPS_SCOPES
+            if token.scope == OAUTH_APPS_SCOPES[oauth_app.name]:
+                return (token.key, token.secret)
 
     return None
 
