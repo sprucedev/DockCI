@@ -44,9 +44,7 @@ def default_repo_type():
 @APP.route('/project/<slug>.<extension>', methods=('GET',))
 def project_shield_view(slug, extension):
     """ View to give shields for each project """
-    project = Project(slug)
-    if not project.exists():
-        abort(404)
+    project = Project.query.filter_by(slug=slug).first_or_404()
 
     try:
         query = '?style=%s' % request.args['style']
@@ -70,9 +68,7 @@ def project_view(slug):
     """
     View to display a project
     """
-    project = Project(slug)
-    if not project.exists():
-        abort(404)
+    project = Project.query.filter_by(slug=slug).first_or_404()
 
     if request.method == 'POST':
         if request.form.get('operation', None) == 'delete':
@@ -80,7 +76,8 @@ def project_view(slug):
                 CONFIG.secret, request.form, current_user, project,
             )
             if auth_token_okay:
-                project.delete()
+                project.purge()
+                DB.session.commit()
                 if project.exists():
                     flash("Unexpected issue deleting '%s'" % project.slug,
                           'danger')
@@ -145,9 +142,7 @@ def project_edit_view(slug):
     """
     View to edit a project
     """
-    project = Project(slug)
-    if not project.exists():
-        abort(404)
+    project = Project.query.filter_by(slug=slug).first_or_404()
 
     return project_input_view(project, 'edit', [
         'name', 'repo', 'github_secret',
@@ -223,7 +218,7 @@ def project_input_view_post(project, edit_operation, fields):
     )
 
     if edit_operation == 'new':
-        if project.exists():
+        if Project.query.filter_by(slug=project.slug).count():
             flash("Project with slug '%s' already exists" % project.slug,
                   'danger')
             saved = False

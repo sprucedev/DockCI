@@ -65,7 +65,9 @@ def model_flash(model_obj, save=True):
     # TODO move the flash to views
     try:
         if save:
-            model_obj.save()
+            from dockci.server import DB
+            DB.session.add(model_obj)
+            DB.session.commit()
             flash(u"%s saved" % model_obj.__class__.__name__.title(),
                   'success')
 
@@ -383,9 +385,9 @@ def auth_token_data_from_form(form_data, user, model):
     form where possible
     """
     return {
-        'user_slug': user.slug,
+        'user_id': user.id,
         'model_class': fq_object_class_name(model),
-        'model_slug': full_model_slug(model),
+        'model_id': model.id,
         'operation': form_data.get('operation', None),
         'expiry': int(form_data['expiry']),  # Should be checked previously
     }
@@ -394,9 +396,9 @@ def auth_token_data_from_form(form_data, user, model):
 def auth_token_data(user, model, operation, expiry):
     """ Give the data dict necessary for an auth token """
     return {
-        'user_slug': user.slug,
+        'user_id': user.id,
         'model_class': fq_object_class_name(model),
-        'model_slug': full_model_slug(model),
+        'model_id': model.id,
         'operation': operation,
         'expiry': expiry,
     }

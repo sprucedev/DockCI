@@ -18,28 +18,27 @@ from yaml_model import (LoadOnAccess,
                         )
 
 from dockci.models.auth import User
-from dockci.server import OAUTH_APPS
+from dockci.server import DB, OAUTH_APPS
 from dockci.util import is_yaml_file, is_git_ancestor
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
 
 
-class Project(Model):  # pylint:disable=too-few-public-methods
+class Project(DB.Model):  # pylint:disable=too-few-public-methods
     """
     A project, representing a container to be built
     """
-    def __init__(self, slug=None):
-        super(Project, self).__init__()
-        self.slug = slug
 
-    def delete(self):
+    def purge(self):
         """
         Delete the project, including GitHub hooks, and related job data
 
         Notes:
           If there's an error deleting GitHub hook, it's ignored
         """
+        DB.session.delete(self)  # No commit just yet
+
         from dockci.models.job import Job
 
         try:
@@ -59,8 +58,6 @@ class Project(Model):  # pylint:disable=too-few-public-methods
             Job.delete_all_in_project(self)
         except py.error.ENOENT:
             pass
-
-        return super(Project, self).delete()
 
     def _all_jobs(self, reverse_=True):
         """
@@ -83,6 +80,11 @@ class Project(Model):  # pylint:disable=too-few-public-methods
 
         except py.error.ENOENT:
             return []
+
+    @property
+    def jobs(self):
+        return self._all_jobs()
+
 
     def latest_job(self, passed=None, versioned=None, other_check=None):
         """
@@ -139,22 +141,21 @@ class Project(Model):  # pylint:disable=too-few-public-methods
         return self.latest_job(passed, versioned, check_job)
 
     def validate(self):
-        with self.parent_validation(Project):
-            errors = []
+        errors = []
 
-            if not DOCKER_REPO_RE.match(self.slug):
-                errors.append("Invalid slug. Must only contain lower case, "
-                              "0-9, and the characters '-', '_' and '.'")
-            if not self.repo:
-                errors.append("Repository can not be blank")
-            if not self.name:
-                errors.append("Name can not be blank")
+        if not DOCKER_REPO_RE.match(self.slug):
+            errors.append("Invalid slug. Must only contain lower case, "
+                          "0-9, and the characters '-', '_' and '.'")
+        if not self.repo:
+            errors.append("Repository can not be blank")
+        if not self.name:
+            errors.append("Name can not be blank")
 
-            if bool(self.hipchat_api_token) != bool(self.hipchat_room):
-                errors.append("Both, or neither HipChat values must be given")
+        if bool(self.hipchat_api_token) != bool(self.hipchat_room):
+            errors.append("Both, or neither HipChat values must be given")
 
-            if errors:
-                raise ValidationError(errors)
+        if errors:
+            raise ValidationError(errors)
 
         return True
 
@@ -184,7 +185,8 @@ class Project(Model):  # pylint:disable=too-few-public-methods
             except KeyError:
                 pass
 
-            self.save()
+            DB.session.add(self)
+            DB.session.commit()
 
         return result
 
@@ -199,7 +201,7 @@ class Project(Model):  # pylint:disable=too-few-public-methods
             self.github_hook_id = None
 
             if save:
-                self.save()
+                DB.session.add(self)
 
         return result
 
@@ -271,20 +273,24 @@ class Project(Model):  # pylint:disable=too-few-public-methods
                        project_slug=self.slug,
                        _external=True)
 
-    slug = None
-    repo = LoadOnAccess(default=lambda _: '')
-    name = LoadOnAccess(default=lambda _: '')
-    utility = LoadOnAccess(default=False, input_transform=bool, index=True)
+    id = DB.Column(DB.Integer(), primary_key=True)
+    slug = DB.Column(DB.String(255), unique=True, nullable=False, index=True)
+    repo = DB.Column(DB.String(255), nullable=False)
+    name = DB.Column(DB.String(255), nullable=False)
+    utility = DB.Column(DB.Boolean(), nullable=False, index=True)
 
     # TODO encrypt decrypt sensitive data etc..
-    hipchat_api_token = LoadOnAccess(default=lambda _: '')
-    hipchat_room = LoadOnAccess(default=lambda _: '')
+    hipchat_api_token = DB.Column(DB.String(255))
+    hipchat_room = DB.Column(DB.String(255))
 
-    github_repo_id = LoadOnAccess(default=lambda _: None)
-    github_hook_id = LoadOnAccess(default=lambda _: None)
-    github_secret = LoadOnAccess(default=lambda _: None)
-    github_auth_user = ModelReference(lambda self: User(
-        self.github_auth_user_slug
-    ), default=lambda _: None)
-
-    jobs = OnAccess(_all_jobs)
+    github_repo_id = DB.Column(DB.String(255))
+    github_hook_id = DB.Column(DB.Integer())
+    github_secret = DB.Column(DB.String(255))
+    github_auth_token_id = DB.Column(
+        DB.Integer, DB.ForeignKey('o_auth_token.id'),
+    )
+    github_auth_token = DB.relationship(
+        'OAuthToken',
+        foreign_keys="Project.github_auth_token_id",
+        backref=DB.backref('projects', lazy='dynamic'),
+    )

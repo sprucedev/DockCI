@@ -37,7 +37,7 @@ def run_job_async(project_slug, job_slug):
     logger = logging.getLogger('dockci.job')
     try:
         with APP.app_context():
-            project = Project(project_slug)
+            project = Project.query.filter_by(slug=project_slug).first()
             job = Job(project=project, slug=job_slug)
             job_okay = job._run_now()  # pylint:disable=protected-access
 

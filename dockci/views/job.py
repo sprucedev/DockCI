@@ -32,7 +32,7 @@ def job_view(project_slug, job_slug):
     """
     View to display a job
     """
-    project = Project(slug=project_slug)
+    project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job(project=project, slug=job_slug)
     if not job.exists():
         abort(404)
@@ -46,9 +46,7 @@ def job_new_view(project_slug):
     """
     View to create a new job
     """
-    project = Project(slug=project_slug)
-    if not project.exists():
-        abort(404)
+    project = Project.query.filter_by(slug=project_slug).first_or_404()
 
     if request.method == 'POST':
         job = Job(project=project)
@@ -110,7 +108,7 @@ def job_output_json(project_slug, job_slug):
     """
     View to download some job info in JSON
     """
-    project = Project(slug=project_slug)
+    project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job(project=project, slug=job_slug)
     if not job.exists():
         abort(404)
@@ -127,7 +125,7 @@ def job_output_view(project_slug, job_slug, filename):
     """
     View to download some job output
     """
-    project = Project(slug=project_slug)
+    project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job(project=project, slug=job_slug)
 
     job_output_path = job.job_output_path()

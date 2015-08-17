@@ -19,8 +19,8 @@ def index_view():
     """
     return render_template(
         'index.html',
-        projects=Project.get_where('utility', False),
-        utilities=Project.get_where('utility', True),
+        projects=Project.query.filter_by(utility=False).all(),
+        utilities=Project.query.filter_by(utility=True).all(),
     )
 
 
