@@ -82,7 +82,7 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
             return []
 
     @property
-    def jobs(self):
+    def jobs(self):  # TODO replace with SQLAlchemy relation
         return self._all_jobs()
 
 
