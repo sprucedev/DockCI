@@ -4,9 +4,12 @@ Views related to project management
 
 import re
 
+import sqlalchemy
+
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_security import current_user, login_required
 
+from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import APP, CONFIG
 from dockci.util import (auth_token_data,
@@ -97,7 +100,7 @@ def project_view(slug):
         if versioned:
             jobs = list(project.filtered_jobs(passed=True, versioned=True))
         else:
-            jobs = project.jobs.all()
+            jobs = project.jobs.order_by(sqlalchemy.desc(Job.create_ts)).all()
 
         prev_page_offset = max(page_offset - page_size, 0)
         if page_offset < 1:
