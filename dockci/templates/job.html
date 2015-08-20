@@ -32,12 +32,12 @@
       <label class="col-sm-2 control-label">Tag</label>
       <div class="col-sm-10"><p class="form-control-static">{{ job.tag }}</p></div>
     </div>{% endif %}
-    {% if job.has_value('ancestor_job_slug') %}<div class="form-group">
+    {# {% if job.has_value('ancestor_job_slug') %}<div class="form-group">
       <label class="col-sm-2 control-label">Previous job</label>
       <div class="col-sm-10"><p class="form-control-static">
         <a href="/projects/{{ job.project.slug }}/jobs/{{ job.ancestor_job.slug }}">{{ job.ancestor_job_slug }}</a>
       </p></div>
-    </div>{% endif %}
+    </div>{% endif %} #}
     {% if job.image_id %}<div class="form-group">
       <label class="col-sm-2 control-label">Image ID</label>
       <div class="col-sm-10"><p class="form-control-static">{{ job.image_id }}</p></div>
@@ -82,7 +82,7 @@
         right: 20px;
       }
     </style>
-    {% for name, details in job.job_output_details.items() %}
+    {# {% for name, details in job.job_output_details.items() %}
       <div class="form-group">
         <label class="col-sm-2 control-label">{{ name }}</label>
         <div class="col-sm-10"><p class="form-control-static">
@@ -91,7 +91,7 @@
       </div>
     {% else %}
       <div class="alert alert-info">No items!</div>
-    {% endfor %}
+    {% endfor %} #}
   </div>
 </div>
 <h2>Job Log</h2>

@@ -65,6 +65,7 @@ def app_init(app_args={}):
     mimetypes.add_type('application/x-yaml', 'yaml')
 
     from dockci.models.auth import User, Role
+    from dockci.models.job import Job
     from dockci.models.project import Project
     SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
     MAIL.init_app(APP)

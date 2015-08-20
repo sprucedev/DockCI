@@ -8,6 +8,7 @@ import tempfile
 
 from collections import OrderedDict
 from datetime import datetime
+from enum import Enum
 from itertools import chain
 
 import docker
@@ -15,6 +16,7 @@ import py.path  # pylint:disable=import-error
 
 from docker.utils import kwargs_from_env
 from flask import url_for
+from sqlalchemy.sql import func as sql_func
 from yaml_model import (LoadOnAccess,
                         Model,
                         ModelReference,
@@ -42,69 +44,81 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    WorkdirStage,
                                                    )
 from dockci.models.project import Project
-from dockci.server import CONFIG, OAUTH_APPS
+from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (bytes_human_readable,
                          client_kwargs_from_config,
                          is_docker_id,
                          )
 
 
-class Job(Model):  # pylint:disable=too-many-instance-attributes
-    """
-    An individual project job, and result
+class JobResult(Enum):
+    success = 1
+    fail = 2
+    broken = 3
 
-    Notes:
-      Things like indexing, and other "advanced" features of yaml_model will
-      not work here due to the hacky way we have implemented composite keys
-    """
-    def __init__(self, project=None, slug=None):
-        super(Job, self).__init__()
 
-        assert project is not None, "Project is given"
+class JobStage(DB.Model):
+    """ Quick and dirty list of job stages for the time being """
+    id = DB.Column(DB.Integer(), primary_key=True)
+    slug = DB.Column(DB.String(31))
+    job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'), index=True)
+    job = DB.relationship('Job',
+                          foreign_keys="JobStage.job_id",
+                          backref=DB.backref('job_stages', lazy='dynamic'))
 
-        self.project = project
-        self.project_slug = project.slug
 
-        if slug:
-            self.slug = slug
+class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
+    """ An individual project job, and result """
 
-    slug = OnAccess(lambda _: hex(int(datetime.now().timestamp() * 10000))[2:])
-    project = OnAccess(lambda self: Project(self.project_slug))
-    project_slug = OnAccess(lambda self: self.project.slug)  # TODO inf. loop
-    ancestor_job = ModelReference(lambda self: Job(
-        self.project,
-        self.ancestor_job_slug
-    ), default=lambda _: None)
-    create_ts = LoadOnAccess(generate=lambda _: datetime.now())
-    start_ts = LoadOnAccess(default=lambda _: None)
-    complete_ts = LoadOnAccess(default=lambda _: None)
-    result = LoadOnAccess(default=lambda _: None)
-    repo = LoadOnAccess(generate=lambda self: self.project.repo)
-    commit = LoadOnAccess(default=lambda _: None)
-    tag = LoadOnAccess(default=lambda _: None)
-    image_id = LoadOnAccess(default=lambda _: None)
-    container_id = LoadOnAccess(default=lambda _: None)
-    exit_code = LoadOnAccess(default=lambda _: None)
-    docker_client_host = LoadOnAccess(
-        generate=lambda self: self.docker_client.base_url,
-    )
-    job_stage_slugs = LoadOnAccess(generate=lambda _: [])
-    job_stages = OnAccess(lambda self: [
-        JobStage(job=self, slug=slug)
-        for slug
-        in self.job_stage_slugs
-    ])
-    git_author_name = LoadOnAccess(default=lambda _: None)
-    git_author_email = LoadOnAccess(default=lambda _: None)
-    git_committer_name = LoadOnAccess(default=lambda self:
-                                      self.git_author_name)
-    git_committer_email = LoadOnAccess(default=lambda self:
-                                       self.git_author_email)
-    git_changes = LoadOnAccess(default=lambda _: None)
-    # pylint:disable=unnecessary-lambda
-    job_config = OnAccess(lambda self: JobConfig(self))
+    id = DB.Column(DB.Integer(), primary_key=True)
+    create_ts = DB.Column(DB.DateTime(), nullable=False, default=sql_func.now())
+    start_ts = DB.Column(DB.DateTime())
+    complete_ts = DB.Column(DB.DateTime())
+    result = DB.Column(DB.Enum(*JobResult.__members__, name='job_results'), index=True)
+    repo = DB.Column(DB.Text(), nullable=False)
+    commit = DB.Column(DB.String(41), nullable=False)
+    tag = DB.Column(DB.Text())
+    image_id = DB.Column(DB.String(65))
+    container_id = DB.Column(DB.String(65))
+    exit_code = DB.Column(DB.Integer())
+    docker_client_host = DB.Column(DB.Text())
+    git_author_name = DB.Column(DB.Text())
+    git_author_email = DB.Column(DB.Text())
+    git_committer_name = DB.Column(DB.Text())
+    git_committer_email = DB.Column(DB.Text())
+    git_changes = DB.Column(DB.Text())
+
+    ancestor_job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'))
+    ancestor_job = DB.relationship('Job',
+                                   foreign_keys="Job.ancestor_job_id")
+    project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
+    project = DB.relationship('Project',
+                              foreign_keys="Job.project_id",
+                              backref=DB.backref('jobss', lazy='dynamic'))
 
     _provisioned_containers = []
+
+    @property
+    def job_config(self):
+        if self._job_config is None:
+            self._job_config = JobConfig(self)
+        return self._job_config
+
+    @property
+    def slug(self):
+        """ Generated web slug for this job """
+        return self.slug_from_id(self.id)
+
+    @classmethod
+    def id_from_slug(cls, slug):
+        """ Convert a slug to an ID for ORM lookup """
+        return int(slug, 16)
+
+    @classmethod
+    def slug_from_id(cls, id_):
+        """ Convert an ID to a slug (padded hex) """
+        return '{:0>6}'.format(hex(id_)[2:])
+
 
     def validate(self):
         with self.parent_validation(Job):
@@ -300,14 +314,15 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
 
         # TODO fix and reenable pylint check for cyclic-import
         from dockci.workers import run_job_async
-        run_job_async(self.project_slug, self.slug)
+        run_job_async(self)
 
     def _run_now(self):
         """
         Worker func that performs the job
         """
         self.start_ts = datetime.now()
-        self.save()
+        DB.session.add(self)
+        DB.session.commit()
 
         try:
             with tempfile.TemporaryDirectory() as workdir:

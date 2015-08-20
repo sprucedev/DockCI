@@ -97,7 +97,7 @@ def project_view(slug):
         if versioned:
             jobs = list(project.filtered_jobs(passed=True, versioned=True))
         else:
-            jobs = project.jobs
+            jobs = project.jobs.all()
 
         prev_page_offset = max(page_offset - page_size, 0)
         if page_offset < 1:

@@ -26,7 +26,7 @@ def send_mail(message):
             )
 
 
-def run_job_async(project_slug, job_slug):
+def run_job_async(job):
     """
     Load and run a job's private run project, forking to handle the job in
     the background
@@ -37,8 +37,7 @@ def run_job_async(project_slug, job_slug):
     logger = logging.getLogger('dockci.job')
     try:
         with APP.app_context():
-            project = Project.query.filter_by(slug=project_slug).first()
-            job = Job(project=project, slug=job_slug)
+            #job = Job.query.get(job_id)
             job_okay = job._run_now()  # pylint:disable=protected-access
 
             # Send the failure message
@@ -69,6 +68,7 @@ def run_job_async(project_slug, job_slug):
                     send_mail(email)
 
             # Send a HipChat notification
+            project = job.project
             if project.hipchat_api_token != '' and project.hipchat_room != '':
                 hipchat = HipChat(apitoken=project.hipchat_api_token,
                                   room=project.hipchat_room)

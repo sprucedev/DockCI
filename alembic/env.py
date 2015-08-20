@@ -5,6 +5,7 @@ from logging.config import fileConfig
 
 from dockci.server import DB
 from dockci.models.auth import *
+from dockci.models.job import *
 from dockci.models.project import *
 
 # this is the Alembic Config object, which provides

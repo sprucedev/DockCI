@@ -63,23 +63,7 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
         """
         Get all the jobs associated with this project
         """
-        from dockci.models.job import Job
-
-        try:
-            jobs = []
-
-            all_files = Job.data_dir_path().join(self.slug).listdir()
-            all_files.sort(reverse=reverse_)
-
-            for filename in all_files:
-                if is_yaml_file(filename):
-                    jobs.append(Job(project=self,
-                                    slug=filename.purebasename))
-
-            return jobs
-
-        except py.error.ENOENT:
-            return []
+        return self.jobss
 
     @property
     def jobs(self):  # TODO replace with SQLAlchemy relation
