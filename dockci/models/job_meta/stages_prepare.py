@@ -20,7 +20,7 @@ import py.path  # pylint:disable=import-error
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
-from dockci.server import CONFIG
+from dockci.server import CONFIG, DB
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
@@ -121,14 +121,15 @@ class GitInfoStage(JobStageBase):
             handle.write((
                 "Ancestor job is %s\n" % ancestor_job.slug
             ).encode())
-            self.job.ancestor_job = ancestor_job
+            self.job.ancestor_job_id = ancestor_job.id
 
         if properties_empty:
             handle.write("No information about the git commit could be "
                          "derived\n".encode())
 
         else:
-            self.job.save()
+            DB.session.add(self.job)
+            DB.session.commit()
 
         return proc.returncode
 
@@ -142,8 +143,8 @@ class GitChangesStage(CommandJobStage):
     slug = 'git_changes'
 
     def __init__(self, job, workdir):
-        cmd_args = []
-        if job.has_value('ancestor_job'):
+        cmd_args = None
+        if job.ancestor_job != None:
             revision_range_string = '%s..%s' % (
                 job.ancestor_job.commit,  # pylint:disable=no-member
                 job.commit,
@@ -162,7 +163,7 @@ class GitChangesStage(CommandJobStage):
         if self.cmd_args:
             return super(GitChangesStage, self).runnable(handle)
 
-        return True
+        return 0
 
 
 def recursive_mtime(path, timestamp):
@@ -365,7 +366,8 @@ class TagVersionStage(CommandJobStage):
 
                 if last_line:
                     self.job.tag = last_line
-                    self.job.save()
+                    DB.session.add(self.job)
+                    DB.session.commit()
 
         except KeyError:
             pass

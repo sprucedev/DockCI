@@ -13,6 +13,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import sqlalchemy
 
 from docker.utils import kwargs_from_env
 from flask import url_for
@@ -57,14 +58,19 @@ class JobResult(Enum):
     broken = 3
 
 
-class JobStage(DB.Model):
+class JobStageTmp(DB.Model):
     """ Quick and dirty list of job stages for the time being """
     id = DB.Column(DB.Integer(), primary_key=True)
     slug = DB.Column(DB.String(31))
     job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'), index=True)
-    job = DB.relationship('Job',
-                          foreign_keys="JobStage.job_id",
-                          backref=DB.backref('job_stages', lazy='dynamic'))
+    job = DB.relationship(
+        'Job',
+        foreign_keys="JobStageTmp.job_id",
+        backref=DB.backref(
+            'job_stages',
+            #lazy='dynamic',
+            order_by=sqlalchemy.asc('id'),
+            ))
 
 
 class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
@@ -90,6 +96,7 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
     ancestor_job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'))
     ancestor_job = DB.relationship('Job',
+                                   uselist=False,
                                    foreign_keys="Job.ancestor_job_id")
     project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
     project = DB.relationship('Project',
@@ -97,6 +104,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
                               backref=DB.backref('jobss', lazy='dynamic'))
 
     _provisioned_containers = []
+
+    _job_config = None
 
     @property
     def job_config(self):
@@ -144,12 +153,6 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         """
         return '%s/%s' % (self.project.slug, self.slug)
 
-    @classmethod
-    def from_compound_slug(cls, compound_slug):
-        """ Create a job object from a compound slug """
-        project_slug, job_slug = compound_slug.split('/')
-        return cls(Project(project_slug), job_slug)
-
     @property
     def url(self):
         """ URL for this job """
@@ -194,8 +197,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
         CACHED VALUES NOT AVAILABLE OUTSIDE FORK
         """
-        if not self._docker_client:
-            if self.has_value('docker_client_host'):
+        if self._docker_client is None:
+            if self.docker_client_host is not None:
                 for host_str in CONFIG.docker_hosts:
                     if host_str.startswith(self.docker_client_host):
                         docker_client_args = client_kwargs_from_config(
@@ -211,8 +214,11 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
                     random.choice(CONFIG.docker_hosts),
                 )
 
+            self.docker_client_host = docker_client_args['base_url']
+            DB.session.add(self)
+            DB.session.commit()
+
             self._docker_client = docker.Client(**docker_client_args)
-            self.save()
 
         return self._docker_client
 
@@ -229,7 +235,7 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         return {
             name: {'size': bytes_human_readable(path.size()),
                    'link': url_for('job_output_view',
-                                   project_slug=self.project_slug,
+                                   project_slug=self.project.slug,
                                    job_slug=self.slug,
                                    filename='%s.tar' % name,
                                    ),
@@ -245,9 +251,9 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         """
         if CONFIG.docker_use_registry:
             return '{host}/{name}'.format(host=CONFIG.docker_registry_host,
-                                          name=self.project_slug)
+                                          name=self.project.slug)
 
-        return self.project_slug
+        return self.project.slug
 
     @property
     def docker_full_name(self):
@@ -294,10 +300,15 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
     def data_file_path(self):
         # Add the project name before the job slug in the path
-        data_file_path = super(Job, self).data_file_path()
         return self.data_dir_path_for_project(self.project).join(
-            data_file_path.basename
+            '%s.yaml' % self.id
         )
+
+    @classmethod
+    def data_dir_path(cls):
+        path = py.path.local('/tmp/dockci_jobs')
+        path.ensure(dir=True)
+        return path
 
     def job_output_path(self):
         """
@@ -363,20 +374,27 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
                 if not all(prepare):
                     self.result = 'broken'
+                    DB.session.add(self)
+                    DB.session.commit()
                     return False
 
                 if not TestStage(self).run(0):
                     self.result = 'fail'
+                    DB.session.add(self)
+                    DB.session.commit()
                     return False
 
                 # We should fail the job here because if this is a tagged
                 # job, we can't rebuild it
                 if not PushStage(self).run(0):
                     self.result = 'broken'
+                    DB.session.add(self)
+                    DB.session.commit()
                     return False
 
                 self.result = 'success'
-                self.save()
+                DB.session.add(self)
+                DB.session.commit()
 
                 # Failing this doesn't indicate job failure
                 # TODO what kind of a failure would this not working be?
@@ -385,6 +403,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
             return True
         except Exception:  # pylint:disable=broad-except
             self.result = 'broken'
+            DB.session.add(self)
+            DB.session.commit()
             self._error_stage('error')
 
             return False
@@ -398,7 +418,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
                 self._error_stage('post_error')
 
             self.complete_ts = datetime.now()
-            self.save()
+            DB.session.add(self)
+            DB.session.commit()
 
     def send_github_status(self, state=None, state_msg=None, context='push'):
         """
@@ -449,8 +470,9 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         Create an error stage and add stack trace for it
         """
         # TODO all this should be in the try/except
-        self.job_stage_slugs.append(stage_slug)  # pylint:disable=no-member
-        self.save()
+        stage = JobStageTmp(job=self, slug=stage_slug)
+        DB.session.add(stage)
+        DB.session.commit()
 
         message = None
         try:

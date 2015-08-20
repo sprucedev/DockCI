@@ -7,6 +7,8 @@ import logging
 import mimetypes
 import select
 
+import sqlalchemy
+
 from flask import (abort,
                    flash,
                    redirect,
@@ -15,9 +17,10 @@ from flask import (abort,
                    Response,
                    url_for,
                    )
+from sqlalchemy.orm import eagerload
 from yaml_model import ValidationError
 
-from dockci.models.job import Job
+from dockci.models.job import Job, JobStageTmp
 from dockci.models.project import Project
 from dockci.server import APP, DB
 from dockci.util import (DateTimeEncoder,
@@ -130,7 +133,7 @@ def job_output_json(project_slug, job_slug):
                 )) + (
                     #('ancestor_job_slug', job.ancestor_job.slug),
                     ('project_slug', project.slug),
-                    ('job_stage_slugs', [stage.slug for stage in job.job_stages.all()]),
+                    ('job_stage_slugs', [stage.slug for stage in job.job_stages]),
                 )
             ),
             cls=DateTimeEncoder,
@@ -169,7 +172,7 @@ def job_output_view(project_slug, job_slug, filename):
 
                 is_live_log = (
                     job.state == 'running' and
-                    filename == "%s.log" % job.job_stage_slugs[-1]
+                    filename == "%s.log" % job.job_stages[-1]
                 )
                 if is_live_log:
                     select.select((handle,), (), (), 2)

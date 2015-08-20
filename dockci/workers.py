@@ -39,6 +39,7 @@ def run_job_async(job):
         with APP.app_context():
             #job = Job.query.get(job_id)
             job_okay = job._run_now()  # pylint:disable=protected-access
+            project = job.project
 
             # Send the failure message
             if not job_okay:
@@ -68,7 +69,6 @@ def run_job_async(job):
                     send_mail(email)
 
             # Send a HipChat notification
-            project = job.project
             if project.hipchat_api_token != '' and project.hipchat_room != '':
                 hipchat = HipChat(apitoken=project.hipchat_api_token,
                                   room=project.hipchat_room)

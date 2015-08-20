@@ -9,6 +9,7 @@ import docker.errors
 
 from dockci.exceptions import AlreadyBuiltError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
+from dockci.server import DB
 from dockci.util import built_docker_image_id, is_semantic
 
 
@@ -87,7 +88,7 @@ class BuildStage(DockerStage):
         if self.job.tag is not None:
             existing_image = None
             for image in self.job.docker_client.images(
-                name=self.job.project_slug,
+                name=self.job.project.slug,
             ):
                 if tag in image['RepoTags']:
                     existing_image = image
@@ -99,7 +100,7 @@ class BuildStage(DockerStage):
                     raise AlreadyBuiltError(
                         'Version %s of %s already built' % (
                             self.job.tag,
-                            self.job.project_slug,
+                            self.job.project.slug,
                         )
                     )
                 # Delete existing jobs of _non-versioned_ tagged code
@@ -168,7 +169,8 @@ class TestStage(DockerStage):
             self.job.image_id, 'ci'
         )
         self.job.container_id = container_details['Id']
-        self.job.save()
+        DB.session.add(self.job)
+        DB.session.commit()
 
         def link_tuple(service_info):
             """
@@ -216,5 +218,6 @@ class TestStage(DockerStage):
             self.job.container_id,
         )
         self.job.exit_code = details['State']['ExitCode']
-        self.job.save()
+        DB.session.add(self.job)
+        DB.session.commit()
         return details['State']['ExitCode']
