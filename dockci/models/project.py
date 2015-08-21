@@ -8,6 +8,7 @@ import re
 from uuid import uuid4
 
 import py.error  # pylint:disable=import-error
+import sqlalchemy
 
 from flask import url_for
 from yaml_model import (LoadOnAccess,
@@ -102,9 +103,12 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
 
     def latest_completed_job(self):
         """ Find the latest job that is completed """
-        return self.latest_job(other_check=lambda job: job.result in (
-            'success', 'fail', 'broken'
-        ))
+        from dockci.models.job import Job
+        return self.jobs.filter(
+            Job.result.in_(('success', 'fail', 'broken'))
+        ).order_by(
+            sqlalchemy.desc(Job.create_ts)
+        ).first()
 
     def latest_job_ancestor(self,
                             workdir,
