@@ -53,9 +53,9 @@ from dockci.util import (bytes_human_readable,
 
 
 class JobResult(Enum):
-    success = 1
-    fail = 2
-    broken = 3
+    success = 'success'
+    fail = 'fail'
+    broken = 'broken'
 
 
 class JobStageTmp(DB.Model):

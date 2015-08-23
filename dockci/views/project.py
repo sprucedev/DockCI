@@ -94,31 +94,25 @@ def project_view(slug):
 
     else:
         page_size = int(request.args.get('page_size', 20))
-        page_offset = int(request.args.get('page_offset', 0))
+        page = int(request.args.get('page', 1))
         versioned = 'versioned' in request.args
 
+        jobs = project.jobs
+
         if versioned:
-            jobs = list(project.filtered_jobs(passed=True, versioned=True))
-        else:
-            jobs = project.jobs.order_by(sqlalchemy.desc(Job.create_ts)).all()
+            jobs = jobs.filter(
+                Job.result == 'success',
+                Job.tag != None,
+            )
 
-        prev_page_offset = max(page_offset - page_size, 0)
-        if page_offset < 1:
-            prev_page_offset = None
+        jobs = jobs.order_by(sqlalchemy.desc(Job.create_ts))
+        jobs = jobs.paginate(page, page_size)
 
-        next_page_offset = page_offset + page_size
-        if next_page_offset > len(jobs):
-            next_page_offset = None
-
-        jobs = jobs[page_offset:page_offset + page_size]
         return render_template(
             'project.html',
             project=project,
             jobs=jobs,
             versioned=versioned,
-            prev_page_offset=prev_page_offset,
-            next_page_offset=next_page_offset,
-            page_size=page_size,
             auth_token_delete=get_auth_token_delete(project),
         )
 

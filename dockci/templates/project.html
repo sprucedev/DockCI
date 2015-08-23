@@ -43,7 +43,7 @@
 {% endif %}
 <table id="jobs-list" class="table table-striped">
   <tr><th>Created</th><th>Tag</th><th>Commit ref</th><th>Author</th><th>State</th></tr>
-  {% for job in jobs -%}
+  {% for job in jobs.items -%}
     <tr class="job-detail">
       <td><a href="/projects/{{ project.slug }}/jobs/{{ job.slug }}">{{ job.create_ts }}</a></td>
       <td>{{ job.tag if job.tag else '' }}</td>
@@ -54,11 +54,11 @@
   {%- endfor %}
 </table>
 {% set versioned_str = '&versioned' if versioned else '' %}
-{% if prev_page_offset is not none -%}
-    <a href="{{ '/projects/%s?page_offset=%d&page_size=%d%s' % (project.slug, prev_page_offset, page_size, versioned_str) }}" class="pagination btn btn-default btn-lg">Previous</a>
+{% if jobs.has_prev -%}
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.prev_num, jobs.per_page, versioned_str) }}" class="pagination btn btn-default btn-lg">Previous</a>
 {% endif -%}
-{% if next_page_offset is not none -%}
-    <a href="{{ '/projects/%s?page_offset=%d&page_size=%d%s' % (project.slug, next_page_offset, page_size, versioned_str) }}" class="pagination btn btn-default btn-lg pull-right">Next</a>
+{% if jobs.has_next -%}
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str) }}" class="pagination btn btn-default btn-lg pull-right">Next</a>
 {% endif -%}
 <script>
   $(document).ready(function() {
