@@ -21,6 +21,7 @@ from ipaddress import ip_address
 
 import docker.errors
 import py.error  # pylint:disable=import-error
+import yaml_model
 
 from flask import flash, request
 from flask_security import current_user, login_required
@@ -65,9 +66,15 @@ def model_flash(model_obj, save=True):
     # TODO move the flash to views
     try:
         if save:
-            from dockci.server import DB
-            DB.session.add(model_obj)
-            DB.session.commit()
+            if isinstance(model_obj, yaml_model.Model):
+                model_obj.save()
+
+            else:
+                model_obj.validate()
+                from dockci.server import DB
+                DB.session.add(model_obj)
+                DB.session.commit()
+
             flash(u"%s saved" % model_obj.__class__.__name__.title(),
                   'success')
 
