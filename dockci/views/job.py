@@ -118,6 +118,7 @@ def job_output_json(project_slug, job_slug):
     project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
 
+    # TODO flask-restful
     return Response(
         json.dumps(
             dict(
