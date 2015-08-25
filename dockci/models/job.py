@@ -299,14 +299,15 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         return cls.data_dir_path().join(project.slug)
 
     def data_file_path(self):
-        # Add the project name before the job slug in the path
+        """ Add the project name before the job slug in the path """
         return self.data_dir_path_for_project(self.project).join(
             '%s.yaml' % self.id
         )
 
     @classmethod
     def data_dir_path(cls):
-        path = py.path.local('/tmp/dockci_jobs')
+        """ Temporary mock for removing YAML model """
+        path = py.path.local('data')
         path.ensure(dir=True)
         return path
 
