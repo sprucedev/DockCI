@@ -151,6 +151,7 @@ def job_output_view(project_slug, job_slug, filename):
     """
     project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
+    job_id = job.id
 
     job_output_path = job.job_output_path()
     data_file_path = job_output_path.join(filename)
@@ -166,21 +167,23 @@ def job_output_view(project_slug, job_slug, filename):
         """
         Generator to stream the log file
         """
-        with data_file_path.open('rb') as handle:
-            while True:
-                data = handle.read(1024)
-                yield data
+        with APP.app_context():
+            job = Job.query.get(job_id)  # Session is closed
+            with data_file_path.open('rb') as handle:
+                while True:
+                    data = handle.read(1024)
+                    yield data
 
-                is_live_log = (
-                    job.state == 'running' and
-                    filename == "%s.log" % job.job_stages[-1]
-                )
-                if is_live_log:
-                    select.select((handle,), (), (), 2)
-                    job.load()
+                    DB.session.refresh(job)
+                    is_live_log = (
+                        job.state == 'running' and
+                        filename == "%s.log" % job.job_stages[-1].slug
+                    )
+                    if is_live_log:
+                        select.select((handle,), (), (), 2)
 
-                elif len(data) == 0:
-                    return
+                    elif len(data) == 0:
+                        return
 
     mimetype, _ = mimetypes.guess_type(filename)
     if mimetype is None:
