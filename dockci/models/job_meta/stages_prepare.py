@@ -404,8 +404,10 @@ class InlineProjectStage(JobStageBase):
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
 
-                    service_project = Project(project_slug)
-                    if not service_project.exists():
+                    service_project = Project.query.filter_by(
+                        slug=project_slug,
+                    ).first()
+                    if not service_project:
                         faux_log.update(error="No project found")
                         all_okay = False
                         continue
