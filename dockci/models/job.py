@@ -298,12 +298,6 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         """ Get the path that jobs reside in for the given project """
         return cls.data_dir_path().join(project.slug)
 
-    def data_file_path(self):
-        """ Add the project name before the job slug in the path """
-        return self.data_dir_path_for_project(self.project).join(
-            '%s.yaml' % self.id
-        )
-
     @classmethod
     def data_dir_path(cls):
         """ Temporary mock for removing YAML model """
@@ -312,10 +306,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         return path
 
     def job_output_path(self):
-        """
-        Directory for any job output data
-        """
-        return self.data_file_path().join('..', '%s_output' % self.slug)
+        """ Directory for any job output data """
+        return self.data_dir_path_for_project(self.project).join(self.slug)
 
     def queue(self):
         """
