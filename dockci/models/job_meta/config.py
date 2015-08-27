@@ -11,7 +11,7 @@ def get_job(slug):
     cyclic import
     """
     from dockci.models.job import Job
-    return Job(slug)
+    return Job.query.filter_by(slug=slug).first()
 
 
 class JobConfig(Model):  # pylint:disable=too-few-public-methods
