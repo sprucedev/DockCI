@@ -9,6 +9,7 @@ from flask import Flask
 from flask_oauthlib.client import OAuth
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_mail import Mail
+from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 
 #from dockci.data_adapters.flask_security import YAMLModelUserDataStore
@@ -22,6 +23,7 @@ CONFIG = Config()
 SECURITY = Security()
 DB = SQLAlchemy()
 OAUTH = OAuth(APP)
+API = Api(APP, prefix='/api/v1')
 
 APP.config.model = CONFIG  # For templates
 
@@ -71,6 +73,7 @@ def app_init(app_args={}):
     MAIL.init_app(APP)
     DB.init_app(APP)
     app_init_oauth()
+    app_init_api()
     app_init_views()
 
 
@@ -96,6 +99,12 @@ def app_init_oauth():
 
     for oauth_app in OAUTH_APPS.values():
         oauth_app.tokengetter(tokengetter_for(oauth_app))
+
+
+def app_init_api():
+    """ Activate the DockCI API """
+    import dockci.api.project
+    import dockci.api.user
 
 
 def app_init_views():
