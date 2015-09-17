@@ -1,5 +1,7 @@
 from copy import copy
 
+from flask import request
+
 
 def set_attrs(obj, values):
     for attr_name, attr_value in values.items():

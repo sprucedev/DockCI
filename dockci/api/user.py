@@ -1,5 +1,6 @@
 from flask import request
 from flask_restful import fields, marshal_with, Resource, reqparse
+from flask_security import current_user, login_required
 
 from .base import BaseDetailResource
 from .util import new_edit_parsers
@@ -68,9 +69,22 @@ class UserDetail(BaseDetailResource):
         return self.handle_write(user, USER_EDIT_PARSER)
 
 
+class MeDetail(Resource):
+    @login_required
+    @marshal_with(DETAIL_FIELDS)
+    def get(self):
+        return current_user
+
+    def post(self):
+        return self.get()
+
+
 API.add_resource(UserList,
                  '/users',
                  endpoint='user_list')
 API.add_resource(UserDetail,
                  '/users/<int:id>',
                  endpoint='user_detail')
+API.add_resource(MeDetail,
+                 '/me',
+                 endpoint='me_detail')

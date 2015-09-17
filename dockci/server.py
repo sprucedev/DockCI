@@ -73,6 +73,7 @@ def app_init(app_args={}):
     MAIL.init_app(APP)
     DB.init_app(APP)
     app_init_oauth()
+    app_init_handlers()
     app_init_api()
     app_init_views()
 
@@ -100,9 +101,14 @@ def app_init_oauth():
     for oauth_app in OAUTH_APPS.values():
         oauth_app.tokengetter(tokengetter_for(oauth_app))
 
+def app_init_handlers():
+    """ Initialize event handlers """
+    import dockci.handlers
+
 
 def app_init_api():
     """ Activate the DockCI API """
+    import dockci.api.jwt
     import dockci.api.project
     import dockci.api.user
 
