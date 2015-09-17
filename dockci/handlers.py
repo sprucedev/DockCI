@@ -6,21 +6,15 @@ import jwt
 
 from flask import abort, flash, redirect, Response, request
 from flask_login import login_url
-from flask_restful import reqparse
 from flask_security.utils import verify_and_update_password
 
-from dockci.api.util import clean_attrs
+from dockci.api.util import clean_attrs, DefaultRequestParser
 from dockci.models.auth import User
 from dockci.server import APP, CONFIG
 
 
 LOGIN_MANAGER = APP.extensions['security'].login_manager
-
-AUTH_LOCATIONS = ('form', 'headers')
-LOGIN_FORM = reqparse.RequestParser()
-LOGIN_FORM.add_argument('username', location=AUTH_LOCATIONS)
-LOGIN_FORM.add_argument('password', location=AUTH_LOCATIONS)
-LOGIN_FORM.add_argument('api_key', location=('args',) + AUTH_LOCATIONS)
+LOGIN_FORM = DefaultRequestParser()
 
 API_RE = re.compile(r'/api/.*')
 

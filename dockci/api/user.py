@@ -1,9 +1,9 @@
 from flask import request
-from flask_restful import fields, marshal_with, Resource, reqparse
+from flask_restful import fields, marshal_with, Resource
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource
-from .util import new_edit_parsers
+from .util import DefaultRequestParser, new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API, DB
 
@@ -42,27 +42,31 @@ SHARED_PARSER_ARGS = {
     ),
 }
 
-USER_NEW_PARSER = reqparse.RequestParser(bundle_errors=True)
-USER_EDIT_PARSER = reqparse.RequestParser(bundle_errors=True)
+USER_NEW_PARSER = DefaultRequestParser(bundle_errors=True)
+USER_EDIT_PARSER = DefaultRequestParser(bundle_errors=True)
 new_edit_parsers(USER_NEW_PARSER, USER_EDIT_PARSER, SHARED_PARSER_ARGS)
 
 
 class UserList(Resource):
+    @login_required
     @marshal_with(LIST_FIELDS)
     def get(self):
         return User.query.all()
 
 
 class UserDetail(BaseDetailResource):
+    @login_required
     @marshal_with(DETAIL_FIELDS)
     def get(self, id):
         return User.query.get_or_404(id)
 
+    @login_required
     @marshal_with(DETAIL_FIELDS)
     def put(self, id):
         user = User()
         return self.handle_write(user, USER_NEW_PARSER)
 
+    @login_required
     @marshal_with(DETAIL_FIELDS)
     def post(self, id):
         user = User.query.get_or_404(id)

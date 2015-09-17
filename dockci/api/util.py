@@ -1,6 +1,18 @@
 from copy import copy
 
 from flask import request
+from flask_restful.reqparse import RequestParser
+
+
+AUTH_LOCATIONS = ('form', 'headers')
+
+
+class DefaultRequestParser(RequestParser):
+    def __init__(self, *args, **kwargs):
+        super(DefaultRequestParser, self).__init__(*args, **kwargs)
+        self.add_argument('username', location=AUTH_LOCATIONS)
+        self.add_argument('password', location=AUTH_LOCATIONS)
+        self.add_argument('api_key', location=('args',) + AUTH_LOCATIONS)
 
 
 def set_attrs(obj, values):
