@@ -271,6 +271,7 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
     hipchat_api_token = DB.Column(DB.String(255))
     hipchat_room = DB.Column(DB.String(255))
 
+    # TODO repo ID from repo
     github_repo_id = DB.Column(DB.String(255))
     github_hook_id = DB.Column(DB.Integer())
     github_secret = DB.Column(DB.String(255))
