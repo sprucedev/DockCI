@@ -8,13 +8,14 @@ from flask import abort, flash, redirect, Response, request
 from flask_login import login_url
 from flask_security.utils import verify_and_update_password
 
-from dockci.api.util import clean_attrs, DefaultRequestParser
+from dockci.api.base import BaseRequestParser
+from dockci.api.util import clean_attrs
 from dockci.models.auth import User
 from dockci.server import APP, CONFIG
 
 
 LOGIN_MANAGER = APP.extensions['security'].login_manager
-LOGIN_FORM = DefaultRequestParser()
+LOGIN_FORM = BaseRequestParser()
 
 API_RE = re.compile(r'/api/.*')
 

@@ -2,8 +2,8 @@ from flask import request
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
-from .base import BaseDetailResource
-from .util import DefaultRequestParser, new_edit_parsers
+from .base import BaseDetailResource, BaseRequestParser
+from .util import new_edit_parsers
 from dockci.models.project import Project
 from dockci.server import API, DB
 
@@ -50,8 +50,8 @@ SHARED_PARSER_ARGS = {
     'hipchat_api_token': dict(help="HipChat API token for authentication"),
 }
 
-PROJECT_NEW_PARSER = DefaultRequestParser(bundle_errors=True)
-PROJECT_EDIT_PARSER = DefaultRequestParser(bundle_errors=True)
+PROJECT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
+PROJECT_EDIT_PARSER = BaseRequestParser(bundle_errors=True)
 new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
 
 

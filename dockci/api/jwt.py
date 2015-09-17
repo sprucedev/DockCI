@@ -7,13 +7,13 @@ from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
 from . import DT_FORMATTER
-from .base import BaseDetailResource
-from .util import clean_attrs, DefaultRequestParser, new_edit_parsers
+from .base import BaseDetailResource, BaseRequestParser
+from .util import clean_attrs, new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API, CONFIG, DB
 
 
-JWT_NEW_PARSER = DefaultRequestParser(bundle_errors=True)
+JWT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
 JWT_NEW_PARSER.add_argument('name',
                             required=True,
                             help="Service name for the token")
