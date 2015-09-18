@@ -3,7 +3,7 @@ from flask_restful import fields, marshal_with, Resource
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
-from .util import new_edit_parsers
+from .util import new_edit_parsers, RewriteUrl
 from dockci.models.auth import User
 from dockci.server import API, DB
 
@@ -15,7 +15,7 @@ BASIC_FIELDS = {
 }
 
 LIST_FIELDS = {
-    'detail': fields.Url('user_detail'),
+    'detail': RewriteUrl('user_detail', rewrites=dict(user_id='id')),
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
@@ -57,19 +57,19 @@ class UserList(Resource):
 class UserDetail(BaseDetailResource):
     @login_required
     @marshal_with(DETAIL_FIELDS)
-    def get(self, id):
-        return User.query.get_or_404(id)
+    def get(self, user_id):
+        return User.query.get_or_404(user_id)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
-    def put(self, id):
+    def put(self, user_id):
         user = User()
         return self.handle_write(user, USER_NEW_PARSER)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
-    def post(self, id):
-        user = User.query.get_or_404(id)
+    def post(self, user_id):
+        user = User.query.get_or_404(user_id)
         return self.handle_write(user, USER_EDIT_PARSER)
 
 
@@ -87,7 +87,7 @@ API.add_resource(UserList,
                  '/users',
                  endpoint='user_list')
 API.add_resource(UserDetail,
-                 '/users/<int:id>',
+                 '/users/<int:user_id>',
                  endpoint='user_detail')
 API.add_resource(MeDetail,
                  '/me',
