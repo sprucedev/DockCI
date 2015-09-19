@@ -45,6 +45,10 @@ class RewriteUrl(fields.Url):
     def output(self, key, obj):
         data = obj.__dict__
         for field_set, field_from in self.rewrites.items():
-            data[field_set] = data[field_from]
+            attr_path_data = obj
+            for attr_path in field_from.split('.'):
+                attr_path_data = getattr(attr_path_data, attr_path)
+
+            data[field_set] = attr_path_data
 
         return super(RewriteUrl, self).output(key, data)

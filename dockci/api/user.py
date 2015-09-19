@@ -2,6 +2,7 @@ from flask import request
 from flask_restful import fields, marshal_with, Resource
 from flask_security import current_user, login_required
 
+from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
 from .util import new_edit_parsers, RewriteUrl
 from dockci.models.auth import User
@@ -21,7 +22,7 @@ LIST_FIELDS.update(BASIC_FIELDS)
 
 
 DETAIL_FIELDS = {
-    'confirmed_at': fields.DateTime(),
+    'confirmed_at': DT_FORMATTER,
     #'roles': fields.Nested(),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
