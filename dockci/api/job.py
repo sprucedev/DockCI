@@ -22,16 +22,20 @@ LIST_FIELDS = {
 LIST_FIELDS.update(BASIC_FIELDS)
 
 
-DETAIL_FIELDS = {
+CREATE_FIELDS = {
     'project_detail': RewriteUrl('project_detail', rewrites=dict(project_slug='project.slug')),
+    'create_ts': DT_FORMATTER,
+    'repo': fields.String(),
+    'commit': fields.String(),
+}
+CREATE_FIELDS.update(LIST_FIELDS)
+
+DETAIL_FIELDS = {
     'ancestor_detail': RewriteUrl('job_detail', rewrites=dict(project_slug='project.slug', job_slug='ancestor_job.slug')),
 
-    'create_ts': DT_FORMATTER,
     'start_ts': DT_FORMATTER,
     'complete_ts': DT_FORMATTER,
 
-    'repo': fields.String(),
-    'commit': fields.String(),
     'tag': fields.String(),
     'image_id': fields.String(),
     'container_id': fields.String(),
@@ -43,24 +47,22 @@ DETAIL_FIELDS = {
     'git_committer_email': fields.String(),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
+DETAIL_FIELDS.update(CREATE_FIELDS)
+
+JOB_NEW_PARSER = BaseRequestParser(bundle_errors=True)
+JOB_NEW_PARSER.add_argument('ref',
+                            required=True,
+                            help="Git ref to check out")
 
 
-# SHARED_PARSER_ARGS = {
-#     'name': dict(
-#         help="Project display name",
-#         required=None,
-#     ),
-#     'repo': dict(
-#         help="Git repository for the project code",
-#         required=None,
-#     ),
-#     'hipchat_room': dict(help="Room to post HipChat notifications to"),
-#     'hipchat_api_token': dict(help="HipChat API token for authentication"),
-# }
+def get_validate_job(project_slug, job_slug):
+        """ Get the job object, validate that project slug matches expected """
+        job_id = Job.id_from_slug(job_slug)
+        job = Job.query.get_or_404(job_id)
+        if job.project.slug != project_slug:
+            abort(404)
 
-# PROJECT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
-# PROJECT_EDIT_PARSER = BaseRequestParser(bundle_errors=True)
-# new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
+        return job
 
 
 class JobList(Resource):
@@ -69,30 +71,28 @@ class JobList(Resource):
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         return project.jobs.all()
 
+    @login_required
+    @marshal_with(CREATE_FIELDS)
+    def post(self, project_slug, job_slug):
+        project = Project.query.filter_by(slug=project_slug).first_or_404()
+        job = Job(project=project, repo=project.repo)
+        job.queue()
+
+        return self.handle_write(job, JOB_NEW_PARSER)
+
 
 class JobDetail(BaseDetailResource):
     @marshal_with(DETAIL_FIELDS)
     def get(self, project_slug, job_slug):
-        job_id = Job.id_from_slug(job_slug)
-        job = Job.query.get_or_404(job_id)
-        if job.project.slug != project_slug:
-            abort(404)
+        return get_validate_job(project_slug, job_slug)
 
-        return job
 
-    # @login_required
-    # @marshal_with(DETAIL_FIELDS)
-    def put(self, project_slug, job_slug):
-        pass
-        # project = Project()
-        # return self.handle_write(project, PROJECT_NEW_PARSER)
-
-    # @login_required
-    # @marshal_with(DETAIL_FIELDS)
-    def post(self, project_slug, job_slug):
-        pass
-        # project = Project.query.filter_by(slug=project_slug).first_or_404()
-        # return self.handle_write(project, PROJECT_EDIT_PARSER)
+class StageList(Resource):
+    def get(self, project_slug, job_slug):
+        return [
+            stage.slug for stage in
+            get_validate_job(project_slug, job_slug).job_stages
+        ]
 
 
 API.add_resource(JobList,
@@ -101,3 +101,6 @@ API.add_resource(JobList,
 API.add_resource(JobDetail,
                  '/projects/<string:project_slug>/jobs/<string:job_slug>',
                  endpoint='job_detail')
+API.add_resource(StageList,
+                 '/projects/<string:project_slug>/jobs/<string:job_slug>/stages',
+                 endpoint='stage_list')

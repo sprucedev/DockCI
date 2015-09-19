@@ -108,6 +108,7 @@ def app_init_handlers():
 
 def app_init_api():
     """ Activate the DockCI API """
+    import dockci.api.job
     import dockci.api.jwt
     import dockci.api.project
     import dockci.api.user
