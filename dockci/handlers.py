@@ -41,9 +41,12 @@ def unauthorized_handler():
             message = "Invalid credentials"
 
         return Response(
-            {'message': message or "Unauthorized"},
+            json.dumps({'message': message or "Unauthorized"}),
             401,
-            {'WWW-Authenticate': 'Basic realm="DockCI API"'},
+            {
+                'Content-Type': 'application/json',
+                'WWW-Authenticate': 'Basic realm="DockCI API"',
+            },
         )
 
     else:
