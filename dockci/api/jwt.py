@@ -13,6 +13,8 @@ from dockci.models.auth import User
 from dockci.server import API, CONFIG, DB
 
 
+JWT_ME_DETAIL_PARSER = BaseRequestParser(bundle_errors=True)
+
 JWT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
 JWT_NEW_PARSER.add_argument('name',
                             required=True,
@@ -50,7 +52,25 @@ class JwtNew(Resource):
         return {'token': JwtString().format(args)}, 201
 
 
-class JwtInfo(Resource):
+class JwtMeDetail(Resource):
+    @login_required
+    def get(self):
+        args = JWT_ME_DETAIL_PARSER.parse_args()
+        if args['api_key'] is not None:
+            return JwtDetail().get(args['api_key'])
+
+        else:
+            return (
+                {'message': "Not authenticated with a JWT token"},
+                400,
+            )
+
+    @login_required
+    def post(self):
+        return JwtNew().post(current_user.id)
+
+
+class JwtDetail(Resource):
     def get(self, token):
         try:
             jwt_data = jwt.decode(token, CONFIG.secret)
@@ -74,6 +94,9 @@ class JwtInfo(Resource):
 API.add_resource(JwtNew,
                  '/users/<int:id>/jwt',
                  endpoint='jwt_user_new')
-API.add_resource(JwtInfo,
+API.add_resource(JwtMeDetail,
+                 '/me/jwt',
+                 endpoint='jwt_me_detail')
+API.add_resource(JwtDetail,
                  '/jwt/<string:token>',
-                 endpoint='me_jwt_info')
+                 endpoint='jwt_detail')
