@@ -69,8 +69,9 @@ class UserDetail(BaseDetailResource):
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
-    def post(self, user_id):
-        user = User.query.get_or_404(user_id)
+    def post(self, user_id, user=None):
+        if user is None:
+            user = User.query.get_or_404(user_id)
         return self.handle_write(user, USER_EDIT_PARSER)
 
 
@@ -80,8 +81,9 @@ class MeDetail(Resource):
     def get(self):
         return current_user
 
+    @login_required
     def post(self):
-        return self.get()
+        return UserDetail().post(none, current_user)
 
 
 API.add_resource(UserList,
