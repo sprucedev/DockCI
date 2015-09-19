@@ -1,6 +1,6 @@
 dockerfile: dockci.Dockerfile
 utilities:
-  - name: python3.4-wheels
+  - name: python3-4-wheels
     input:
       - requirements.txt /work/requirements.txt
       - test-requirements.txt /work/test-requirements.txt
