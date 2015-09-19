@@ -64,7 +64,7 @@ class JwtInfo(Resource):
 
         try:
             user_id = jwt_data['sub']
-            jwt_data['sub_detail'] = url_for('user_detail', id=user_id)
+            jwt_data['sub_detail'] = url_for('user_detail', user_id=user_id)
         except KeyError:
             pass
 
