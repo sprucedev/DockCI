@@ -53,8 +53,8 @@ class JobStageBase(object):
 
         self.job.job_output_path().ensure_dir()
         with self.data_file_path().open('wb') as handle:
-            DB.session.add(stage)
-            DB.session.commit()
+            self.job.db_session.add(stage)
+            self.job.db_session.commit()
             self.returncode = self.runnable(handle)
 
         if expected_rc is None:

@@ -8,7 +8,7 @@ from flask_mail import Message
 
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import APP, MAIL
+from dockci.server import APP, DB, MAIL
 from dockci.notifications import HipChat
 
 
@@ -33,6 +33,9 @@ def run_job_async(job):
     """
     if os.fork():
         return  # parent process
+
+    DB.engine.dispose()
+    job = Job.query.get(job.id)
 
     logger = logging.getLogger('dockci.job')
     try:

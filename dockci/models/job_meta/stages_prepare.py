@@ -128,8 +128,8 @@ class GitInfoStage(JobStageBase):
                          "derived\n".encode())
 
         else:
-            DB.session.add(self.job)
-            DB.session.commit()
+            self.job.db_session.add(self.job)
+            self.job.db_session.commit()
 
         return proc.returncode
 
@@ -366,8 +366,8 @@ class TagVersionStage(CommandJobStage):
 
                 if last_line:
                     self.job.tag = last_line
-                    DB.session.add(self.job)
-                    DB.session.commit()
+                    self.job.db_session.add(self.job)
+                    self.job.db_session.commit()
 
         except KeyError:
             pass

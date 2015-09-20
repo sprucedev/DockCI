@@ -169,8 +169,8 @@ class TestStage(DockerStage):
             self.job.image_id, 'ci'
         )
         self.job.container_id = container_details['Id']
-        DB.session.add(self.job)
-        DB.session.commit()
+        self.job.db_session.add(self.job)
+        self.job.db_session.commit()
 
         def link_tuple(service_info):
             """
@@ -218,6 +218,6 @@ class TestStage(DockerStage):
             self.job.container_id,
         )
         self.job.exit_code = details['State']['ExitCode']
-        DB.session.add(self.job)
-        DB.session.commit()
+        self.job.db_session.add(self.job)
+        self.job.db_session.commit()
         return details['State']['ExitCode']

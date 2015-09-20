@@ -106,6 +106,7 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
     _provisioned_containers = []
 
     _job_config = None
+    _db_session = None
 
     def __str__(self):
         return '<{klass}: {project_slug}/{job_slug}>'.format(
@@ -113,6 +114,12 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
             project_slug=self.project.slug,
             job_slug=self.slug,
         )
+
+    @property
+    def db_session(self):
+        if self._db_session is None:
+            self._db_session = DB.session()
+        return self._db_session
 
     @property
     def job_config(self):
@@ -222,8 +229,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
                 )
 
             self.docker_client_host = docker_client_args['base_url']
-            DB.session.add(self)
-            DB.session.commit()
+            self.db_session.add(self)
+            self.db_session.commit()
 
             self._docker_client = docker.Client(**docker_client_args)
 
@@ -332,8 +339,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         Worker func that performs the job
         """
         self.start_ts = datetime.now()
-        DB.session.add(self)
-        DB.session.commit()
+        self.db_session.add(self)
+        self.db_session.commit()
 
         try:
             with tempfile.TemporaryDirectory() as workdir:
@@ -374,27 +381,27 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
                 if not all(prepare):
                     self.result = 'broken'
-                    DB.session.add(self)
-                    DB.session.commit()
+                    self.db_session.add(self)
+                    self.db_session.commit()
                     return False
 
                 if not TestStage(self).run(0):
                     self.result = 'fail'
-                    DB.session.add(self)
-                    DB.session.commit()
+                    self.db_session.add(self)
+                    self.db_session.commit()
                     return False
 
                 # We should fail the job here because if this is a tagged
                 # job, we can't rebuild it
                 if not PushStage(self).run(0):
                     self.result = 'broken'
-                    DB.session.add(self)
-                    DB.session.commit()
+                    self.db_session.add(self)
+                    self.db_session.commit()
                     return False
 
                 self.result = 'success'
-                DB.session.add(self)
-                DB.session.commit()
+                self.db_session.add(self)
+                self.db_session.commit()
 
                 # Failing this doesn't indicate job failure
                 # TODO what kind of a failure would this not working be?
@@ -403,8 +410,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
             return True
         except Exception:  # pylint:disable=broad-except
             self.result = 'broken'
-            DB.session.add(self)
-            DB.session.commit()
+            self.db_session.add(self)
+            self.db_session.commit()
             self._error_stage('error')
 
             return False
@@ -418,8 +425,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
                 self._error_stage('post_error')
 
             self.complete_ts = datetime.now()
-            DB.session.add(self)
-            DB.session.commit()
+            self.db_session.add(self)
+            self.db_session.commit()
 
     def send_github_status(self, state=None, state_msg=None, context='push'):
         """
@@ -471,8 +478,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         """
         # TODO all this should be in the try/except
         stage = JobStageTmp(job=self, slug=stage_slug)
-        DB.session.add(stage)
-        DB.session.commit()
+        self.db_session.add(stage)
+        self.db_session.commit()
 
         message = None
         try:
