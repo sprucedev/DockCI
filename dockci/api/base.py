@@ -1,6 +1,7 @@
 from flask_restful import reqparse, Resource
 
 from .util import clean_attrs, set_attrs
+from dockci.server import DB
 
 
 AUTH_FORM_LOCATIONS = ('form', 'headers', 'json')
