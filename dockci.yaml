@@ -1,0 +1,16 @@
+dockerfile: dockci.Dockerfile
+utilities:
+  - name: python3-4-wheels
+    input:
+      - requirements.txt /work/requirements.txt
+      - test-requirements.txt /work/test-requirements.txt
+    command: pip wheel -r requirements.txt -r test-requirements.txt
+    output:
+      - from: /work/wheelhouse
+        to: util
+  - name: bower
+    input:
+      - bower.json /work/bower.json
+    output:
+      - from: /work/bower_components
+        to: util
