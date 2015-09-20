@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+set -x
 : ${WHEELS_ONLY:=0}  # 0 is only use wheels
 function collectstatic {
     mkdir -p dockci/static/lib/css
