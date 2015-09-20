@@ -96,6 +96,11 @@ class StageList(Resource):
         ]
 
 
+class ArtifactList(Resource):
+    def get(self, project_slug, job_slug):
+        return get_validate_job(project_slug, job_slug).job_output_details
+
+
 API.add_resource(JobList,
                  '/projects/<string:project_slug>/jobs',
                  endpoint='job_list')
@@ -105,3 +110,6 @@ API.add_resource(JobDetail,
 API.add_resource(StageList,
                  '/projects/<string:project_slug>/jobs/<string:job_slug>/stages',
                  endpoint='stage_list')
+API.add_resource(ArtifactList,
+                 '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
+                 endpoint='artifact_list')
