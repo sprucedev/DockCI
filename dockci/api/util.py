@@ -47,6 +47,8 @@ class RewriteUrl(fields.Url):
         for field_set, field_from in self.rewrites.items():
             attr_path_data = obj
             for attr_path in field_from.split('.'):
+                if attr_path_data is None:
+                    return None
                 attr_path_data = getattr(attr_path_data, attr_path)
 
             data[field_set] = attr_path_data
