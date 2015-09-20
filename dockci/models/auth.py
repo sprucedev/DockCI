@@ -21,6 +21,12 @@ class Role(DB.Model, RoleMixin):
     name = DB.Column(DB.String(80), unique=True)
     description = DB.Column(DB.String(255))
 
+    def __str__(self):
+        return '<{klass}: {name}>'.format(
+            klass=self.__class__.__name__,
+            name=self.name,
+        )
+
 
 class OAuthToken(DB.Model):
     id = DB.Column(DB.Integer(), primary_key=True)
@@ -33,6 +39,13 @@ class OAuthToken(DB.Model):
                            foreign_keys="OAuthToken.user_id",
                            backref=DB.backref('oauth_tokens', lazy='dynamic'))
 
+    def __str__(self):
+        return '<{klass}: {service} for {email}>'.format(
+            klass=self.__class__.__name__,
+            service=self.service,
+            email=self.user.email,
+        )
+
 
 class User(DB.Model, UserMixin):
     """ User model for authentication """
@@ -44,6 +57,13 @@ class User(DB.Model, UserMixin):
     roles = DB.relationship('Role',
                             secondary=roles_users,
                             backref=DB.backref('users', lazy='dynamic'))
+
+    def __str__(self):
+        return '<{klass}: {email} ({active})>'.format(
+            klass=self.__class__.__name__,
+            email=self.email,
+            active='active' if self.active else 'inactive'
+        )
 
 
 # class User(Model, UserMixin):

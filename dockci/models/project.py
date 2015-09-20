@@ -31,6 +31,12 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
     A project, representing a container to be built
     """
 
+    def __str__(self):
+        return '<{klass}: {project_slug}>'.format(
+            klass=self.__class__.__name__,
+            project_slug=self.slug,
+        )
+
     def purge(self):
         """
         Delete the project, including GitHub hooks, and related job data

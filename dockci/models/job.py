@@ -107,6 +107,13 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
     _job_config = None
 
+    def __str__(self):
+        return '<{klass}: {project_slug}/{job_slug}>'.format(
+            klass=self.__class__.__name__,
+            project_slug=self.project.slug,
+            job_slug=self.slug,
+        )
+
     @property
     def job_config(self):
         if self._job_config is None:
