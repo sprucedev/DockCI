@@ -50,7 +50,7 @@ DETAIL_FIELDS.update(BASIC_FIELDS)
 DETAIL_FIELDS.update(CREATE_FIELDS)
 
 JOB_NEW_PARSER = BaseRequestParser(bundle_errors=True)
-JOB_NEW_PARSER.add_argument('ref',
+JOB_NEW_PARSER.add_argument('commit',
                             required=True,
                             help="Git ref to check out")
 
@@ -73,12 +73,13 @@ class JobList(BaseDetailResource):
 
     @login_required
     @marshal_with(CREATE_FIELDS)
-    def post(self, project_slug, job_slug):
+    def post(self, project_slug):
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         job = Job(project=project, repo=project.repo)
+        self.handle_write(job, JOB_NEW_PARSER)
         job.queue()
 
-        return self.handle_write(job, JOB_NEW_PARSER)
+        return job
 
 
 class JobDetail(BaseDetailResource):
