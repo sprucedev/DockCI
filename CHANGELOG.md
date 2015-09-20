@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.0.8
+- Replace data store with PostgreSQL/SQLAlchemy
+- Implement a RESTful API
+
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
 - Create utility project #220
