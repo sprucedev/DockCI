@@ -1,5 +1,5 @@
 from flask import request
-from flask_restful import fields, marshal_with, Resource
+from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
@@ -28,6 +28,7 @@ LIST_FIELDS.update(BASIC_FIELDS)
 DETAIL_FIELDS = {
     'name': fields.String(),
     'repo': fields.String(),
+    'utility': fields.Boolean(),
     'hipchat_room': fields.String(),
     'github_repo_id': fields.String(),
     'github_hook_id': fields.String(),
@@ -45,6 +46,11 @@ SHARED_PARSER_ARGS = {
     'repo': dict(
         help="Git repository for the project code",
         required=None,
+    ),
+    'utility': dict(
+        help="Whether or not this is a utility project",
+        type=inputs.boolean,
+        default=False
     ),
     'hipchat_room': dict(help="Room to post HipChat notifications to"),
     'hipchat_api_token': dict(help="HipChat API token for authentication"),
@@ -69,7 +75,7 @@ class ProjectDetail(BaseDetailResource):
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def put(self, project_slug):
-        project = Project()
+        project = Project(slug=project_slug)
         return self.handle_write(project, PROJECT_NEW_PARSER)
 
     @login_required
