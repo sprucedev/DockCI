@@ -99,9 +99,6 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
                                    uselist=False,
                                    foreign_keys="Job.ancestor_job_id")
     project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
-    project = DB.relationship('Project',
-                              foreign_keys="Job.project_id",
-                              backref=DB.backref('jobss', lazy='dynamic'))
 
     _provisioned_containers = []
 

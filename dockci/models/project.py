@@ -289,3 +289,11 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
         foreign_keys="Project.github_auth_token_id",
         backref=DB.backref('projects', lazy='dynamic'),
     )
+
+    jobss = DB.relationship(
+        'Job',
+        foreign_keys='Job.project_id',
+        cascade='all,delete-orphan',
+        backref='project',
+        lazy='dynamic',
+    )
