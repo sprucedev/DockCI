@@ -84,6 +84,14 @@ class ProjectDetail(BaseDetailResource):
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         return self.handle_write(project, PROJECT_EDIT_PARSER)
 
+    @login_required
+    def delete(self, project_slug):
+        project = Project.query.filter_by(slug=project_slug).first_or_404()
+        project_name = project.name
+        project.purge()
+        DB.session.commit()
+        return {'message': '%s deleted' % project_name}
+
 
 API.add_resource(ProjectList,
                  '/projects',
