@@ -10,7 +10,6 @@ install:
   - ./manage.sh htmldeps
   - ./manage.sh collectstatic
   - ./manage.sh pythondeps
-  - ./manage.sh testdeps
 script: ./manage.sh test
 notifications:
   webhooks:
