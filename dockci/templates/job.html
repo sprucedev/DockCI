@@ -107,11 +107,11 @@
 
     // Turn panel slugs into classes
     $.each(importantPanels, function(idx, slug) {
-      importantPanels[idx] = 'stage-panel-' + slug;
+      importantPanels[idx] = 'stage-panel-' + md5(slug);
     })
 
     function getExistingStageEl(slug) {
-      var existing = $('.stage-panel-' + slug);
+      var existing = $('.stage-panel-' + md5(slug));
 
       if (existing.length > 0) {
         return existing;
@@ -119,7 +119,7 @@
     }
     function createNewStageEl(idx, slug) {
       var created = $('<div></div>')
-        .addClass('stage-panel panel panel-info stage-panel-' + slug)
+        .addClass('stage-panel panel panel-info stage-panel-' + md5(slug))
         .append(
           $('<div></div>')
             .addClass('panel-heading')

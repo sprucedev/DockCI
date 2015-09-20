@@ -8,6 +8,10 @@
 - Add `skip_tests` option to `dockci.yaml` for use with utilites #223
 - Specify `Dockerfile` to use in `dockci.yaml` #227
 - Allow override of TLS params per Docker host #235
+- Fix possible infinite loop on job page #239
+- Job stage panel class is now md5 #239
+- DockCI builds with utilites #240
+- Replace Makefile with manage.sh #240
 
 ### v0.0.6
 - Significant decrease in browser load on jobs with error stage #215
