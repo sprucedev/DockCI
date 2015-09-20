@@ -36,36 +36,33 @@ SHARED_PARSER_ARGS = {
     'password': dict(
         help="Password for user to authenticate",
         required=None,
-    ),
-    'active': dict(
-        help="Whether or not the user can login",
-        required=False,
-    ),
+    )
 }
 
 USER_NEW_PARSER = BaseRequestParser(bundle_errors=True)
 USER_EDIT_PARSER = BaseRequestParser(bundle_errors=True)
 new_edit_parsers(USER_NEW_PARSER, USER_EDIT_PARSER, SHARED_PARSER_ARGS)
 
+USER_EDIT_PARSER.add_argument('active',
+                              help="Whether or not the user can login")
 
-class UserList(Resource):
+
+class UserList(BaseDetailResource):
     @login_required
     @marshal_with(LIST_FIELDS)
     def get(self):
         return User.query.all()
 
+    @marshal_with(DETAIL_FIELDS)
+    def post(self):
+        user = User()
+        return self.handle_write(user, USER_NEW_PARSER)
 
 class UserDetail(BaseDetailResource):
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def get(self, user_id):
         return User.query.get_or_404(user_id)
-
-    @login_required
-    @marshal_with(DETAIL_FIELDS)
-    def put(self, user_id):
-        user = User()
-        return self.handle_write(user, USER_NEW_PARSER)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
