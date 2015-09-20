@@ -1,4 +1,5 @@
 #!/bin/bash
+: ${WHEELS_ONLY:=0}  # 0 is only use wheels
 function collectstatic {
     mkdir -p dockci/static/lib/css
     mkdir -p dockci/static/lib/fonts
@@ -14,7 +15,11 @@ function env_create {
 }
 function env_install_reqs {
     [[ -e python_env ]] || env_create
-    python_env/bin/pip install --use-wheel --no-index --find-links=wheelhouse -r "$1"
+    if [[ $WHEELS_ONLY -eq 0 ]]; then
+        python_env/bin/pip install --use-wheel --no-index --find-links=wheelhouse -r "$1"
+    else
+        python_env/bin/pip install -r "$1"
+    fi
 }
 function pythondeps {
     env_install_reqs requirements.txt
