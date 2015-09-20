@@ -65,7 +65,7 @@ def get_validate_job(project_slug, job_slug):
         return job
 
 
-class JobList(Resource):
+class JobList(BaseDetailResource):
     @marshal_with(LIST_FIELDS)
     def get(self, project_slug):
         project = Project.query.filter_by(slug=project_slug).first_or_404()
