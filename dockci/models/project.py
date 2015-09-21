@@ -66,6 +66,8 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
         except py.error.ENOENT:
             pass
 
+        DB.session.commit()
+
     def _all_jobs(self, reverse_=True):
         """
         Get all the jobs associated with this project
