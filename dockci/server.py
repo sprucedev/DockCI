@@ -45,6 +45,8 @@ def app_init(app_args={}):
 
     APP.secret_key = CONFIG.secret
 
+    APP.config['BUNDLE_ERRORS'] = True
+
     APP.config['MAIL_SERVER'] = CONFIG.mail_server
     APP.config['MAIL_PORT'] = CONFIG.mail_port
     APP.config['MAIL_USE_TLS'] = CONFIG.mail_use_tls

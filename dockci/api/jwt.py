@@ -14,9 +14,9 @@ from dockci.models.auth import User
 from dockci.server import API, CONFIG, DB
 
 
-JWT_ME_DETAIL_PARSER = BaseRequestParser(bundle_errors=True)
+JWT_ME_DETAIL_PARSER = BaseRequestParser()
 
-JWT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
+JWT_NEW_PARSER = BaseRequestParser()
 JWT_NEW_PARSER.add_argument('name',
                             required=True,
                             help="Service name for the token")

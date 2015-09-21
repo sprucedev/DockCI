@@ -39,8 +39,8 @@ SHARED_PARSER_ARGS = {
     )
 }
 
-USER_NEW_PARSER = BaseRequestParser(bundle_errors=True)
-USER_EDIT_PARSER = BaseRequestParser(bundle_errors=True)
+USER_NEW_PARSER = BaseRequestParser()
+USER_EDIT_PARSER = BaseRequestParser()
 new_edit_parsers(USER_NEW_PARSER, USER_EDIT_PARSER, SHARED_PARSER_ARGS)
 
 USER_EDIT_PARSER.add_argument('active',

@@ -49,7 +49,7 @@ DETAIL_FIELDS = {
 DETAIL_FIELDS.update(BASIC_FIELDS)
 DETAIL_FIELDS.update(CREATE_FIELDS)
 
-JOB_NEW_PARSER = BaseRequestParser(bundle_errors=True)
+JOB_NEW_PARSER = BaseRequestParser()
 JOB_NEW_PARSER.add_argument('commit',
                             required=True,
                             help="Git ref to check out")

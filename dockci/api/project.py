@@ -56,11 +56,11 @@ SHARED_PARSER_ARGS = {
     'hipchat_api_token': dict(help="HipChat API token for authentication"),
 }
 
-PROJECT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
-PROJECT_EDIT_PARSER = BaseRequestParser(bundle_errors=True)
+PROJECT_NEW_PARSER = BaseRequestParser()
+PROJECT_EDIT_PARSER = BaseRequestParser()
 new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
 
-PROJECT_FILTERS_PARSER = reqparse.RequestParser(bundle_errors=True)
+PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 
 PROJECT_FILTERS_UTILITY = SHARED_PARSER_ARGS['utility'].copy()
 PROJECT_FILTERS_UTILITY.pop('default')
