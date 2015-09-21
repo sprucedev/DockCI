@@ -52,16 +52,7 @@
   <link rel="stylesheet" href="/static/lib/css/ripples.min.css">
 
   <script src="/static/lib/js/jquery.min.js"></script>
-  <script src="/static/lib/js/URI.min.js"></script>
-  <script src="/static/lib/js/jquery.URI.min.js"></script>
-  <script src="/static/lib/js/dropdown.js"></script>
-  <script src="/static/lib/js/modal.js"></script>
-  <script src="/static/lib/js/tab.js"></script>
-  <script src="/static/lib/js/transition.js"></script>
-  <script src="/static/lib/js/ansi_up.js"></script>
-  <script src="/static/lib/js/md5.min.js"></script>
-  <script src="/static/lib/js/material.min.js"></script>
-  <script src="/static/lib/js/ripples.min.js"></script>
+  <script src="/static/lib/js/knockout.js"></script>
 
   <style>
     .git-user {
@@ -172,29 +163,6 @@
     {% block content %}{% endblock %}
   </div>
   <script>
-    $.material.init()
-    $.material.ripples()
-    $.material.input()
-    $.material.checkbox()
-    $.material.radio()
-    // form input fields marked with required cannot be empty
-    $('form').submit(function () {
-      valid = true
-      $('input').each(function() {
-        var attr = $(this).attr('required');
-        if (typeof attr == 'string' || attr instanceof String) {
-          if ($.trim($(this).val()) == '') {
-            // TODO replace this with an inline error message, e.g. possibly all
-            // html templates should have a standard field for capturing errors
-            alert(this.name + ' cannot be empty');
-            valid = false;
-          }
-        }
-      });
-      return valid;
-    });
-  </script>
-  <script>
     // STRING STARTS/ENDS WITH MONKEY PATCH
     if (typeof String.prototype.startsWith != 'function') {
       String.prototype.startsWith = function (str){
@@ -208,6 +176,22 @@
     }
 
     $(document).ready(function (){
+      function addScript(fn) {
+        var scriptEl = $('<script>')
+        scriptEl.attr('src', '/static/lib/js/' + fn)
+        $('head').append(scriptEl)
+      }
+      addScript('URI.min.js')
+      addScript('jquery.URI.min.js')
+      addScript('dropdown.js')
+      addScript('modal.js')
+      addScript('tab.js')
+      addScript('transition.js')
+      addScript('ansi_up.js')
+      addScript('md5.min.js')
+      addScript('material.min.js')
+      addScript('ripples.min.js')
+
       // GRAVATARS
       function gravatarUrl(email, size) {
         var hash = md5(email.trim().toLowerCase());
@@ -229,6 +213,29 @@
 
         el.parentElement.style.backgroundImage = "url('" + imageUrl + "')";
       })
+
+      $.material.init()
+      $.material.ripples()
+      $.material.input()
+      $.material.checkbox()
+      $.material.radio()
+
+      // form input fields marked with required cannot be empty
+      $('form').submit(function () {
+        valid = true
+        $('input').each(function() {
+          var attr = $(this).attr('required');
+          if (typeof attr == 'string' || attr instanceof String) {
+            if ($.trim($(this).val()) == '') {
+              // TODO replace this with an inline error message, e.g. possibly all
+              // html templates should have a standard field for capturing errors
+              alert(this.name + ' cannot be empty');
+              valid = false;
+            }
+          }
+        });
+        return valid;
+      });
     })
   </script>
 </body>

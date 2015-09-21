@@ -9,13 +9,13 @@
     {% endif %}
 {% endblock %}
 {% block content %}
-<table class="table table-striped">
-    {% for project in projects %}<tr><td>
-        <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
-    </td></tr>{% else %}<div>
-        You don't have any projects
-    </div>{% endfor %}
-</table>
+<ul class="list-group" data-bind="foreach:messages, visible: messages().length > 0">
+</ul>
+
+<table class="table table-striped"><tbody data-bind="foreach:projects">
+    <tr><td><a data-bind="text:name, attr:{href:link}"></a></td></tr>
+</tbody></table>
+<div data-bind="if:loadingProjects">LOADING...</div>
 
 <h2>Utilities
 {% if current_user.is_authenticated() %}
@@ -24,11 +24,45 @@
     </span>
 {% endif %}</h2>
 
-<table class="table table-striped">
-    {% for project in utilities %}<tr><td>
-        <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
-    </td></tr>{% else %}<div>
-        You don't have any utilities
-    </div>{% endfor %}
-</table>
+<table class="table table-striped"><tbody data-bind="foreach:utilities">
+    <tr><td><a data-bind="text:name, attr:{href:link}"></a></td></tr>
+</tbody></table>
+
+<script>
+    $(document).ready(function() {
+        function MessageModel(init_hash, category) {
+            var self = this
+
+            self.message = init_hash['message']
+            self.category = category || init_hash['category']
+        }
+        function ProjectModel(init_hash) {
+            var self = this
+
+            self.name = init_hash['name']
+            self.link = '/projects/' + init_hash['slug']
+            self.utility = init_hash['utility']
+        }
+        function ThisPage() {
+            var self = this
+
+            self.messages = ko.observableArray()
+            self.loadingProjects = ko.observable(true)
+            self.projects = ko.observableArray()
+            self.utilities = ko.observableArray()
+
+            $.ajax("/api/v1/projects", {'dataType': 'json'})
+              .done(function(projects) {
+                    var mappedProjects = $.map(projects, function(project) {
+                        return new ProjectModel(project)
+                    })
+                    self.projects(mappedProjects.filter(function(project) { return ! project.utility }))
+                    self.utilities(mappedProjects.filter(function(project) { return project.utility }))
+              })
+              .always(function() { self.loadingProjects(false) })
+              //.fail(function() {})
+        }
+        ko.applyBindings(new ThisPage())
+    })
+</script>
 {% endblock %}

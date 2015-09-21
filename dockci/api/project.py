@@ -24,6 +24,7 @@ def docker_repo_field(value, name):
     return value
 
 BASIC_FIELDS = {
+    'name': fields.String(),
     'slug': fields.String(),
     'utility': fields.Boolean(),
     'status': fields.String(),
@@ -37,7 +38,6 @@ LIST_FIELDS.update(BASIC_FIELDS)
 
 
 DETAIL_FIELDS = {
-    'name': fields.String(),
     'repo': fields.String(),
     'utility': fields.Boolean(),
     'hipchat_room': fields.String(),
