@@ -13,7 +13,7 @@ def clean_attrs(values):
     return {
         attr_name: attr_value
         for attr_name, attr_value in values.items()
-        if attr_name in request.form
+        if attr_name in request.values
     }
 
 
@@ -27,6 +27,12 @@ def new_edit_parsers(new_parser, edit_parser, fields):
                 arg_kwargs['required'] = required_val
 
             parser.add_argument(arg_name, **arg_kwargs)
+
+
+def filter_query_args(parser, query):
+    args = parser.parse_args()
+    args = clean_attrs(args)
+    return query.filter_by(**args)
 
 
 class RewriteUrl(fields.Url):

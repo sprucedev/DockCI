@@ -1,9 +1,9 @@
 from flask import request
-from flask_restful import fields, inputs, marshal_with, Resource
+from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
-from .util import new_edit_parsers, RewriteUrl
+from .util import filter_query_args, new_edit_parsers, RewriteUrl
 from dockci.models.project import Project
 from dockci.server import API, DB
 
@@ -60,11 +60,17 @@ PROJECT_NEW_PARSER = BaseRequestParser(bundle_errors=True)
 PROJECT_EDIT_PARSER = BaseRequestParser(bundle_errors=True)
 new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
 
+PROJECT_FILTERS_PARSER = reqparse.RequestParser(bundle_errors=True)
+
+PROJECT_FILTERS_UTILITY = SHARED_PARSER_ARGS['utility'].copy()
+PROJECT_FILTERS_UTILITY.pop('default')
+PROJECT_FILTERS_PARSER.add_argument('utility', **PROJECT_FILTERS_UTILITY)
+
 
 class ProjectList(Resource):
     @marshal_with(LIST_FIELDS)
     def get(self):
-        return Project.query.all()
+        return filter_query_args(PROJECT_FILTERS_PARSER, Project.query).all()
 
 
 class ProjectDetail(BaseDetailResource):
