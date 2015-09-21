@@ -54,7 +54,7 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
         backref=DB.backref('projects', lazy='dynamic'),
     )
 
-    jobss = DB.relationship(
+    jobs = DB.relationship(
         'Job',
         foreign_keys='Job.project_id',
         cascade='all,delete-orphan',
@@ -98,17 +98,6 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
             pass
 
         DB.session.commit()
-
-    def _all_jobs(self, reverse_=True):
-        """
-        Get all the jobs associated with this project
-        """
-        return self.jobss
-
-    @property
-    def jobs(self):  # TODO replace with SQLAlchemy relation
-        return self._all_jobs()
-
 
     def latest_job(self, passed=None, versioned=None, other_check=None):
         """
