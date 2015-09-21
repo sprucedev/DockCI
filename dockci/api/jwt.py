@@ -8,6 +8,7 @@ from flask_security import current_user, login_required
 
 from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
+from .exceptions import OnlyMeError, WrappedTokenError, WrongAuthMethodError
 from .util import clean_attrs, new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API, CONFIG, DB
@@ -33,10 +34,7 @@ class JwtNew(Resource):
     @login_required
     def post(self, id):
         if current_user.id != id:
-            return (
-                {'message': "Can not create JWT tokens for another user"},
-                401,
-            )
+            raise OnlyMeError("create JWT tokens")
 
         args = JWT_NEW_PARSER.parse_args(strict=True)
         args.update({
@@ -56,14 +54,10 @@ class JwtMeDetail(Resource):
     @login_required
     def get(self):
         args = JWT_ME_DETAIL_PARSER.parse_args()
-        if args['api_key'] is not None:
-            return JwtDetail().get(args['api_key'])
-
+        if args['api_key'] is None:
+            raise WrongAuthMethodError("a JWT token")
         else:
-            return (
-                {'message': "Not authenticated with a JWT token"},
-                400,
-            )
+            return JwtDetail().get(args['api_key'])
 
     @login_required
     def post(self):
@@ -76,7 +70,7 @@ class JwtDetail(Resource):
             jwt_data = jwt.decode(token, CONFIG.secret)
 
         except jwt.exceptions.InvalidTokenError as ex:
-            return {'message': str(ex)}, 400
+            raise WrappedTokenError(ex)
 
         jwt_data['iat'] = DT_FORMATTER.format(
             datetime.fromtimestamp(jwt_data['iat'])
