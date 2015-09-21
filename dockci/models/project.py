@@ -156,25 +156,6 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
 
         return self.latest_job(passed, versioned, check_job)
 
-    def validate(self):
-        errors = []
-
-        if not DOCKER_REPO_RE.match(self.slug):
-            errors.append("Invalid slug. Must only contain lower case, "
-                          "0-9, and the characters '-', '_' and '.'")
-        if not self.repo:
-            errors.append("Repository can not be blank")
-        if not self.name:
-            errors.append("Name can not be blank")
-
-        if bool(self.hipchat_api_token) != bool(self.hipchat_room):
-            errors.append("Both, or neither HipChat values must be given")
-
-        if errors:
-            raise ValidationError(errors)
-
-        return True
-
     def add_github_webhook(self):
         """
         Utility to add a GitHub web hook

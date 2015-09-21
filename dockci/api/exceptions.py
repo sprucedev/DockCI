@@ -32,3 +32,7 @@ class WrappedException(HTTPException):
 
 class WrappedTokenError(WrappedException):
     code = 400
+
+
+class WrappedValueError(WrappedException):
+    code = 400

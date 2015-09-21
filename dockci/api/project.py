@@ -1,8 +1,11 @@
+import re
+
 from flask import request
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
+from .exceptions import WrappedValueError
 from .util import filter_query_args, new_edit_parsers, RewriteUrl
 from dockci.models.project import Project
 from dockci.server import API, DB
@@ -11,6 +14,14 @@ from dockci.server import API, DB
 class NoValue(object):
     pass
 
+
+DOCKER_REPO_RE = re.compile(r'^[a-z0-9-_.]+$')
+
+def docker_repo_field(value, name):
+    if not DOCKER_REPO_RE.match(value):
+        raise ValueError(("Invalid %s. Must only contain lower case, 0-9, "
+                          "and the characters '-', '_' and '.'") % name)
+    return value
 
 BASIC_FIELDS = {
     'slug': fields.String(),
@@ -81,6 +92,11 @@ class ProjectDetail(BaseDetailResource):
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def put(self, project_slug):
+        try:
+            docker_repo_field(project_slug, 'slug')
+        except ValueError as ex:
+            raise WrappedValueError(ex)
+
         project = Project(slug=project_slug)
         return self.handle_write(project, PROJECT_NEW_PARSER)
 

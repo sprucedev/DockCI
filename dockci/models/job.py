@@ -139,23 +139,6 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         """ Convert an ID to a slug (padded hex) """
         return '{:0>6}'.format(hex(id_)[2:])
 
-
-    def validate(self):
-        with self.parent_validation(Job):
-            errors = []
-
-            if not self.project:
-                errors.append("Parent project not given")
-            if self.image_id and not is_docker_id(self.image_id):
-                errors.append("Invalid Docker image ID")
-            if self.container_id and not is_docker_id(self.container_id):
-                errors.append("Invalid Docker container ID")
-
-            if errors:
-                raise ValidationError(errors)
-
-        return True
-
     @property
     def compound_slug(self):
         """
