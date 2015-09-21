@@ -173,29 +173,6 @@
     {% block content %}{% endblock %}
   </div>
   <script>
-    $.material.init()
-    $.material.ripples()
-    $.material.input()
-    $.material.checkbox()
-    $.material.radio()
-    // form input fields marked with required cannot be empty
-    $('form').submit(function () {
-      valid = true
-      $('input').each(function() {
-        var attr = $(this).attr('required');
-        if (typeof attr == 'string' || attr instanceof String) {
-          if ($.trim($(this).val()) == '') {
-            // TODO replace this with an inline error message, e.g. possibly all
-            // html templates should have a standard field for capturing errors
-            alert(this.name + ' cannot be empty');
-            valid = false;
-          }
-        }
-      });
-      return valid;
-    });
-  </script>
-  <script>
     // STRING STARTS/ENDS WITH MONKEY PATCH
     if (typeof String.prototype.startsWith != 'function') {
       String.prototype.startsWith = function (str){
@@ -209,6 +186,28 @@
     }
 
     $(document).ready(function (){
+      $.material.init()
+      $.material.ripples()
+      $.material.input()
+      $.material.checkbox()
+      $.material.radio()
+      // form input fields marked with required cannot be empty
+      $('form').submit(function () {
+        valid = true
+        $('input').each(function() {
+          var attr = $(this).attr('required');
+          if (typeof attr == 'string' || attr instanceof String) {
+            if ($.trim($(this).val()) == '') {
+              // TODO replace this with an inline error message, e.g. possibly all
+              // html templates should have a standard field for capturing errors
+              alert(this.name + ' cannot be empty');
+              valid = false;
+            }
+          }
+        });
+        return valid;
+      });
+
       // GRAVATARS
       function gravatarUrl(email, size) {
         var hash = md5(email.trim().toLowerCase());
