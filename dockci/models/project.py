@@ -31,6 +31,37 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
     A project, representing a container to be built
     """
 
+    id = DB.Column(DB.Integer(), primary_key=True)
+    slug = DB.Column(DB.String(255), unique=True, nullable=False, index=True)
+    repo = DB.Column(DB.String(255), nullable=False)
+    name = DB.Column(DB.String(255), nullable=False)
+    utility = DB.Column(DB.Boolean(), nullable=False, index=True)
+
+    # TODO encrypt decrypt sensitive data etc..
+    hipchat_api_token = DB.Column(DB.String(255))
+    hipchat_room = DB.Column(DB.String(255))
+
+    # TODO repo ID from repo
+    github_repo_id = DB.Column(DB.String(255))
+    github_hook_id = DB.Column(DB.Integer())
+    github_secret = DB.Column(DB.String(255))
+    github_auth_token_id = DB.Column(
+        DB.Integer, DB.ForeignKey('o_auth_token.id'),
+    )
+    github_auth_token = DB.relationship(
+        'OAuthToken',
+        foreign_keys="Project.github_auth_token_id",
+        backref=DB.backref('projects', lazy='dynamic'),
+    )
+
+    jobss = DB.relationship(
+        'Job',
+        foreign_keys='Job.project_id',
+        cascade='all,delete-orphan',
+        backref='project',
+        lazy='dynamic',
+    )
+
     def __str__(self):
         return '<{klass}: {project_slug}>'.format(
             klass=self.__class__.__name__,
@@ -268,34 +299,3 @@ class Project(DB.Model):  # pylint:disable=too-few-public-methods
         return url_for('job_new_view',
                        project_slug=self.slug,
                        _external=True)
-
-    id = DB.Column(DB.Integer(), primary_key=True)
-    slug = DB.Column(DB.String(255), unique=True, nullable=False, index=True)
-    repo = DB.Column(DB.String(255), nullable=False)
-    name = DB.Column(DB.String(255), nullable=False)
-    utility = DB.Column(DB.Boolean(), nullable=False, index=True)
-
-    # TODO encrypt decrypt sensitive data etc..
-    hipchat_api_token = DB.Column(DB.String(255))
-    hipchat_room = DB.Column(DB.String(255))
-
-    # TODO repo ID from repo
-    github_repo_id = DB.Column(DB.String(255))
-    github_hook_id = DB.Column(DB.Integer())
-    github_secret = DB.Column(DB.String(255))
-    github_auth_token_id = DB.Column(
-        DB.Integer, DB.ForeignKey('o_auth_token.id'),
-    )
-    github_auth_token = DB.relationship(
-        'OAuthToken',
-        foreign_keys="Project.github_auth_token_id",
-        backref=DB.backref('projects', lazy='dynamic'),
-    )
-
-    jobss = DB.relationship(
-        'Job',
-        foreign_keys='Job.project_id',
-        cascade='all,delete-orphan',
-        backref='project',
-        lazy='dynamic',
-    )
