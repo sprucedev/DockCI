@@ -15,7 +15,16 @@
 <table class="table table-striped"><tbody data-bind="foreach:projects">
     <tr><td><a data-bind="text:name, attr:{href:link}"></a></td></tr>
 </tbody></table>
-<div data-bind="if:loadingProjects">LOADING...</div>
+<ul class="list-group" data-bind="foreach:messages">
+    <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+</ul>
+<div style="text-align: center; font-size: 2em" data-bind="visible:loadingProjects">
+    <i class="mdi-device-data-usage spin"></i>
+    <span>Loading...</span>
+</div>
+<div style="text-align: center" data-bind="visible:no_projects">
+    No projects
+</div>
 
 <h2>Utilities
 {% if current_user.is_authenticated() %}
@@ -27,14 +36,28 @@
 <table class="table table-striped"><tbody data-bind="foreach:utilities">
     <tr><td><a data-bind="text:name, attr:{href:link}"></a></td></tr>
 </tbody></table>
+<div style="text-align: center" data-bind="visible:no_utilities">
+    No utilities
+</div>
 
 <script>
     $(document).ready(function() {
-        function MessageModel(init_hash, category) {
+        function MessageModel(init_hash) {
             var self = this
 
             self.message = init_hash['message']
-            self.category = category || init_hash['category']
+            self.category = init_hash['category']
+
+            self.category_css = ko.computed(function() {
+                return 'list-group-item-' + self.category
+            })
+            self.category_display = ko.computed(function() {
+                return (self.category.charAt(0).toUpperCase() +
+                        self.category.substr(1).toLowerCase())
+            })
+            self.message_display = ko.computed(function() {
+                return self.category_display() + ': ' + self.message
+            })
         }
         function ProjectModel(init_hash) {
             var self = this
@@ -51,16 +74,30 @@
             self.projects = ko.observableArray()
             self.utilities = ko.observableArray()
 
+            function no_list_gen(observable) {
+                return ko.computed(function() {
+                    return !self.loadingProjects() && observable().length == 0
+                })
+            }
+
+            self.no_projects = no_list_gen(self.projects)
+            self.no_utilities = no_list_gen(self.utilities)
+
             $.ajax("/api/v1/projects", {'dataType': 'json'})
-              .done(function(projects) {
+                .done(function(projects) {
                     var mappedProjects = $.map(projects, function(project) {
                         return new ProjectModel(project)
                     })
                     self.projects(mappedProjects.filter(function(project) { return ! project.utility }))
                     self.utilities(mappedProjects.filter(function(project) { return project.utility }))
-              })
-              .always(function() { self.loadingProjects(false) })
-              //.fail(function() {})
+                })
+                .always(function() { self.loadingProjects(false) })
+                .fail(function(jqXHR, textStatus, errorThrown) {
+                    var message = (jqXHR.responseJSON || {})['message'] || textStatus
+                    self.messages([
+                        new MessageModel({'message': message, 'category': 'danger'})
+                    ])
+                 })
         }
         ko.applyBindings(new ThisPage())
     })
