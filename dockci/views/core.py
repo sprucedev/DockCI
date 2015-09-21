@@ -17,11 +17,7 @@ def index_view():
     """
     View to display the list of all projects
     """
-    return render_template(
-        'index.html',
-        projects=Project.query.filter_by(utility=False).all(),
-        utilities=Project.query.filter_by(utility=True).all(),
-    )
+    return render_template('index.html')
 
 
 @APP.route('/config', methods=('GET', 'POST'))
