@@ -16,6 +16,6 @@
     "bootstrap-material-design": "~0.2.1",
     "blueimp-md5": "~1.1.0",
     "uri.js": "~1.14.1",
-    "knockout.js": "~3.1.0"
+    "knockout": "~3.3.0"
   }
 }
