@@ -93,7 +93,10 @@
       <div class="form-group">
         <div class="col-sm-2">&nbsp;</div>
         <div class="col-sm-10">
-          <button class="btn btn-primary" data-bind="click:$root.save">Save</button>
+          <div class="btn btn-primary" data-bind="click:$root.save">
+              <span data-bind="visible:!saving()">Save</span>
+              <i class="mdi-device-data-usage spin" data-bind="visible:saving"></i>
+          </div>
           {% if edit_operation == 'new' -%}
             <a class="btn btn-default" href="/">Cancel</a>
           {%- else -%}
@@ -104,52 +107,16 @@
     </div>
     <script>
         $(document).ready(function() {
-            function MessageModel(init_hash) {
-                var self = this
-
-                self.message = init_hash['message']
-                self.category = init_hash['category']
-
-                self.category_css = ko.computed(function() {
-                    return 'list-group-item-' + self.category
-                })
-                self.category_display = ko.computed(function() {
-                    return (self.category.charAt(0).toUpperCase() +
-                            self.category.substr(1).toLowerCase())
-                })
-                self.message_display = ko.computed(function() {
-                    return self.category_display() + ': ' + self.message
-                })
-            }
-            function ProjectModel(init_hash) {
-                var self = this
-
-                self.slug = ko.observable(init_hash['slug'])
-                self.name = ko.observable(init_hash['name'])
-                self.repo = ko.observable(init_hash['repo'])
-
-                self.github_repo_id = ko.observable(init_hash['github_repo_id'])
-
-                self.hipchat_room = ko.observable(init_hash['hipchat_room'] || '')
-                self.hipchat_api_token = ko.observable('')
-
-                self.form_json = ko.computed(function() {
-                    return {
-                        'name': self.name(),
-                        'repo': self.repo(),
-                        // 'github_repo_id': self.github_repo_id(),
-                        'hipchat_room': self.hipchat_room(),
-                        'hipchat_api_token': self.hipchat_api_token(),
-                    }
-                })
-            }
             function ThisPage() {
                 var self = this
 
                 self.messages = ko.observableArray()
                 self.loading = ko.observable(true)
+                self.saving = ko.observable(false)
                 self.slug = ko.observable("{{ project.slug }}")
-                self.project = ko.observable(new ProjectModel({}))
+                self.project = ko.observable(
+                    new dockci.ProjectModel({'slug': self.slug()})
+                )
 
                 function ajax_fail(jqXHR, textStatus, errorThrown) {
                     var message = (jqXHR.responseJSON || {})['message'] || textStatus
@@ -157,26 +124,29 @@
                         new MessageModel({'message': message, 'category': 'danger'})
                     ])
                 }
-                function ajax_always() { self.loading(false) }
+                function ajax_always() {
+                    self.loading(false)
+                    self.saving(false)
+                }
                 function reload_project() {
                     self.loading(true)
-                    $.ajax("/api/v1/projects/" + self.slug(), {
-                          'dataType': 'json'
-                    })
-                        .done(function(project) { self.project(new ProjectModel(project)) })
+                    self.project()
+                        .reload()
                         .always(ajax_always)
-                        .fail(ajax_fail)
+                        .fail(dockci.ajax_fail(self.messages))
                 }
                 self.save = function() {
-                    self.loading(true)
+                    self.saving(true)
                     $.ajax("/api/v1/projects/" + self.slug(), {
                           'method': 'POST'
                         , 'data': self.project().form_json()
                         , 'dataType': 'json'
                     })
-                        .done(function(project) { console.dir(project) })
+                        .done(function(project) {
+                            document.location = '/projects/' + self.slug()
+                        })
                         .always(ajax_always)
-                        .fail(ajax_fail)
+                        .fail(dockci.ajax_fail(self.messages))
                 }
 
                 reload_project()
@@ -184,6 +154,9 @@
             ko.applyBindings(new ThisPage())
         })
     </script>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/models/message.js"></script>
+    <script src="/static/js/models/project.js"></script>
   </div>
 </div>
 {% endblock %}

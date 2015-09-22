@@ -42,30 +42,6 @@
 
 <script>
     $(document).ready(function() {
-        function MessageModel(init_hash) {
-            var self = this
-
-            self.message = init_hash['message']
-            self.category = init_hash['category']
-
-            self.category_css = ko.computed(function() {
-                return 'list-group-item-' + self.category
-            })
-            self.category_display = ko.computed(function() {
-                return (self.category.charAt(0).toUpperCase() +
-                        self.category.substr(1).toLowerCase())
-            })
-            self.message_display = ko.computed(function() {
-                return self.category_display() + ': ' + self.message
-            })
-        }
-        function ProjectModel(init_hash) {
-            var self = this
-
-            self.name = init_hash['name']
-            self.link = '/projects/' + init_hash['slug']
-            self.utility = init_hash['utility']
-        }
         function ThisPage() {
             var self = this
 
@@ -83,23 +59,20 @@
             self.no_projects = no_list_gen(self.projects)
             self.no_utilities = no_list_gen(self.utilities)
 
+            function ajax_always() { self.loadingProjects(false) }
+
             function reload_projects() {
                 self.loadingProjects(true)
                 $.ajax("/api/v1/projects", {'dataType': 'json'})
                     .done(function(projects) {
                         var mappedProjects = $.map(projects, function(project) {
-                            return new ProjectModel(project)
+                            return new dockci.ProjectModel(project)
                         })
-                        self.projects(mappedProjects.filter(function(project) { return ! project.utility }))
-                        self.utilities(mappedProjects.filter(function(project) { return project.utility }))
+                        self.projects(mappedProjects.filter(function(project) { return ! project.utility() }))
+                        self.utilities(mappedProjects.filter(function(project) { return project.utility() }))
                     })
-                    .always(function() { self.loadingProjects(false) })
-                    .fail(function(jqXHR, textStatus, errorThrown) {
-                        var message = (jqXHR.responseJSON || {})['message'] || textStatus
-                        self.messages([
-                            new MessageModel({'message': message, 'category': 'danger'})
-                        ])
-                     })
+                    .always(ajax_always)
+                    .fail(dockci.ajax_fail(self.messages))
             }
 
             reload_projects()
@@ -107,4 +80,7 @@
         ko.applyBindings(new ThisPage())
     })
 </script>
+<script src="/static/js/util.js"></script>
+<script src="/static/js/models/message.js"></script>
+<script src="/static/js/models/project.js"></script>
 {% endblock %}
