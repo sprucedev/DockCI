@@ -1,0 +1,17 @@
+<div data-bind="modal: {
+    visible: visible,
+    dialogCss: 'modal-lg',
+    header: { data: { label: title } },
+    body: { name: 'body' },
+    footer: { data: {
+      action: saveProject,
+      primaryLabel: saveLabel,
+      closeLabel: 'Cancel'
+    } }
+}"></div>
+<script type="text/html" id="body">
+  <project-edit params="project: $parent.project,
+                        messages: $parent.messages,
+                        github: true,
+                        isNew: true" />
+</script>

@@ -4,7 +4,7 @@
     Projects
     {% if current_user.is_authenticated() %}
         <span class="btn-group pull-right">
-            {{ header_button('content-add', '#', '', 'data-toggle="modal" data-target="#add-dialog" data-bind="click:adding_project().utility(false)"') }}
+            <header-button params="icon:'content-add', click:addHandler.bind($data, 'project')"></header-button>
         </span>
     {% endif %}
 {% endblock %}
@@ -29,7 +29,7 @@
 <h2>Utilities
 {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-        {{ header_button('content-add', '#', '', 'data-toggle="modal" data-target="#add-dialog" data-bind="click:adding_project().utility(true)"') }}
+        <header-button params="icon:'content-add', click:addHandler.bind($data, 'utility')"></header-button>
     </span>
 {% endif %}</h2>
 
@@ -40,34 +40,39 @@
     No utilities
 </div>
 
-<!-- <project-edit params="attr_id:'add-dialog'"></project-edit> -->
-<div data-bind="modal: {
+<project-edit-dialog params="
     visible: addVisible,
-    header: { data: { label: 'helloheader' } },
-    body: { name: 'thing' }
-}"></div>
-<script type="text/html" id="thing">
-    <project-edit />
-</script>
-
+    title: addTitle,
+    project: addBaseProject,
+    github: true,
+    isNew: true,
+    saveLabel: 'Add',
+    action: reload_projects
+"/>
 <script>
     require([
           'jquery'
         , 'knockout'
         , 'app/util'
-        , 'app/models/message'
         , 'app/models/project'
-    ], function($, ko, util, MessageModel, ProjectModel) {
+
+        , 'app/components/header_button'
+        , 'app/components/project_edit_dialog'
+
+        , 'bootstrap'
+    ], function($, ko, util, ProjectModel) {
         $(document).ready(function() {
             function ThisPage() {
                 var self = this
 
                 self.messages = ko.observableArray()
-                self.loadingProjects = ko.observable(true)
-                self.addVisible = ko.observable(false)
-                self.adding_project = ko.observable(new ProjectModel({}))
                 self.projects = ko.observableArray()
                 self.utilities = ko.observableArray()
+
+                self.loadingProjects = ko.observable(true)
+                self.addVisible = ko.observable(false)
+                self.addTitle = ko.observable()
+                self.addBaseProject = ko.observable(new ProjectModel({}))
 
                 function no_list_gen(observable) {
                     return ko.computed(function() {
@@ -78,13 +83,17 @@
                 self.no_projects = no_list_gen(self.projects)
                 self.no_utilities = no_list_gen(self.utilities)
 
-                self.popup = function () {
-                  self.addVisible(true)
+                self.addHandler = function(addWhat) {
+                    self.addBaseProject(
+                        new ProjectModel({'utility': addWhat === 'utility'})
+                    )
+                    self.addTitle("Add " + addWhat)
+                    self.addVisible(true)
                 }
 
                 function ajax_always() { self.loadingProjects(false) }
 
-                function reload_projects() {
+                self.reload_projects = function() {
                     self.loadingProjects(true)
                     $.ajax("/api/v1/projects", {'dataType': 'json'})
                         .done(function(projects) {
@@ -96,14 +105,13 @@
                         })
                         .always(ajax_always)
                         .fail(util.ajax_fail(self.messages))
-                }
+                }.bind(self)
 
-                reload_projects()
+                self.reload_projects()
             }
-            ko.components.register('project-edit', {
-                template: { require: 'text!static/js/components/project_edit_body.html' }
+            require(['knockstrap'], function () {
+                ko.applyBindings(new ThisPage())
             })
-            ko.applyBindings(new ThisPage())
         })
     })
 </script>

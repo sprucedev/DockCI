@@ -19,6 +19,7 @@ define(['jquery', 'knockout'], function ($, ko) {
             return {
                 'name': self.name(),
                 'repo': self.repo(),
+                'utility': self.utility(),
                 // 'github_repo_id': self.github_repo_id(),
                 'hipchat_room': self.hipchat_room(),
                 'hipchat_api_token': self.hipchat_api_token(),
@@ -29,7 +30,7 @@ define(['jquery', 'knockout'], function ($, ko) {
             self.slug(data['slug'] || '')
             self.name(data['name'] || '')
             self.repo(data['repo'] || '')
-            self.utility(data['utility'] || '')
+            self.utility(data['utility'] || false)
             self.github_repo_id(data['github_repo_id'] || '')
             self.hipchat_room(data['hipchat_room'] || '')
         }
@@ -39,6 +40,14 @@ define(['jquery', 'knockout'], function ($, ko) {
                   'dataType': 'json'
             }).done(function(data) {
                 self.reload_from(data)
+            })
+        }
+
+        self.save = function(isNew) {
+            return $.ajax("/api/v1/projects/" + self.slug(), {
+                  'method': isNew === true ? 'PUT' : 'POST'
+                , 'data': self.form_json()
+                , 'dataType': 'json'
             })
         }
 
