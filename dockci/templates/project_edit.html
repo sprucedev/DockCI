@@ -105,7 +105,16 @@
         </div>
       </div>
     </div>
-    <script>
+  </div>
+</div>
+<script>
+    require([
+          'jquery'
+        , 'knockout'
+        , 'app/util'
+        , 'app/models/message'
+        , 'app/models/project'
+    ], function($, ko, util, MessageModel, ProjectModel) {
         $(document).ready(function() {
             function ThisPage() {
                 var self = this
@@ -115,7 +124,7 @@
                 self.saving = ko.observable(false)
                 self.slug = ko.observable("{{ project.slug }}")
                 self.project = ko.observable(
-                    new dockci.ProjectModel({'slug': self.slug()})
+                    new ProjectModel({'slug': self.slug()})
                 )
 
                 function ajax_fail(jqXHR, textStatus, errorThrown) {
@@ -133,7 +142,7 @@
                     self.project()
                         .reload()
                         .always(ajax_always)
-                        .fail(dockci.ajax_fail(self.messages))
+                        .fail(util.ajax_fail(self.messages))
                 }
                 self.save = function() {
                     self.saving(true)
@@ -146,17 +155,13 @@
                             document.location = '/projects/' + self.slug()
                         })
                         .always(ajax_always)
-                        .fail(dockci.ajax_fail(self.messages))
+                        .fail(util.ajax_fail(self.messages))
                 }
 
                 reload_project()
             }
             ko.applyBindings(new ThisPage())
         })
-    </script>
-    <script src="/static/js/util.js"></script>
-    <script src="/static/js/models/message.js"></script>
-    <script src="/static/js/models/project.js"></script>
-  </div>
-</div>
+    })
+</script>
 {% endblock %}

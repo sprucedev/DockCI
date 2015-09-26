@@ -4,7 +4,7 @@
     Projects
     {% if current_user.is_authenticated() %}
         <span class="btn-group pull-right">
-            {{ header_button('content-add', '/projects/new') }}
+            {{ header_button('content-add', '#', '', 'data-toggle="modal" data-target="#add-dialog" data-bind="click:adding_project().utility(false)"') }}
         </span>
     {% endif %}
 {% endblock %}
@@ -29,7 +29,7 @@
 <h2>Utilities
 {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-        {{ header_button('content-add', '/projects/new?utility=1') }}
+        {{ header_button('content-add', '#', '', 'data-toggle="modal" data-target="#add-dialog" data-bind="click:adding_project().utility(true)"') }}
     </span>
 {% endif %}</h2>
 
@@ -40,47 +40,71 @@
     No utilities
 </div>
 
+<!-- <project-edit params="attr_id:'add-dialog'"></project-edit> -->
+<div data-bind="modal: {
+    visible: addVisible,
+    header: { data: { label: 'helloheader' } },
+    body: { name: 'thing' }
+}"></div>
+<script type="text/html" id="thing">
+    <project-edit />
+</script>
+
 <script>
-    $(document).ready(function() {
-        function ThisPage() {
-            var self = this
+    require([
+          'jquery'
+        , 'knockout'
+        , 'app/util'
+        , 'app/models/message'
+        , 'app/models/project'
+    ], function($, ko, util, MessageModel, ProjectModel) {
+        $(document).ready(function() {
+            function ThisPage() {
+                var self = this
 
-            self.messages = ko.observableArray()
-            self.loadingProjects = ko.observable(true)
-            self.projects = ko.observableArray()
-            self.utilities = ko.observableArray()
+                self.messages = ko.observableArray()
+                self.loadingProjects = ko.observable(true)
+                self.addVisible = ko.observable(false)
+                self.adding_project = ko.observable(new ProjectModel({}))
+                self.projects = ko.observableArray()
+                self.utilities = ko.observableArray()
 
-            function no_list_gen(observable) {
-                return ko.computed(function() {
-                    return !self.loadingProjects() && observable().length == 0
-                })
-            }
-
-            self.no_projects = no_list_gen(self.projects)
-            self.no_utilities = no_list_gen(self.utilities)
-
-            function ajax_always() { self.loadingProjects(false) }
-
-            function reload_projects() {
-                self.loadingProjects(true)
-                $.ajax("/api/v1/projects", {'dataType': 'json'})
-                    .done(function(projects) {
-                        var mappedProjects = $.map(projects, function(project) {
-                            return new dockci.ProjectModel(project)
-                        })
-                        self.projects(mappedProjects.filter(function(project) { return ! project.utility() }))
-                        self.utilities(mappedProjects.filter(function(project) { return project.utility() }))
+                function no_list_gen(observable) {
+                    return ko.computed(function() {
+                        return !self.loadingProjects() && observable().length == 0
                     })
-                    .always(ajax_always)
-                    .fail(dockci.ajax_fail(self.messages))
-            }
+                }
 
-            reload_projects()
-        }
-        ko.applyBindings(new ThisPage())
+                self.no_projects = no_list_gen(self.projects)
+                self.no_utilities = no_list_gen(self.utilities)
+
+                self.popup = function () {
+                  self.addVisible(true)
+                }
+
+                function ajax_always() { self.loadingProjects(false) }
+
+                function reload_projects() {
+                    self.loadingProjects(true)
+                    $.ajax("/api/v1/projects", {'dataType': 'json'})
+                        .done(function(projects) {
+                            var mappedProjects = $.map(projects, function(project) {
+                                return new ProjectModel(project)
+                            })
+                            self.projects(mappedProjects.filter(function(project) { return ! project.utility() }))
+                            self.utilities(mappedProjects.filter(function(project) { return project.utility() }))
+                        })
+                        .always(ajax_always)
+                        .fail(util.ajax_fail(self.messages))
+                }
+
+                reload_projects()
+            }
+            ko.components.register('project-edit', {
+                template: { require: 'text!static/js/components/project_edit_body.html' }
+            })
+            ko.applyBindings(new ThisPage())
+        })
     })
 </script>
-<script src="/static/js/util.js"></script>
-<script src="/static/js/models/message.js"></script>
-<script src="/static/js/models/project.js"></script>
 {% endblock %}

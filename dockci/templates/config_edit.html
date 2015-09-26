@@ -144,54 +144,56 @@
   </div>
 </form>
 <script>
-  $(document).ready(function() {
-    var inputDockerHosts = $('#inputDockerHosts');
-    function updateDockerHostsHeight() {
-      inputDockerHosts.height(inputDockerHosts.prop('scrollHeight'));
-    }
-    inputDockerHosts.on('keyup', function(ev) {
+  require(['jquery'], function ($) {
+    $(document).ready(function() {
+      var inputDockerHosts = $('#inputDockerHosts');
+      function updateDockerHostsHeight() {
+        inputDockerHosts.height(inputDockerHosts.prop('scrollHeight'));
+      }
+      inputDockerHosts.on('keyup', function(ev) {
+        updateDockerHostsHeight();
+      });
       updateDockerHostsHeight();
-    });
-    updateDockerHostsHeight();
 
-    $('#btnTestRegistry').click(function() {
-      var btnTest = $(this),
-          formGroup = btnTest.parents('.form-group'),
-          helpBlock = $('.help-block', formGroup),
-          urlInput = $('input', formGroup)
-      btnTest.html($('<i class="mdi-device-data-usage spin" />'))
-      formGroup.toggleClass('has-error', false)
-      btnTest.toggleClass('btn-success', false)
-      helpBlock.hide()
+      $('#btnTestRegistry').click(function() {
+        var btnTest = $(this),
+            formGroup = btnTest.parents('.form-group'),
+            helpBlock = $('.help-block', formGroup),
+            urlInput = $('input', formGroup)
+        btnTest.html($('<i class="mdi-device-data-usage spin" />'))
+        formGroup.toggleClass('has-error', false)
+        btnTest.toggleClass('btn-success', false)
+        helpBlock.hide()
 
-      $.getJSON('/test/registry.json', {'url': urlInput.val()})
-        .done(function(data) {
-          all_success = true
-          $.each(['api'], function(idx, test_name) {
-            var result = data[test_name]['result'],
-                detail = data[test_name]['detail']
-            if (result === false) {
-              helpBlock.text(detail)
+        $.getJSON('/test/registry.json', {'url': urlInput.val()})
+          .done(function(data) {
+            all_success = true
+            $.each(['api'], function(idx, test_name) {
+              var result = data[test_name]['result'],
+                  detail = data[test_name]['detail']
+              if (result === false) {
+                helpBlock.text(detail)
+              }
+              all_success = all_success && result
+            })
+            if (all_success) {
+              btnTest.html($('<i class="mdi-action-done-all" />'))
+            } else {
+              btnTest.text("Test")
+              helpBlock.show()
             }
-            all_success = all_success && result
+            btnTest.toggleClass('btn-success', all_success)
+            btnTest.toggleClass('btn-danger', !all_success)
+            formGroup.toggleClass('has-error', !all_success)
           })
-          if (all_success) {
-            btnTest.html($('<i class="mdi-action-done-all" />'))
-          } else {
+          .fail(function(jqXHR, status, error) {
+            formGroup.toggleClass('has-error', true)
             btnTest.text("Test")
+            helpBlock.text(error_message_for(status, error))
             helpBlock.show()
-          }
-          btnTest.toggleClass('btn-success', all_success)
-          btnTest.toggleClass('btn-danger', !all_success)
-          formGroup.toggleClass('has-error', !all_success)
-        })
-        .fail(function(jqXHR, status, error) {
-          formGroup.toggleClass('has-error', true)
-          btnTest.text("Test")
-          helpBlock.text(error_message_for(status, error))
-          helpBlock.show()
-        })
+          })
+      })
     })
-  });
+  })
 </script>
 {% endblock %}

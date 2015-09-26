@@ -61,20 +61,23 @@
     <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str) }}" class="pagination btn btn-default btn-lg pull-right">Next</a>
 {% endif -%}
 <script>
-  $(document).ready(function() {
-    $('#filterStable').change(function(ev) {
-      if (ev.target.checked) {
-        document.location = URI(document.location)
-          .addQuery('versioned')
-          .removeQuery('page_offset')
-          .toString();
-      } else {
-        document.location = URI(document.location)
-          .removeQuery('versioned')
-          .removeQuery('page_offset')
-          .toString();
-      }
+  // URI.js is being dumb :(
+  require(['jquery'], function($) { require(['URI'], function (URI) {
+    $(document).ready(function() {
+      $('#filterStable').change(function(ev) {
+        if (ev.target.checked) {
+          document.location = URI(document.location)
+            .addQuery('versioned')
+            .removeQuery('page_offset')
+            .toString();
+        } else {
+          document.location = URI(document.location)
+            .removeQuery('versioned')
+            .removeQuery('page_offset')
+            .toString();
+        }
+      })
     })
-  })
+  })})
 </script>
 {% endblock %}
