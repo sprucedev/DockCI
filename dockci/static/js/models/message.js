@@ -1,5 +1,5 @@
 define(['knockout'], function (ko) {
-    return function (params) {
+    function MessageModel (params) {
         finalParams = $.extend({
               'message': 'Something happened'
             , 'category': 'info'
@@ -19,4 +19,5 @@ define(['knockout'], function (ko) {
             return this.category_display() + ': ' + this.message
         }.bind(this))
     }
+    return MessageModel
 })
