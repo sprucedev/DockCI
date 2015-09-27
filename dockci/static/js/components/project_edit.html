@@ -8,10 +8,12 @@
     <label class="col-sm-2 control-label">Repo type</label>
     <div class="col-sm-10">
       <div class="btn-group form-group" data-toggle="buttons" data-bind="radio: currentTab">
+          <!-- ko if: githubEnabled -->
           <label class="btn btn-default">
               <input type="radio" name="currentTab" value="github" />
               GitHub
           </label>
+          <!-- /ko -->
           <label class="btn btn-default">
               <input type="radio" name="currentTab" value="manual" />
               Manual
