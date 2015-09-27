@@ -1,32 +1,34 @@
 define([
       'knockout'
+    , '../util'
     , '../models/project'
     , 'text!./project_edit.html'
-], function(ko, ProjectModel, template) {
+], function(ko, util, ProjectModel, template) {
     function ProjectEditModel(params) {
-        reload = params['reload'] === true
-        project = params['project'] || new ProjectModel(params['project_data'] || {})
+        finalParams = $.extend({
+              'reload': false
+            , 'githubEnabled': false
+            , 'githubDefault': false
+            , 'isNew': true
+            , 'projectData': {}
+            , 'messages': []
+        }, params)
 
-        this.loading = ko.observable(reload)
-        this.saving = ko.observable(false)
-        this.github = ko.observable(params['github'])
-        this.isNew = ko.observable(params['isNew'])
+        finalParams['project'] = finalParams['project'] || new ProjectModel(finalParams['project_data'])
 
-        if(typeof(project) === 'function') {
-            this.project = project
-        } else {
-            this.project = ko.observable(project)
-        }
-        if(typeof(params['messages']) === 'function') {
-            this.messages = params['messages']
-        } else {
-            this.messages = ko.observableArray(params['messages'])
-        }
+        this.loading = ko.observable(false)
 
-        if(reload) {
+        this.messages      = util.paramArray(finalParams['messages'])
+        this.project       = util.param(finalParams['project'])
+        this.githubEnabled = util.param(finalParams['githubEnabled'])
+        this.githubDefault = util.param(finalParams['githubDefault'])
+        this.isNew         = util.param(finalParams['isNew'])
+
+        if(finalParams['reload']) {
+            this.loading(true)
             this.project().reload().always(function () {
                 this.loading(false)
-            })
+            }.bind(this))
         }
     }
 

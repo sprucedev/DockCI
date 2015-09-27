@@ -1,56 +1,68 @@
 define(['jquery', 'knockout'], function ($, ko) {
-    return function (init_hash) {
-        var self = this
+    function ProjectModel(params) {
+        this.slug = ko.observable()
+        this.name = ko.observable()
+        this.repo = ko.observable()
+        this.utility = ko.observable()
 
-        self.slug = ko.observable()
-        self.name = ko.observable()
-        self.repo = ko.observable()
-        self.utility = ko.observable()
+        this.github_repo_id = ko.observable()
 
-        self.github_repo_id = ko.observable()
+        this.hipchat_room = ko.observable()
+        this.hipchat_api_token = ko.observable()
 
-        self.hipchat_room = ko.observable()
-        self.hipchat_api_token = ko.observable()
-
-        self.link = ko.computed(function() { return '/projects/' + self.slug() })
-        self.type_text = ko.computed(function() { return self.utility() ? 'utility' : 'project' })
-
-        self.form_json = ko.computed(function() {
+        this.link = ko.computed(function() {
+            return '/projects/' + this.slug()
+        }.bind(this))
+        this.type_text = ko.computed(function() {
+            return this.utility() ? 'utility' : 'project'
+        }.bind(this))
+        this.form_json = ko.computed(function() {
             return {
-                'name': self.name(),
-                'repo': self.repo(),
-                'utility': self.utility(),
-                // 'github_repo_id': self.github_repo_id(),
-                'hipchat_room': self.hipchat_room(),
-                'hipchat_api_token': self.hipchat_api_token(),
+                'name': this.name(),
+                'repo': this.repo(),
+                'utility': this.utility(),
+                // 'github_repo_id': this.github_repo_id(),
+                'hipchat_room': this.hipchat_room(),
+                'hipchat_api_token': this.hipchat_api_token(),
             }
-        })
+        }.bind(this))
 
-        self.reload_from = function (data) {
-            self.slug(data['slug'] || '')
-            self.name(data['name'] || '')
-            self.repo(data['repo'] || '')
-            self.utility(data['utility'] || false)
-            self.github_repo_id(data['github_repo_id'] || '')
-            self.hipchat_room(data['hipchat_room'] || '')
-        }
+        this.reload_from = function (data) {
+            if(typeof(data) === 'undefined') { return }
+            finalData = $.extend({
+                  'slug': ''
+                , 'name': ''
+                , 'repo': ''
+                , 'utility': false
+                , 'github_repo_id': ''
+                , 'hipchat_room': ''
+            }, data)
+            this.slug(data['slug'])
+            this.name(data['name'])
+            this.repo(data['repo'])
+            this.utility(data['utility'])
+            this.github_repo_id(data['github_repo_id'])
+            this.hipchat_room(data['hipchat_room'])
+        }.bind(this)
 
-        self.reload = function () {
-            return $.ajax("/api/v1/projects/" + self.slug(), {
+        this.reload = function () {
+            return $.ajax("/api/v1/projects/" + this.slug(), {
                   'dataType': 'json'
             }).done(function(data) {
-                self.reload_from(data)
-            })
-        }
+                this.reload_from(data)
+            }.bind(this))
+        }.bind(this)
 
-        self.save = function(isNew) {
-            return $.ajax("/api/v1/projects/" + self.slug(), {
+        this.save = function(isNew) {
+            return $.ajax("/api/v1/projects/" + this.slug(), {
                   'method': isNew === true ? 'PUT' : 'POST'
-                , 'data': self.form_json()
+                , 'data': this.form_json()
                 , 'dataType': 'json'
             })
-        }
+        }.bind(this)
 
-        self.reload_from(init_hash)
+        this.reload_from(params)
     }
+
+    return ProjectModel
 })

@@ -7,29 +7,33 @@ define([
     , 'app/components/project_edit'
 ], function(ko, util, ProjectModel, template) {
     function ProjectEditDialogModel(params) {
-        self = this
+        finalParams = $.extend({
+              'visible': false
+            , 'reload': false
+            , 'title': 'Edit project'
+            , 'action': (function(){})
+            , 'githubEnabled': false
+            , 'githubDefault': false
+            , 'isNew': true
+            , 'projectData': {}
+        }, params)
 
-        reload = params['reload'] === true
-        project = params['project'] || new ProjectModel(params['project_data'] || {})
+        finalParams['project'] = finalParams['project'] || new ProjectModel(finalParams['project_data'])
 
         this.messages = ko.observableArray()
         this.saving = ko.observable(false)
-
-        this.visible = params['visible']
-        this.title = params['title'] || ko.observable('Edit project')
-        this.action = params['action'] || function() {}
-        this.github = ko.observable(params['github'])
-        this.isNew = ko.observable(params['isNew'])
+        this.action = finalParams['action']
 
         this.saveLabel = ko.computed(function () {
-          return self.saving() ? '<i class="mdi-device-data-usage spin"></i>' : params['saveLabel']
-        })
+          return this.saving() ? '<i class="mdi-device-data-usage spin"></i>' : (finalParams['saveLabel'] || "Save")
+        }.bind(this))
 
-        if(typeof(project) == 'function') {
-            this.project = project
-        } else {
-            this.project = ko.observable(project)
-        }
+        this.project       = util.param(finalParams['project'])
+        this.visible       = util.param(finalParams['visible'])
+        this.title         = util.param(finalParams['title'])
+        this.githubEnabled = util.param(finalParams['githubEnabled'])
+        this.githubDefault = util.param(finalParams['githubDefault'])
+        this.isNew         = util.param(finalParams['isNew'])
 
         this.saveProject = function () {
             self = this
