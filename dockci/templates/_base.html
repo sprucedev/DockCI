@@ -114,6 +114,8 @@
   </style>
   <script>
     dockci = {}
+    dockci.githubEnabled = {{ 'true' if (current_user.is_authenticated() and config.model.github_key and config.model.github_secret) else 'false' }}
+    dockci.githubDefault = dockci.githubEnabled && {{ 'true' if (current_user.is_authenticated() and current_user.oauth_tokens.filter_by(service='github').count()) else 'false' }}
     function error_message_for(status, error) {
       if (error == '') {
         if (status == 0) {
