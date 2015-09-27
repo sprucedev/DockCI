@@ -27,7 +27,6 @@ define([
         this.githubEnabled = util.param(finalParams['githubEnabled'])
         this.githubDefault = util.param(finalParams['githubDefault'])
         this.isNew         = util.param(finalParams['isNew'])
-
         this.currentTab    = util.param(finalParams['currentTab'], this.githubDefault() ? 'github' : 'manual')
 
         this.trigGithubReload = ko.observable()
@@ -37,9 +36,6 @@ define([
         }.bind(this)
         this.reloadGithub = function() {
             this.trigGithubReload.notifySubscribers()
-        }.bind(this)
-        this.tabSwitch = function(ctx, ev) {
-            this.currentTab(ev.currentTarget.innerText.toLowerCase())
         }.bind(this)
 
         this.currentTab.subscribe(function(val) {
