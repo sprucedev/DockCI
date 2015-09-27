@@ -6,8 +6,8 @@
 {% endblock %}
 {% block content %}
 <ul class="nav nav-pills" role="tablist" style="position:absolute; right: 0; z-index: 10">
-  <li role="presentation" class="active"><a href="#job-details" role="tab" data-toggle="tab"><i class="mdi-action-list"></i></a></li>
-  <li role="presentation"><a href="#job-output" role="tab" data-toggle="tab"><i class="mdi-file-cloud-download"></i></a></li>
+  <li role="presentation" class="active"><a href="#job-details" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-th-list"></i></a></li>
+  <li role="presentation"><a href="#job-output" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-download-alt"></i></a></li>
 </ul>
 <div class="tab-content">
   <div role="tabpanel" class="tab-pane active form-horizontal" id="job-details">
@@ -96,7 +96,7 @@
 </div>
 <h2>Job Log</h2>
 <div id="job-stages"></div>
-<div id="auto-scroll" class="btn btn-info btn-fab"><i class="mdi-editor-vertical-align-bottom"></i></div>
+<div id="auto-scroll" class="btn btn-info btn-fab"><i class="glyphicon glyphicon-chevron-down"></i></div>
 <script>
   require(['jquery', 'md5', 'ansi_up'], function ($, md5, ansi_up) {
     function dockciJob() {
@@ -129,7 +129,7 @@
                 $('<i></i>').addClass('expand-toggle pull-right').hide()
               )
               .append(
-                $('<i></i>').addClass('loading mdi-device-data-usage spin pull-right')
+                $('<i></i>').addClass('loading glyphicon glyphicon-refresh spin pull-right')
               )
               .click(function(ev) {
                 $(ev.currentTarget).parent().toggleClass('panel-contracted');
@@ -372,8 +372,8 @@
         var icon = $('i', this)
         scrollEnabled = ! scrollEnabled;
         scrollToBottom();
-        icon.toggleClass('mdi-device-data-usage spin', scrollEnabled);
-        icon.toggleClass('mdi-editor-vertical-align-bottom', !scrollEnabled);
+        icon.toggleClass('glyphicon-refresh spin', scrollEnabled);
+        icon.toggleClass('glyphicon-chevron-down', !scrollEnabled);
       });
 
       refreshJobInfo()

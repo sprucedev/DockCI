@@ -1,16 +1,16 @@
 <!doctype html>
 {% macro header_button(img, link, classes='btn-default', attrs='') -%}
   <a class="btn btn-lg {{ classes }}" href="{{ link }}" {{ attrs | safe }}>
-    <i class="mdi-{{ img }}"></i>
+    <i class="glyphicon glyphicon-{{ img }}"></i>
   </a>
 {%- endmacro %}
 {% macro job_state_glyph(state) -%}
-  <i class="{%- if state == 'success' -%}mdi-action-thumb-up mdi-success
-            {%- elif state == 'fail' -%}mdi-action-thumb-down mdi-warning
-            {%- elif state == 'broken' -%}mdi-alert-warning mdi-danger
-            {%- elif state == 'running' -%}mdi-av-play-arrow mdi-info
-            {%- elif state == 'queued' -%}mdi-av-timer mdi-material-grey
-            {%- else -%}mdi-action-help mdi-info
+  <i class="{%- if state == 'success' -%}glyphicon glyphicon-thumbs-up text-success
+            {%- elif state == 'fail' -%}glyphicon glyphicon-thumbs-down text-warning
+            {%- elif state == 'broken' -%}glyphicon glyphicon-warning-sign text-danger
+            {%- elif state == 'running' -%}glyphicon glyphicon-play text-info
+            {%- elif state == 'queued' -%}glyphicon glyphicon-time
+            {%- else -%}glyphicon glyphicon-question-sign text-info
             {%- endif -%}" title="{{ state | title }}"></i>
 {%- endmacro %}
 {% macro git_user(name, email) -%}
@@ -48,8 +48,6 @@
   <meta name="author" content="Ricky Cook">
 
   <link rel="stylesheet" href="/static/lib/css/bootstrap.min.css">
-  <link rel="stylesheet" href="/static/lib/css/material.min.css">
-  <link rel="stylesheet" href="/static/lib/css/ripples.min.css">
 
   <script src="/static/lib/js/require.js"></script>
 
@@ -139,18 +137,19 @@
       </div>
       <ul class="navbar-right nav navbar-nav">
         {% if current_user.is_authenticated() %}
-          {% if not config.model.exists() %}<li><i class="navbar-brand mdi-alert-warning mdi-error"></i></li>{% endif %}
-          {% if config.model.restart_needed %}<li><i class="navbar-brand mdi-alert-warning mdi-warning"></i></li>{% endif %}
-          <li><a href="/config"><i class="mdi-action-settings"></i></a></li>
+          <li class="navbar-brand">{{ current_user.email }}</li>
+          {% if not config.model.exists() %}<li><i class="navbar-brand glyphicon glyphicon-warning-sign text-error"></i></li>{% endif %}
+          {% if config.model.restart_needed %}<li><i class="navbar-brand glyphicon glyphicon-warning-sign text-warning"></i></li>{% endif %}
+          <li><a href="/config"><i class="glyphicon glyphicon-cog"></i></a></li>
           <li class="dropdown">
-            <a href="#" data-target="#" class="dropdown-toggle" data-toggle="dropdown"><i class="mdi-social-person"></i> {{ current_user.slug }}</a>
+            <a href="#" data-target="#" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-user"></i> {{ current_user.slug }}</a>
             <ul class="dropdown-menu">
               <li><a href="{{ url_for_security('change_password') }}">Change password</a></li>
               <li><a href="{{ url_for_security('logout') }}">Logout</a></li>
             </ul>
           </li>
         {% else %}
-          <a class="btn btn-default navbar-btn" href="{{ url_for_security('login') }}"><i class="mdi-social-person-outline"></i></a>
+          </li><a href="{{ url_for_security('login') }}"><i class="navbar-brand glyphicon glyphicon-lock"></i></a></ul>
         {% endif %}
         </span>
       </ul>
@@ -186,15 +185,6 @@
         return this.slice(-str.length) == str;
       };
     }
-    require(['jquery'], function($) {
-      require(['material', 'ripples'], function() {
-        $.material.init()
-        $.material.ripples()
-        $.material.input()
-        $.material.checkbox()
-        $.material.radio()
-      })
-    })
     require(['jquery' , 'md5'], function($, md5) {
       $(document).ready(function (){
         // form input fields marked with required cannot be empty

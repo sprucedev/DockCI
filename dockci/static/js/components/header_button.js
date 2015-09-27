@@ -10,7 +10,7 @@ define([
 
         this.icon = ko.computed(function () {
             if(typeof(finalParams['icon']) === 'undefined') { return '' }
-            return 'mdi-' + finalParams['icon']
+            return 'glyphicon glyphicon-' + finalParams['icon']
         })
         this.click = finalParams['click']
     }

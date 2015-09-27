@@ -160,7 +160,7 @@
             formGroup = btnTest.parents('.form-group'),
             helpBlock = $('.help-block', formGroup),
             urlInput = $('input', formGroup)
-        btnTest.html($('<i class="mdi-device-data-usage spin" />'))
+        btnTest.html($('<i class="glyphicon glyphicon-refresh spin" />'))
         formGroup.toggleClass('has-error', false)
         btnTest.toggleClass('btn-success', false)
         helpBlock.hide()
@@ -177,7 +177,7 @@
               all_success = all_success && result
             })
             if (all_success) {
-              btnTest.html($('<i class="mdi-action-done-all" />'))
+              btnTest.html($('<i class="glyphicon glyphicon-thumbs-up" />'))
             } else {
               btnTest.text("Test")
               helpBlock.show()

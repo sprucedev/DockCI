@@ -4,7 +4,7 @@
     Projects
     {% if current_user.is_authenticated() %}
         <span class="btn-group pull-right">
-            <header-button params="icon:'content-add', click:addHandler.bind($data, 'project')"></header-button>
+            <header-button params="icon:'plus', click:addHandler.bind($data, 'project')"></header-button>
         </span>
     {% endif %}
 {% endblock %}
@@ -26,7 +26,7 @@
 <h2>Utilities
 {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-        <header-button params="icon:'content-add', click:addHandler.bind($data, 'utility')"></header-button>
+        <header-button params="icon:'plus', click:addHandler.bind($data, 'utility')"></header-button>
     </span>
 {% endif %}</h2>
 

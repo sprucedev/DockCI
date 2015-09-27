@@ -4,9 +4,15 @@
   <span data-bind="text:project().name"></span>
   {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-      {{ header_button('action-delete', '#', 'btn-danger btn-flat', 'data-toggle="modal" data-target="#delete-dialog"') }}
-      <header-button params="icon:'editor-mode-edit', click:editHandler"></header-button>
-      {{ header_button('av-play-circle-outline', '/projects/%s/jobs/new' % project.slug) }}
+      {{ header_button('trash', '#', 'btn-danger btn-flat', 'data-toggle="modal" data-target="#delete-dialog"') }}
+      <!-- ko component: {
+        name: 'header-button',
+        params: {
+          icon: 'edit',
+          click: editHandler
+        }
+      } --><!-- /ko -->
+      {{ header_button('play-circle', '/projects/%s/jobs/new' % project.slug) }}
     </span>
   {% endif %}
 {% endblock %}
@@ -55,10 +61,10 @@
 </table>
 {% set versioned_str = '&versioned' if versioned else '' %}
 {% if jobs.has_prev -%}
-    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.prev_num, jobs.per_page, versioned_str) }}" class="pagination btn btn-default btn-lg">Previous</a>
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.prev_num, jobs.per_page, versioned_str) }}" class="btn btn-default btn-lg">Previous</a>
 {% endif -%}
 {% if jobs.has_next -%}
-    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str) }}" class="pagination btn btn-default btn-lg pull-right">Next</a>
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str) }}" class="btn btn-default btn-lg pull-right">Next</a>
 {% endif -%}
 <project-edit-dialog params="
     visible: editVisible,

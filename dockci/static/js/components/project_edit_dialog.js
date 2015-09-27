@@ -25,7 +25,7 @@ define([
         this.action = finalParams['action']
 
         this.saveLabel = ko.computed(function () {
-          return this.saving() ? '<i class="mdi-device-data-usage spin"></i>' : (finalParams['saveLabel'] || "Save")
+          return this.saving() ? '<i class="glyphicon glyphicon-refresh spin"></i>' : (finalParams['saveLabel'] || "Save")
         }.bind(this))
 
         this.project       = util.param(finalParams['project'])
