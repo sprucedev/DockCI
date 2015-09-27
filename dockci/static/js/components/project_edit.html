@@ -7,27 +7,34 @@
   <div class="form-group">
     <label class="col-sm-2 control-label">Repo type</label>
     <ul id="repoTypeTabs" class="nav nav-tabs col-sm-10">
-      <li data-bind="visible:githubEnabled"><a id="githubTab" href="#github">GitHub</a></li>
-      <li id="manualTab" class="active"><a href="#manual">Manual</a></li>
+      <li data-bind="
+        css: { 'active': currentTab() === 'github' },
+        visible: githubEnabled
+      "><a data-bind="click: tabSwitch">GitHub</a></li>
+      <li data-bind="
+        css: { 'active': currentTab() === 'manual' }
+      "><a data-bind="click: tabSwitch">Manual</a></li>
     </ul>
   </div>
-  <div class="tab-content">
-    <div id="github" class="tab-pane">
-      <div class="form-group">
-        <label for="inputName" class="col-sm-2 control-label">Settings from</label>
-        {% if project.github_repo_id -%}
-          <p class="col-sm-10 form-control-static">{{ project.github_repo_id }}</p>
-        {%- else -%}
-          <ul id="repo-list" class="col-sm-10 form-control-static" style="list-style: none;"></ul>
-        {% endif %}
+  <div data-bind="visible: currentTab() === 'github'">
+    <div class="form-group">
+      <label for="inputName" class="col-sm-2 control-label">Settings from</label>
+      <p class="col-sm-10 form-control-static" data-bind="visible: !isNew()">{{ project.github_repo_id }}</p>
+      <div class="col-sm-10" data-bind="visible: isNew">
+        <github-repos-list params="
+          trigReload: trigGithubReload,
+          action: githubAction,
+          columnSize: 5,
+          reload: githubDefault
+        "></github-repos-list>
       </div>
     </div>
-    <div id="manual" class="tab-pane active">
-      <div class="form-group">
-        <label for="inputRepo" class="col-sm-2 control-label">Git Repository</label>
-        <div class="col-sm-10">
-          <input required class="form-control" id="inputRepo" name="repo" placeholder="https://your.repo.url" data-bind="value:project().repo">
-        </div>
+  </div>
+  <div data-bind="visible: currentTab() === 'manual'">
+    <div class="form-group">
+      <label for="inputRepo" class="col-sm-2 control-label">Git Repository</label>
+      <div class="col-sm-10">
+        <input required class="form-control" id="inputRepo" name="repo" placeholder="https://your.repo.url" data-bind="value:project().repo">
       </div>
     </div>
   </div>

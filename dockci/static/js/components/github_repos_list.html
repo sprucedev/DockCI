@@ -1,0 +1,10 @@
+<loading-bar params="visible:loading"></loading-bar>
+<div data-bind="foreach:repos">
+    <div data-bind="css:$parent.columnClass">
+        <a data-bind="
+            text: fullId,
+            tooltip:{ title: cloneUrl },
+            click: $parent.clickHandler
+        "></a>
+    </div>
+</div>

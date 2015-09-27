@@ -2,8 +2,11 @@ define([
       'knockout'
     , '../util'
     , '../models/project'
+
     , 'text!./project_edit.html'
+
     , './loading_bar'
+    , './github_repos_list'
 ], function(ko, util, ProjectModel, template) {
     function ProjectEditModel(params) {
         finalParams = $.extend({
@@ -24,6 +27,26 @@ define([
         this.githubEnabled = util.param(finalParams['githubEnabled'])
         this.githubDefault = util.param(finalParams['githubDefault'])
         this.isNew         = util.param(finalParams['isNew'])
+
+        this.currentTab    = util.param(finalParams['currentTab'], this.githubDefault() ? 'github' : 'manual')
+
+        this.trigGithubReload = ko.observable()
+
+        this.githubAction = function(repo) {
+            // TODO handle github
+        }.bind(this)
+        this.reloadGithub = function() {
+            this.trigGithubReload.notifySubscribers()
+        }.bind(this)
+        this.tabSwitch = function(ctx, ev) {
+            this.currentTab(ev.currentTarget.innerText.toLowerCase())
+        }.bind(this)
+
+        this.currentTab.subscribe(function(val) {
+            if(val === 'github') {
+                this.reloadGithub()
+            }
+        }.bind(this))
 
         if(finalParams['reload']) {
             this.loading(true)
