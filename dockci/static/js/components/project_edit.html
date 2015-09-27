@@ -1,10 +1,7 @@
 <ul class="list-group" data-bind="foreach:messages">
     <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
 </ul>
-<div style="text-align: center; font-size: 2em" data-bind="visible:loading">
-    <i class="mdi-device-data-usage spin"></i>
-    <span>Loading...</span>
-</div>
+<loading-bar params="visible: loading"></loading-bar>
 <div class="form-horizontal bs-component" role="form" action="" id="projectForm" method="POST" data-bind="visible:!loading()">
   <input id="inputGithubRepoId" name="github_repo_id" value="{{ project.github_repo_id or '' }}" type="hidden">
   <div class="form-group">

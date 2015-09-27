@@ -3,6 +3,7 @@ define([
     , '../util'
     , '../models/project'
     , 'text!./project_edit.html'
+    , './loading_bar'
 ], function(ko, util, ProjectModel, template) {
     function ProjectEditModel(params) {
         finalParams = $.extend({
