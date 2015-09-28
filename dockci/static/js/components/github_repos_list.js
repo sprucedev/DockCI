@@ -9,10 +9,13 @@ define([
         finalParams = $.extend({
               'action': (function(){})
             , 'columnSize': 4
+            , 'pageSize': 18
             , 'reload': false
             , 'trigReload': undefined
             , 'ready': (function(){})
         }, params)
+
+        this.pageSize = finalParams['pageSize']
 
         this.messages = ko.observableArray()
         this.repos = ko.observableArray()
@@ -21,7 +24,7 @@ define([
         this.currentAccount = ko.observable()
         this.accounts = ko.computed(function() {
             var currentAccountStr = this.currentAccount(),
-                list = $.unique(this.repos().map(function(idx, repo) {
+                list = $.unique(this.repos().map(function(repo) {
                     return repo.fullId().split('/')[0]
                 }))
             if(typeof(currentAccountStr) == 'undefined' || $.inArray(this.currentAccount(), list) === -1) {
@@ -41,24 +44,38 @@ define([
 
         this.action = finalParams['action']
 
+        loadFrom = function(page) {
+            this.loading(true)
+            $.ajax("/github/projects.json",  {
+                  'dataType': 'json'
+                , 'data': {
+                      'page_size': this.pageSize
+                    , 'page': page
+                }
+            }).done(function(reposData) {
+                $(reposData['repos']).each(function(idx, repoData) {
+                    this.repos.push(new GithubRepoModel({
+                          'fullId': repoData['full_name']
+                        , 'cloneUrl': repoData['clone_url']
+                    }))
+                }.bind(this))
+
+                if(reposData['repos'].length >= this.pageSize) {
+                    loadFrom(page + 1)
+                } else {
+                    this.loading(false)
+                }
+            }.bind(this)).fail(function(jqXHR, textStatus, errorThrown) {
+                this.loading(false)
+                util.ajax_fail(self.messages)(jqXHR, textStatus, errorThrown)
+            })
+        }.bind(this)
+
         this.clickHandler = function(repo) {
             this.action(repo)
         }.bind(this)
         this.reload = function() {
-            this.loading(true)
-            $.ajax("/github/projects.json",  {'dataType': 'json'})
-                .done(function(reposData) {
-                    this.repos($(reposData['repos']).map(function(idx, repoData) {
-                        return new GithubRepoModel({
-                              'fullId': repoData['full_name']
-                            , 'cloneUrl': repoData['clone_url']
-                        })
-                    }))
-                }.bind(this))
-                .always(function(){
-                    this.loading(false)
-                }.bind(this))
-                .fail(util.ajax_fail(self.messages))
+            loadFrom(1)
         }.bind(this)
 
         if(finalParams['reload']) {
