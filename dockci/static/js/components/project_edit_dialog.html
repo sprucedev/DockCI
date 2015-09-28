@@ -2,14 +2,14 @@
     visible: visible,
     dialogCss: 'modal-lg',
     header: { data: { label: title } },
-    body: { name: 'body' },
-    footer: { name: 'footer', data: {
+    body: { name: 'project-edit-dialog-body' },
+    footer: { name: 'project-edit-dialog-footer', data: {
           action: saveProject
         , saving: saving
         , saveLabel: saveLabel
     }}
 }"></div>
-<script type="text/html" id="body">
+<script type="text/html" id="project-edit-dialog-body">
   <div data-bind="if: $parent.visible">
     <project-edit params="project: $parent.project,
                           messages: $parent.messages,
@@ -18,7 +18,7 @@
                           isNew: $parent.isNew" />
   </div>
 </script>
-<script type="text/html" id="footer">
+<script type="text/html" id="project-edit-dialog-footer">
   <button class="btn btn-primary" data-bind="click: action, disable: saving">
     <span data-bind="visible: !saving(), html: saveLabel"></span>
     <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
