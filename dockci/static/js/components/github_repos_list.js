@@ -18,6 +18,18 @@ define([
         this.repos = ko.observableArray()
         this.loading = ko.observable(false)
 
+        this.currentAccount = ko.observable()
+        this.accounts = ko.computed(function() {
+            var currentAccountStr = this.currentAccount(),
+                list = $.unique(this.repos().map(function(idx, repo) {
+                    return repo.fullId().split('/')[0]
+                }))
+            if(typeof(currentAccountStr) == 'undefined' || $.inArray(this.currentAccount(), list) === -1) {
+                this.currentAccount(list[0])
+            }
+            return list
+        }.bind(this))
+
         this.columnSize = util.param(finalParams['columnSize'])
 
         this.no_repos = ko.computed(function() {

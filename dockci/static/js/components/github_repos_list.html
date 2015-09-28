@@ -1,6 +1,11 @@
-<loading-bar params="visible:loading"></loading-bar>
+<div class="btn-group form-group" data-toggle="buttons" data-bind="radio: currentAccount, foreach: accounts">
+    <label class="btn btn-default">
+        <input type="radio" name="currentAccount" data-bind="value: $data" />
+        <span data-bind="text: $data"></span>
+    </label>
+</div>
 <div data-bind="foreach:repos">
-    <div data-bind="css:$parent.columnClass">
+    <div data-bind="css:$parent.columnClass, visible: fullId().startsWith($parent.currentAccount() + '/')">
         <a data-bind="
             text: fullId,
             tooltip:{ title: cloneUrl },
@@ -8,3 +13,4 @@
         "></a>
     </div>
 </div>
+<loading-bar params="visible:loading"></loading-bar>
