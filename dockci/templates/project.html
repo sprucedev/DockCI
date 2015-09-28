@@ -12,7 +12,13 @@
           click: editHandler
         }
       } --><!-- /ko -->
-      {{ header_button('play-circle', '/projects/%s/jobs/new' % project.slug) }}
+      <!-- ko component: {
+        name: 'header-button',
+        params: {
+          icon: 'play-circle',
+          click: runHandler
+        }
+      } --><!-- /ko -->
     </span>
   {% endif %}
 {% endblock %}
@@ -73,7 +79,12 @@
     project: project,
     isNew: false,
     saveLabel: 'Update'
-"/>
+"></project-edit-dialog>
+<job-run-dialog params="
+      visible: runVisible
+    , title: runTitle
+    , project: project
+"></job-run-dialog>
 <script>
   // URI.js is being dumb :(
   require([
@@ -83,6 +94,7 @@
 
     , 'app/components/header_button'
     , 'app/components/project_edit_dialog'
+    , 'app/components/job_run_dialog'
 
     , 'bootstrap'
   ], function($, ko, ProjectModel) {
@@ -106,9 +118,16 @@
       this.editTitle = ko.computed(function() {
         return "Edit " + this.project().name()
       }.bind(this))
+      this.runVisible = ko.observable(false)
+      this.runTitle = ko.computed(function() {
+        return "Run " + this.project().name()
+      }.bind(this))
 
       this.editHandler = function () {
         this.editVisible(true)
+      }.bind(this)
+      this.runHandler = function () {
+        this.runVisible(true)
       }.bind(this)
       this.saveProject = function () {
         this.saving(true)

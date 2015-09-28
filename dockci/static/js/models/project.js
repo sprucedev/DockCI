@@ -61,6 +61,14 @@ define(['jquery', 'knockout'], function ($, ko) {
             })
         }.bind(this)
 
+        this.queueJob = function(commitRef) {
+            return $.ajax("/api/v1/projects/" + this.slug() + '/jobs', {
+                  'method': 'POST'
+                , 'data': {'commit': commitRef}
+                , 'dataType': 'json'
+            })
+        }.bind(this)
+
         this.reload_from(params)
     }
 
