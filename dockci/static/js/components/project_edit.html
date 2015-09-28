@@ -3,7 +3,6 @@
 </ul>
 <loading-bar params="visible: loading"></loading-bar>
 <div class="form-horizontal bs-component" role="form" action="" id="projectForm" method="POST" data-bind="visible:!loading()">
-  <input id="inputGithubRepoId" name="github_repo_id" value="{{ project.github_repo_id or '' }}" type="hidden">
   <div class="form-group">
     <label class="col-sm-2 control-label">Repo type</label>
     <div class="col-sm-10">
@@ -25,7 +24,7 @@
   <div data-bind="visible: currentTab() === 'github'">
     <div class="form-group">
       <label for="inputName" class="col-sm-2 control-label">Settings from</label>
-      <p class="col-sm-10 form-control-static" data-bind="visible: !isNew()">{{ project.github_repo_id }}</p>
+      <p class="col-sm-10 form-control-static" data-bind="visible: !isNew(), text: project().github_repo_id"></p>
       <div class="col-sm-10" data-bind="visible: isNew">
         <github-repos-list params="
           trigReload: trigGithubReload,
