@@ -6,7 +6,8 @@ from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import WrappedValueError
-from .util import filter_query_args, new_edit_parsers, RewriteUrl
+from .fields import RewriteUrl
+from .util import filter_query_args, new_edit_parsers
 from dockci.models.project import Project
 from dockci.server import API, DB
 

@@ -4,7 +4,8 @@ from flask_security import login_required
 
 from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
-from .util import new_edit_parsers, RewriteUrl
+from .fields import RewriteUrl
+from .util import new_edit_parsers
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API, DB
