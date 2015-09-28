@@ -25,7 +25,7 @@ define([
         this.accounts = ko.computed(function() {
             var currentAccountStr = this.currentAccount(),
                 list = $.unique(this.repos().map(function(repo) {
-                    return repo.fullId().split('/')[0]
+                    return repo.account()
                 }))
             if(typeof(currentAccountStr) == 'undefined' || $.inArray(this.currentAccount(), list) === -1) {
                 this.currentAccount(list[0])
