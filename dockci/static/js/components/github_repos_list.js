@@ -9,7 +9,7 @@ define([
         finalParams = $.extend({
               'action': (function(){})
             , 'columnSize': 4
-            , 'pageSize': 18
+            , 'pageSize': 20
             , 'reload': false
             , 'trigReload': undefined
             , 'ready': (function(){})
@@ -75,6 +75,7 @@ define([
             this.action(repo)
         }.bind(this)
         this.reload = function() {
+            this.repos([])
             loadFrom(1)
         }.bind(this)
 
