@@ -16,16 +16,22 @@ define(['jquery', 'knockout'], function ($, ko) {
         this.type_text = ko.computed(function() {
             return this.utility() ? 'utility' : 'project'
         }.bind(this))
-        this.form_json = ko.computed(function() {
-            return {
+        this.forApi = function(isNew) {
+            var baseParams = {
                 'name': this.name(),
                 'repo': this.repo(),
-                'utility': this.utility(),
-                'github_repo_id': this.github_repo_id(),
                 'hipchat_room': this.hipchat_room(),
                 'hipchat_api_token': this.hipchat_api_token(),
             }
-        }.bind(this))
+            if(isNew) {
+                return $(baseParams).extend({
+                    'utility': this.utility(),
+                    'github_repo_id': this.github_repo_id(),
+                })
+            } else {
+                return baseParams
+            }
+        }.bind(this)
 
         this.reload_from = function (data) {
             if(typeof(data) === 'undefined') { return }
@@ -56,7 +62,7 @@ define(['jquery', 'knockout'], function ($, ko) {
         this.save = function(isNew) {
             return $.ajax("/api/v1/projects/" + this.slug(), {
                   'method': isNew === true ? 'PUT' : 'POST'
-                , 'data': this.form_json()
+                , 'data': this.forApi(isNew)
                 , 'dataType': 'json'
             })
         }.bind(this)

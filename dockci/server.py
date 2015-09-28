@@ -63,7 +63,7 @@ def app_init(app_args={}):
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
     APP.config['SQLALCHEMY_DATABASE_URI'] = app_args.get(
-        'db_uri', 'sqlite:////tmp/data.db'
+        'db_uri', 'postgresql://postgres:cookie@192.168.251.128/dockci'
     )
 
     mimetypes.add_type('application/x-yaml', 'yaml')
