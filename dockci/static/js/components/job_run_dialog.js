@@ -24,7 +24,7 @@ define([
       self.project().queueJob(this.commitRef()).always(function() {
         self.saving(false)
       }).done(function(jobData) {
-        console.dir(jobData)
+        window.location.href = '/projects/' + self.project().slug() + '/jobs/' + jobData['slug']
       }).fail(util.ajax_fail(self.messages))
     }.bind(this)
   }
