@@ -7,25 +7,19 @@ import logging
 import mimetypes
 import select
 
-import sqlalchemy
-
 from flask import (abort,
-                   flash,
-                   redirect,
                    render_template,
                    request,
                    Response,
                    url_for,
                    )
-from sqlalchemy.orm import eagerload
 from yaml_model import ValidationError
 
-from dockci.models.job import Job, JobStageTmp
+from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import APP, DB
 from dockci.util import (DateTimeEncoder,
                          is_valid_github,
-                         login_or_github_required,
                          path_contained
                          )
 
@@ -41,67 +35,49 @@ def job_view(project_slug, job_slug):
     return render_template('job.html', job=job)
 
 
-@APP.route('/projects/<project_slug>/jobs/new', methods=('GET', 'POST'))
-@login_or_github_required
+@APP.route('/projects/<project_slug>/jobs/new', methods=('POST',))
 def job_new_view(project_slug):
     """
     View to create a new job
     """
+    if 'X-Github-Event' not in request.headers:
+        abort(400)
+
     project = Project.query.filter_by(slug=project_slug).first_or_404()
+    job = Job(project=project, repo=project.repo)
 
-    if request.method == 'POST':
-        job = Job(project=project, repo=project.repo)
+    if not project.github_secret:
+        logging.warn("GitHub webhook secret not setup")
+        abort(403)
 
-        if 'X-Github-Event' in request.headers:
-            if not project.github_secret:
-                logging.warn("GitHub webhook secret not setup")
-                abort(403)
+    if not is_valid_github(project.github_secret):
+        logging.warn("Invalid GitHub payload")
+        abort(403)
 
-            if not is_valid_github(project.github_secret):
-                logging.warn("Invalid GitHub payload")
-                abort(403)
+    if request.headers['X-Github-Event'] == 'push':
+        push_data = request.json
+        job.commit = push_data['head_commit']['id']
 
-            if request.headers['X-Github-Event'] == 'push':
-                push_data = request.json
-                job.commit = push_data['head_commit']['id']
+    else:
+        logging.debug("Unknown GitHub hook '%s'",
+                      request.headers['X-Github-Event'])
+        abort(501)
 
-            else:
-                logging.debug("Unknown GitHub hook '%s'",
-                              request.headers['X-Github-Event'])
-                abort(501)
+    try:
+        DB.session.add(job)
+        DB.session.commit()
+        job.queue()
 
-            try:
-                DB.session.add(job)
-                DB.session.commit()
-                job.queue()
+        job_url = url_for('job_view',
+                          project_slug=project_slug,
+                          job_slug=job.slug)
+        return job_url, 201
 
-                job_url = url_for('job_view',
-                                  project_slug=project_slug,
-                                  job_slug=job.slug)
-                return job_url, 201
-
-            except ValidationError as ex:
-                logging.exception("GitHub hook error")
-                return json.dumps({
-                    'errors': ex.messages,
-                }), 400
-
-        else:
-            job.commit = request.form['commit']
-
-            try:
-                DB.session.add(job)
-                DB.session.commit()
-                job.queue()
-
-                flash(u"Job queued", 'success')
-                job_url = url_for('job_view',
-                                  project_slug=project_slug,
-                                  job_slug=job.slug)
-                return redirect(job_url, 303)
-
-            except ValidationError as ex:
-                flash(ex.messages, 'danger')
+    except ValidationError as ex:
+        logging.exception("GitHub hook error")
+        return json.dumps({
+            'errors': ex.messages,
+        }), 400
 
     return render_template('job_new.html', job=Job(
         project=project,
