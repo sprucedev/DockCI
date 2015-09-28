@@ -21,6 +21,7 @@
       </div>
     </div>
   </div>
+  <!-- ko if: githubEnabled -->
   <div data-bind="visible: currentTab() === 'github'">
     <div class="form-group">
       <label for="inputName" class="col-sm-2 control-label">Settings from</label>
@@ -35,6 +36,7 @@
       </div>
     </div>
   </div>
+  <!-- /ko -->
   <div data-bind="visible: currentTab() === 'manual'">
     <div class="form-group">
       <label for="inputRepo" class="col-sm-2 control-label">Git Repository</label>

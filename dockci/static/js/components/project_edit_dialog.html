@@ -10,11 +10,13 @@
     }}
 }"></div>
 <script type="text/html" id="body">
-  <project-edit params="project: $parent.project,
-                        messages: $parent.messages,
-                        githubEnabled: $parent.githubEnabled,
-                        githubDefault: $parent.githubDefault,
-                        isNew: $parent.isNew" />
+  <div data-bind="if: $parent.visible">
+    <project-edit params="project: $parent.project,
+                          messages: $parent.messages,
+                          githubEnabled: $parent.githubEnabled,
+                          githubDefault: $parent.githubDefault,
+                          isNew: $parent.isNew" />
+  </div>
 </script>
 <script type="text/html" id="footer">
   <button class="btn btn-primary" data-bind="click: action, disable: saving">
