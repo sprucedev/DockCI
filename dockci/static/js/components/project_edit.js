@@ -32,7 +32,9 @@ define([
         this.trigGithubReload = ko.observable()
 
         this.githubAction = function(repo) {
-            // TODO handle github
+            this.project().github_repo_id(repo.fullId())
+            this.project().slug(repo.shortName())
+            this.project().name(repo.shortName())
         }.bind(this)
         this.reloadGithub = function() {
             this.trigGithubReload.notifySubscribers()

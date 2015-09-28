@@ -14,6 +14,10 @@ define([
         this.account = ko.computed(function(){
             return this.fullId().split('/')[0]
         }.bind(this))
+        this.shortName = ko.computed(function(){
+            var parts = this.fullId().split('/')
+            return parts.slice(1, parts.length).join('/')
+        }.bind(this))
     }
     return GithubRepoModel
 })

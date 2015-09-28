@@ -21,7 +21,7 @@ define(['jquery', 'knockout'], function ($, ko) {
                 'name': this.name(),
                 'repo': this.repo(),
                 'utility': this.utility(),
-                // 'github_repo_id': this.github_repo_id(),
+                'github_repo_id': this.github_repo_id(),
                 'hipchat_room': this.hipchat_room(),
                 'hipchat_api_token': this.hipchat_api_token(),
             }
