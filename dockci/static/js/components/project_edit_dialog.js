@@ -28,7 +28,7 @@ define([
         this.project       = util.param(finalParams['project'])
         this.visible       = util.param(finalParams['visible'])
         this.title         = util.param(finalParams['title'])
-        this.saveLabel = util.param(finalParams['saveLabel'])
+        this.saveLabel     = util.param(finalParams['saveLabel'])
         this.githubEnabled = util.param(finalParams['githubEnabled'])
         this.githubDefault = util.param(finalParams['githubDefault'])
         this.isNew         = util.param(finalParams['isNew'])
