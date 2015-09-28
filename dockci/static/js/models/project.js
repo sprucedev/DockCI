@@ -61,6 +61,13 @@ define(['jquery', 'knockout'], function ($, ko) {
             })
         }.bind(this)
 
+        this.delete = function() {
+            return $.ajax("/api/v1/projects/" + this.slug(), {
+                  'method': 'DELETE'
+                , 'dataType': 'json'
+            })
+        }.bind(this)
+
         this.queueJob = function(commitRef) {
             return $.ajax("/api/v1/projects/" + this.slug() + '/jobs', {
                   'method': 'POST'

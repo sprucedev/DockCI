@@ -4,7 +4,14 @@
   <span data-bind="text:project().name"></span>
   {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-      {{ header_button('trash', '#', 'btn-danger btn-flat', 'data-toggle="modal" data-target="#delete-dialog"') }}
+      <!-- ko component: {
+        name: 'header-button',
+        params: {
+          icon: 'trash',
+          click: deleteHandler,
+          buttonType: 'danger'
+        }
+      } --><!-- /ko -->
       <!-- ko component: {
         name: 'header-button',
         params: {
@@ -27,32 +34,6 @@
 <div class="checkbox col-sm-5" style="margin-top: 0px"><label>
   <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
 </label></div>
-{% if current_user.is_authenticated() %}
-  <div id="delete-dialog" class="modal fade" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-          <h4 class="modal-title">Really delete {{ project.name }}?</h4>
-        </div>
-        <div class="modal-body">
-          <p>This will delete all job logs, artifacts, and GitHub hooks but not
-             any Docker images or containers.</p>
-        </div>
-        <div class="modal-footer">
-          <form action="{{ url_for('project_view', slug=project.slug) }}" method="POST">
-            <input type="hidden" name="operation" value="delete" />
-            <input type="hidden" name="auth_token" value="{{ auth_token_delete.auth_token }}" />
-            <input type="hidden" name="expiry" value="{{ auth_token_delete.expiry }}" />
-
-            <button class="btn" data-dismiss="modal">Cancel</button>
-            <input type="submit" class="btn btn-danger" value="Delete" />
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-{% endif %}
 <table id="jobs-list" class="table table-striped">
   <tr><th>Created</th><th>Tag</th><th>Commit ref</th><th>Author</th><th>State</th></tr>
   {% for job in jobs.items -%}
@@ -85,6 +66,11 @@
     , title: runTitle
     , project: project
 "></job-run-dialog>
+<project-delete-dialog params="
+      visible: deleteVisible
+    , title: deleteTitle
+    , project: project
+"></project-delete-dialog>
 <script>
   // URI.js is being dumb :(
   require([
@@ -94,6 +80,7 @@
 
     , 'app/components/header_button'
     , 'app/components/project_edit_dialog'
+    , 'app/components/project_delete_dialog'
     , 'app/components/job_run_dialog'
 
     , 'bootstrap'
@@ -122,12 +109,19 @@
       this.runTitle = ko.computed(function() {
         return "Run " + this.project().name()
       }.bind(this))
+      this.deleteVisible = ko.observable(false)
+      this.deleteTitle = ko.computed(function() {
+        return "Really delete " + this.project().name() + "?"
+      }.bind(this))
 
       this.editHandler = function () {
         this.editVisible(true)
       }.bind(this)
       this.runHandler = function () {
         this.runVisible(true)
+      }.bind(this)
+      this.deleteHandler = function () {
+        this.deleteVisible(true)
       }.bind(this)
       this.saveProject = function () {
         this.saving(true)

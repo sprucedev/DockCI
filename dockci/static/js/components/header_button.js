@@ -6,8 +6,12 @@ define([
         finalParams = $.extend({
               'icon': undefined
             , 'click': (function(){})
+            , 'buttonType': 'default'
         }, params)
 
+        this.buttonType = ko.computed(function() {
+            return 'btn-' + finalParams['buttonType']
+        })
         this.icon = ko.computed(function () {
             if(typeof(finalParams['icon']) === 'undefined') { return '' }
             return 'glyphicon glyphicon-' + finalParams['icon']

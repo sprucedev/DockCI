@@ -1,0 +1,26 @@
+<div data-bind="modal: {
+    visible: visible,
+    dialogCss: 'modal-lg',
+    header: { data: { label: title } },
+    body: { name: 'project-delete-dialog-body', data: {
+          messages: messages
+    }},
+    footer: { name: 'project-delete-dialog-footer', data: {
+          action: deleteAction
+        , saving: saving
+    }}
+}"></div>
+<script type="text/html" id="project-delete-dialog-body">
+  <ul class="list-group" data-bind="foreach:messages">
+      <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+  </ul>
+  <p>This will delete all job logs, artifacts, and GitHub hooks but not
+     any Docker images or containers.</p>
+</script>
+<script type="text/html" id="project-delete-dialog-footer">
+  <button class="btn btn-danger" data-bind="click: action, disable: saving">
+    <span data-bind="visible: !saving()">Delete</span>
+    <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
+  </button>
+  <a href="#" class="btn btn-default" data-dismiss="modal">Cancel</a>
+</script>
