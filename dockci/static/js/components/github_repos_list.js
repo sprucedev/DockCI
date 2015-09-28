@@ -49,7 +49,7 @@ define([
             $.ajax("/github/projects.json",  {
                   'dataType': 'json'
                 , 'data': {
-                      'page_size': this.pageSize
+                      'per_page': this.pageSize
                     , 'page': page
                 }
             }).done(function(reposData) {
