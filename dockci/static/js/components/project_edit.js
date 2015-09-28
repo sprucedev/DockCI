@@ -29,6 +29,10 @@ define([
         this.isNew         = util.param(finalParams['isNew'])
         this.currentTab    = util.param(finalParams['currentTab'], this.githubDefault() ? 'github' : 'manual')
 
+        this.secretsPlaceholder = ko.computed(function(){
+            return this.isNew() ? '' : '*****'
+        }.bind(this))
+
         this.trigGithubReload = ko.observable()
 
         this.githubAction = function(repo) {
