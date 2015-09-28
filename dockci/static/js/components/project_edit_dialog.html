@@ -3,11 +3,11 @@
     dialogCss: 'modal-lg',
     header: { data: { label: title } },
     body: { name: 'body' },
-    footer: { data: {
-      action: saveProject,
-      primaryLabel: saveLabel,
-      closeLabel: 'Cancel'
-    } }
+    footer: { name: 'footer', data: {
+          action: saveProject
+        , saving: saving
+        , saveLabel: saveLabel
+    }}
 }"></div>
 <script type="text/html" id="body">
   <project-edit params="project: $parent.project,
@@ -15,4 +15,11 @@
                         githubEnabled: $parent.githubEnabled,
                         githubDefault: $parent.githubDefault,
                         isNew: $parent.isNew" />
+</script>
+<script type="text/html" id="footer">
+  <button class="btn btn-primary" data-bind="click: action, disable: saving">
+    <span data-bind="visible: !saving(), html: saveLabel"></span>
+    <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
+  </button>
+  <a href="#" class="btn btn-default" data-bind="html: 'Cancel'" data-dismiss="modal"></a>
 </script>

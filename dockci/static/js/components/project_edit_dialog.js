@@ -11,6 +11,7 @@ define([
               'visible': false
             , 'reload': false
             , 'title': 'Edit project'
+            , 'saveLabel': 'Save'
             , 'action': (function(){})
             , 'githubEnabled': false
             , 'githubDefault': false
@@ -24,13 +25,10 @@ define([
         this.saving = ko.observable(false)
         this.action = finalParams['action']
 
-        this.saveLabel = ko.computed(function () {
-          return this.saving() ? '<i class="glyphicon glyphicon-refresh spin"></i>' : (finalParams['saveLabel'] || "Save")
-        }.bind(this))
-
         this.project       = util.param(finalParams['project'])
         this.visible       = util.param(finalParams['visible'])
         this.title         = util.param(finalParams['title'])
+        this.saveLabel = util.param(finalParams['saveLabel'])
         this.githubEnabled = util.param(finalParams['githubEnabled'])
         this.githubDefault = util.param(finalParams['githubDefault'])
         this.isNew         = util.param(finalParams['isNew'])
