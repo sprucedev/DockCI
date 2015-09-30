@@ -6,9 +6,18 @@ define([
     util.ajax_fail = function(messages_ob) {
         return function (jqXHR, textStatus, errorThrown) {
             var message = (jqXHR.responseJSON || {})['message'] || textStatus
-            messages_ob([
-                new MessageModel({'message': message, 'category': 'danger'})
-            ])
+            if(typeof(message) === 'object') {
+                // TODO use fields to add messages next to inputs
+                messages_ob($.map(message, function(message){
+                    return new MessageModel(
+                        {'message': message, 'category': 'danger'}
+                    )
+                }))
+            } else {
+                messages_ob([new MessageModel(
+                    {'message': message, 'category': 'danger'}
+                )])
+            }
         }
     }
     util.param = function(value, def, obsType) {
