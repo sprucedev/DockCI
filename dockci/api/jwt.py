@@ -9,6 +9,7 @@ from flask_security import current_user, login_required
 from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import OnlyMeError, WrappedTokenError, WrongAuthMethodError
+from .fields import NonBlankInput
 from .util import clean_attrs, new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API, CONFIG, DB
@@ -18,7 +19,7 @@ JWT_ME_DETAIL_PARSER = BaseRequestParser()
 
 JWT_NEW_PARSER = BaseRequestParser()
 JWT_NEW_PARSER.add_argument('name',
-                            required=True,
+                            required=True, type=NonBlankInput(),
                             help="Service name for the token")
 JWT_NEW_PARSER.add_argument('exp',
                             type=DT_FORMATTER,

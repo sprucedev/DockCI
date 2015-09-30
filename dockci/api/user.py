@@ -4,7 +4,7 @@ from flask_security import current_user, login_required
 
 from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
-from .fields import RewriteUrl
+from .fields import NonBlankInput, RewriteUrl
 from .util import new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API, DB
@@ -32,11 +32,11 @@ DETAIL_FIELDS.update(BASIC_FIELDS)
 SHARED_PARSER_ARGS = {
     'email': dict(
         help="Contact email address",
-        required=None,
+        required=None, type=NonBlankInput(),
     ),
     'password': dict(
         help="Password for user to authenticate",
-        required=None,
+        required=None, type=NonBlankInput(),
     )
 }
 

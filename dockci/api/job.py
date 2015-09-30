@@ -4,7 +4,7 @@ from flask_security import login_required
 
 from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
-from .fields import RewriteUrl
+from .fields import NonBlankInput, RewriteUrl
 from .util import new_edit_parsers
 from dockci.models.job import Job
 from dockci.models.project import Project
@@ -52,7 +52,7 @@ DETAIL_FIELDS.update(CREATE_FIELDS)
 
 JOB_NEW_PARSER = BaseRequestParser()
 JOB_NEW_PARSER.add_argument('commit',
-                            required=True,
+                            required=True, type=NonBlankInput(),
                             help="Git ref to check out")
 
 

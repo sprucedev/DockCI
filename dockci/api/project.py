@@ -53,13 +53,11 @@ DETAIL_FIELDS.update(BASIC_FIELDS)
 SHARED_PARSER_ARGS = {
     'name': dict(
         help="Project display name",
-        type=NonBlankInput(),
-        required=None,
+        required=None, type=NonBlankInput(),
     ),
     'repo': dict(
         help="Git repository for the project code",
-        type=NonBlankInput(),
-        required=None,
+        required=None, type=NonBlankInput(),
     ),
     'utility': dict(
         help="Whether or not this is a utility project",
