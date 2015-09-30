@@ -18,15 +18,15 @@ define(['jquery', 'knockout'], function ($, ko) {
         }.bind(this))
         this.forApi = function(isNew) {
             var baseParams = {
-                'name': this.name(),
-                'repo': this.repo(),
-                'hipchat_room': this.hipchat_room(),
-                'hipchat_api_token': this.hipchat_api_token(),
+                'name': this.name() || '',
+                'repo': this.repo() || '',
+                'hipchat_room': this.hipchat_room() || undefined,
+                'hipchat_api_token': this.hipchat_api_token() || undefined,
             }
             if(isNew) {
-                return $(baseParams).extend({
+                return $.extend(baseParams, {
                     'utility': this.utility(),
-                    'github_repo_id': this.github_repo_id(),
+                    'github_repo_id': this.github_repo_id() || undefined,
                 })
             } else {
                 return baseParams
