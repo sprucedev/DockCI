@@ -26,3 +26,21 @@ class RewriteUrl(fields.Url):
             data[field_set] = attr_path_data
 
         return super(RewriteUrl, self).output(key, data)
+
+
+class NonBlankInput(object):
+    """ Don't allow a field to be blank, or None """
+    def _raise_error(self, name):
+        """ Central place to handle invalid input """
+        raise ValueError("The '%s' parameter can not be blank" % name)
+
+    def __call__(self, value, name):
+        if value is None:
+            self._raise_error(name)
+        try:
+            if value.strip() == '':
+                self._raise_error(name)
+        except AttributeError:
+            pass
+
+        return value

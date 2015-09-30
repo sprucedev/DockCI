@@ -6,7 +6,7 @@ from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import WrappedValueError
-from .fields import RewriteUrl
+from .fields import NonBlankInput, RewriteUrl
 from .util import filter_query_args, new_edit_parsers
 from dockci.models.project import Project
 from dockci.server import API, DB
@@ -53,10 +53,12 @@ DETAIL_FIELDS.update(BASIC_FIELDS)
 SHARED_PARSER_ARGS = {
     'name': dict(
         help="Project display name",
+        type=NonBlankInput(),
         required=None,
     ),
     'repo': dict(
         help="Git repository for the project code",
+        type=NonBlankInput(),
         required=None,
     ),
     'utility': dict(
