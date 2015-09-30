@@ -1,5 +1,5 @@
 from flask import request
-from flask_restful import fields, marshal_with, Resource
+from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
 from . import DT_FORMATTER
@@ -45,7 +45,8 @@ USER_EDIT_PARSER = BaseRequestParser()
 new_edit_parsers(USER_NEW_PARSER, USER_EDIT_PARSER, SHARED_PARSER_ARGS)
 
 USER_EDIT_PARSER.add_argument('active',
-                              help="Whether or not the user can login")
+                              help="Whether or not the user can login",
+                              type=inputs.boolean)
 
 
 class UserList(BaseDetailResource):
