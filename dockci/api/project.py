@@ -59,24 +59,25 @@ SHARED_PARSER_ARGS = {
         help="Git repository for the project code",
         required=None, type=NonBlankInput(),
     ),
-    'utility': dict(
-        help="Whether or not this is a utility project",
-        type=inputs.boolean,
-        default=False
-    ),
     'hipchat_room': dict(help="Room to post HipChat notifications to"),
     'hipchat_api_token': dict(help="HipChat API token for authentication"),
 }
+
+UTILITY_ARG = dict(
+    help="Whether or not this is a utility project",
+    type=inputs.boolean,  # Implies not-null/blank
+)
 
 PROJECT_NEW_PARSER = BaseRequestParser()
 PROJECT_EDIT_PARSER = BaseRequestParser()
 new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
 
-PROJECT_FILTERS_PARSER = reqparse.RequestParser()
+PROJECT_NEW_UTILITY_ARG = UTILITY_ARG.copy()
+PROJECT_NEW_UTILITY_ARG['required'] = True
+PROJECT_NEW_PARSER.add_argument('utility', **PROJECT_NEW_UTILITY_ARG)
 
-PROJECT_FILTERS_UTILITY = SHARED_PARSER_ARGS['utility'].copy()
-PROJECT_FILTERS_UTILITY.pop('default')
-PROJECT_FILTERS_PARSER.add_argument('utility', **PROJECT_FILTERS_UTILITY)
+PROJECT_FILTERS_PARSER = reqparse.RequestParser()
+PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
 
 
 class ProjectList(Resource):
