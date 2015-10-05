@@ -1,5 +1,8 @@
 {% extends "_base.html" %}
 {% block title %}{{ project.name }}{% endblock %}
+{# URI.js is loading differently through require; has to be loaded before
+   require is so that it loads into the root #}
+{% block prescript %}<script src="/static/lib/js/URI.js"></script>{% endblock %}
 {% block header %}
   <span data-bind="text:project().name"></span>
   {% if current_user.is_authenticated() %}
@@ -85,19 +88,19 @@
 
     , 'bootstrap'
   ], function($, ko, ProjectModel) {
-    // $('#filterStable').change(function(ev) {
-    //   if (ev.target.checked) {
-    //     document.location = URI(document.location)
-    //       .addQuery('versioned')
-    //       .removeQuery('page_offset')
-    //       .toString();
-    //   } else {
-    //     document.location = URI(document.location)
-    //       .removeQuery('versioned')
-    //       .removeQuery('page_offset')
-    //       .toString();
-    //   }
-    // })
+    $('#filterStable').change(function(ev) {
+      if (ev.target.checked) {
+        document.location = URI(document.location)
+          .addSearch('versioned')
+          .removeSearch('page_offset')
+          .toString();
+      } else {
+        document.location = URI(document.location)
+          .removeSearch('versioned')
+          .removeSearch('page_offset')
+          .toString();
+      }
+    })
 
     function ThisPage () {
       this.project = ko.observable(new ProjectModel({'slug': '{{ project.slug }}'}))
