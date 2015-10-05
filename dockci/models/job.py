@@ -310,9 +310,8 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        # TODO fix and reenable pylint check for cyclic-import
-        from dockci.workers import run_job_async
-        run_job_async(self)
+        from dockci.server import APP
+        APP.worker_queue.put(self.id)
 
     def _run_now(self):
         """

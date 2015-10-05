@@ -12,6 +12,15 @@ from dockci.server import APP, DB, MAIL
 from dockci.notifications import HipChat
 
 
+def start_workers():
+    """ Start the worker manager process to pop new jobs off the queue """
+    if os.fork():
+        return
+    while True:
+        job_id = APP.worker_queue.get()
+        run_job_async(job_id)
+
+
 def send_mail(message):
     """
     Send an email using the app context
@@ -26,7 +35,7 @@ def send_mail(message):
             )
 
 
-def run_job_async(job):
+def run_job_async(job_id):
     """
     Load and run a job's private run project, forking to handle the job in
     the background
@@ -34,13 +43,10 @@ def run_job_async(job):
     if os.fork():
         return  # parent process
 
-    DB.engine.dispose()
-    job = Job.query.get(job.id)
-
     logger = logging.getLogger('dockci.job')
     try:
         with APP.app_context():
-            #job = Job.query.get(job_id)
+            job = Job.query.get(job_id)
             job_okay = job._run_now()  # pylint:disable=protected-access
             project = job.project
 

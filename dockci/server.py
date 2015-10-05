@@ -4,6 +4,7 @@ Functions for setting up and starting the DockCI application server
 
 import logging
 import mimetypes
+import multiprocessing
 
 from flask import Flask
 from flask_oauthlib.client import OAuth
@@ -78,6 +79,16 @@ def app_init(app_args={}):
     app_init_handlers()
     app_init_api()
     app_init_views()
+    app_init_workers()
+
+
+def app_init_workers():
+    """
+    Initialize the worker job queue
+    """
+    from .workers import start_workers
+    APP.worker_queue = multiprocessing.Queue()
+    start_workers()
 
 
 def app_init_oauth():
