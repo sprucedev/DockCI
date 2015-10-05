@@ -5,12 +5,49 @@
   <span class="pull-right" id="job-state">{{ job_state_glyph(job.state) }}</span>
 {% endblock %}
 {% block content %}
-<ul class="nav nav-pills" role="tablist" style="position:absolute; right: 0; z-index: 10">
-  <li role="presentation" class="active"><a href="#job-details" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-th-list"></i></a></li>
-  <li role="presentation"><a href="#job-output" role="tab" data-toggle="tab"><i class="glyphicon glyphicon-download-alt"></i></a></li>
-</ul>
-<div class="tab-content">
-  <div role="tabpanel" class="tab-pane active form-horizontal" id="job-details">
+<style>
+  .job-output-download:hover {
+    padding-right: 20px;
+  }
+  .job-output-download:hover::after {
+    content: ' - download tar';
+  }
+  .stage-panel .panel-heading {
+    transition: all 1s;
+  }
+  .panel-contracted .panel-body {
+    display: none;
+    overflow: scroll;
+  }
+  .stage-panel .expand-toggle:before {
+    /* TODO SASS include mdi icon */
+    content: '-';
+    width: 1em;
+    display: inline-block;
+  }
+  .panel-contracted .expand-toggle:before {
+    /* TODO SASS include mdi icon */
+    content: '+';
+  }
+  #auto-scroll {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+  }
+</style>
+<div class="btn-group form-group" style="position:absolute; right: 0; z-index: 10" data-toggle="buttons" data-bind="radio: currentTab">
+  <label class="btn btn-default" title="Details">
+    <input type="radio" name="currentTab" value="details" />
+    <i class="glyphicon glyphicon-th-list"></i>
+  </label>
+  <label class="btn btn-default" title="Artifacts">
+    <input type="radio" name="currentTab" value="artifacts" />
+    <i class="glyphicon glyphicon-download-alt"></i>
+    <span class="badge">{{ job.job_output_details | length }}</span>
+  </label>
+</div>
+<div data-bind="visible: currentTab() === 'details'">
+  <div class="form-horizontal">
     <div class="form-group">
       <label class="col-sm-2 control-label">Repo</label>
       <div class="col-sm-10"><p class="form-control-static">{{ job.repo }}</p></div>
@@ -22,11 +59,11 @@
     </div>
     {% if job.git_author_name or job.git_author_email %}<div class="form-group">
       <label class="col-sm-2 control-label">Author</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_author_name, job.git_author_email) }}</div>
+      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_author_name, job.git_author_email) }}</p></div>
     </div>{% endif %}
     {% if (job.git_committer_name or job.git_committer_email) and (job.git_committer_name != job.git_author_name or job.git_committer_email != job.git_author_email) %}<div class="form-group">
       <label class="col-sm-2 control-label">Committer</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_committer_name, job.git_committer_email) }}</div>
+      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_committer_name, job.git_committer_email) }}</p></div>
     </div>{% endif %}
     {% if job.tag %}<div class="form-group">
       <label class="col-sm-2 control-label">Tag</label>
@@ -51,38 +88,10 @@
       <div class="col-sm-10"><p class="form-control-static">{{ job.exit_code }}</p></div>
     </div>{% endif %}
   </div>
-  <div role="tabpanel" class="tab-pane form-horizontal" id="job-output">
-    <style>
-      .job-output-download:hover {
-        padding-right: 20px;
-      }
-      .job-output-download:hover::after {
-        content: ' - download tar';
-      }
-      .stage-panel .panel-heading {
-        transition: all 1s;
-      }
-      .panel-contracted .panel-body {
-        display: none;
-        overflow: scroll;
-      }
-      .stage-panel .expand-toggle:before {
-        /* TODO SASS include mdi icon */
-        content: '-';
-        width: 1em;
-        display: inline-block;
-      }
-      .panel-contracted .expand-toggle:before {
-        /* TODO SASS include mdi icon */
-        content: '+';
-      }
-      #auto-scroll {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-      }
-    </style>
-    {# {% for name, details in job.job_output_details.items() %}
+</div>
+<div data-bind="visible: currentTab() === 'artifacts'">
+  <div class="form-horizontal">
+    {% for name, details in job.job_output_details.items() %}
       <div class="form-group">
         <label class="col-sm-2 control-label">{{ name }}</label>
         <div class="col-sm-10"><p class="form-control-static">
@@ -91,14 +100,21 @@
       </div>
     {% else %}
       <div class="alert alert-info">No items!</div>
-    {% endfor %} #}
+    {% endfor %}
   </div>
 </div>
 <h2>Job Log</h2>
 <div id="job-stages"></div>
 <div id="auto-scroll" class="btn btn-info btn-fab"><i class="glyphicon glyphicon-chevron-down"></i></div>
 <script>
-  require(['jquery', 'md5', 'ansi_up'], function ($, md5, ansi_up) {
+  require([
+      'jquery'
+    , 'knockout'
+    , 'md5'
+    , 'ansi_up'
+
+    , 'knockstrap'
+  ], function ($, ko, md5, ansi_up) {
     function dockciJob() {
       var stageAjaxQueue = {},
           importantPanels = ['docker_build', 'docker_test', 'error'],
@@ -379,6 +395,13 @@
       refreshJobInfo()
     };
     dockciJob();
+
+    $(document).ready(function() {
+      function ThisPage() {
+        this.currentTab = ko.observable('details')
+      }
+      ko.applyBindings(new ThisPage())
+    })
   })
 </script>
 {% endblock %}
