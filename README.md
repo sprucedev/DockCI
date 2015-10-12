@@ -36,9 +36,9 @@ may disable registry support in the config page when DockCI is running.
 1. Install git
 1. Install the [Docker Toolbox](https://www.docker.com/toolbox)
 1. Create a new Docker machine (or reuse an existing one): `docker-machine create default`
-	- For insecure private registry support, add `--engine-insecure-registry http://localhost:5000`
-	- For VMWare Fusion, add `--driver vmwarefusion`
-	- The full command for OSX is: `docker-machine create --driver vmwarefusion --engine-insecure-registry http://localhost:5000 default`
+   - For insecure private registry support, add `--engine-insecure-registry http://localhost:5000`
+   - For VMWare Fusion, add `--driver vmwarefusion`
+   - The full command for OSX is: `docker-machine create --driver vmwarefusion --engine-insecure-registry http://localhost:5000 default`
 1. Source the new machine configuration: `eval "$(docker-machine env default)"`
 1. Clone the DockCI repo: `git clone https://github.com/RickyCook/DockCI.git`
 1. Change directory to the DockCI directory, and use compose to bring up the stack: `docker-compose up`
