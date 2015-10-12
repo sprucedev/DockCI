@@ -24,7 +24,8 @@ RUN ./_deps_python.sh
 ADD dockci /code/dockci
 ADD tests /code/tests
 ADD pylint.conf /code/pylint.conf
-ADD wsgi.py /code/wsgi.py
+ADD alembic /code/alembic
+ADD alembic.ini /code/alembic/alembic.ini
 
 EXPOSE 5000
 ENTRYPOINT ["/code/python_env/bin/python" , "/code/manage.py"]

@@ -41,19 +41,22 @@ OAUTH_APPS_SCOPE_SERIALIZERS = {
 
 def get_db_uri(app_args):
     """ Try to get the DB URI from multiple sources """
-    if 'db_uri' in app_args:
-        return app_args['db_uri']
-    elif 'DOCKCI_DB_URI' in os.environ:
+    if 'DOCKCI_DB_URI' in os.environ:
         return os.environ['DOCKCI_DB_URI']
     elif (
         'POSTGRES_PORT_5432_TCP_ADDR' in os.environ and
         'POSTGRES_PORT_5432_TCP_PORT' in os.environ and
         'POSTGRES_ENV_POSTGRES_PASSWORD' in os.environ
     ):
-        return "postgresql://postgres:{password}@{addr}:{port}/dockci".format(
+        return "postgresql://{user}:{password}@{addr}:{port}/{name}".format(
             addr=os.environ['POSTGRES_PORT_5432_TCP_ADDR'],
             port=os.environ['POSTGRES_PORT_5432_TCP_PORT'],
             password=os.environ['POSTGRES_ENV_POSTGRES_PASSWORD'],
+            user=os.environ.get('POSTGRES_ENV_POSTGRES_USER', 'postgres'),
+            name=os.environ.get(
+                'POSTGRES_ENV_POSTGRES_DB',
+                os.environ.get('POSTGRES_ENV_POSTGRES_USER', 'dockci'),
+            ),
         )
 
 

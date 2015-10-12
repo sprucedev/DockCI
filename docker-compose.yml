@@ -1,0 +1,16 @@
+web:
+  build: .
+  command: run --debug --db-migrate --db-timeout 10 --bind 0.0.0.0:5000
+  ports:
+   - "5001:5000"
+  links:
+   - postgres
+  volumes:
+   - /var/run/docker.sock:/var/run/docker.sock
+  environment:
+    DOCKER_HOST: unix:///var/run/docker.sock
+postgres:
+  image: postgres
+  environment:
+    POSTGRES_USER: dockci
+    POSTGRES_PASSWORD: letmein

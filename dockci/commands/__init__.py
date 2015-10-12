@@ -1,1 +1,1 @@
-from . import debug, gunicorn, tests
+from . import db, debug, gunicorn, tests

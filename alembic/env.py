@@ -3,7 +3,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 
-from dockci.server import DB
+from dockci.server import APP, app_init, DB
 from dockci.models.auth import *
 from dockci.models.job import *
 from dockci.models.project import *
@@ -40,7 +40,8 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    app_init({})
+    url = APP.config['SQLALCHEMY_DATABASE_URI']
     context.configure(
         url=url, target_metadata=target_metadata, literal_binds=True)
 
@@ -55,10 +56,8 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix='sqlalchemy.',
-        poolclass=pool.NullPool)
+    app_init({})
+    connectable = DB.engine
 
     with connectable.connect() as connection:
         context.configure(
