@@ -17,7 +17,6 @@ from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.pool import NullPool
 
-#from dockci.data_adapters.flask_security import YAMLModelUserDataStore
 from dockci.models.config import Config
 from dockci.util import setup_templates, tokengetter_for
 
