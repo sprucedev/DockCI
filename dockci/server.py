@@ -5,6 +5,7 @@ Functions for setting up and starting the DockCI application server
 import logging
 import mimetypes
 import multiprocessing
+import os
 
 from flask import Flask
 from flask_oauthlib.client import OAuth
@@ -38,6 +39,24 @@ OAUTH_APPS_SCOPE_SERIALIZERS = {
 }
 
 
+def get_db_uri(app_args):
+    """ Try to get the DB URI from multiple sources """
+    if 'db_uri' in app_args:
+        return app_args['db_uri']
+    elif 'DOCKCI_DB_URI' in os.environ:
+        return os.environ['DOCKCI_DB_URI']
+    elif (
+        'POSTGRES_PORT_5432_TCP_ADDR' in os.environ and
+        'POSTGRES_PORT_5432_TCP_PORT' in os.environ and
+        'POSTGRES_ENV_POSTGRES_PASSWORD' in os.environ
+    ):
+        return "postgresql://postgres:{password}@{addr}:{port}/dockci".format(
+            addr=os.environ['POSTGRES_PORT_5432_TCP_ADDR'],
+            port=os.environ['POSTGRES_PORT_5432_TCP_PORT'],
+            password=os.environ['POSTGRES_ENV_POSTGRES_PASSWORD'],
+        )
+
+
 def app_init(app_args={}):
     """
     Pre-run app setup
@@ -65,9 +84,7 @@ def app_init(app_args={}):
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
-    APP.config['SQLALCHEMY_DATABASE_URI'] = app_args.get(
-        'db_uri', 'postgresql://postgres:cookie@192.168.251.128/dockci'
-    )
+    APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri(app_args)
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
