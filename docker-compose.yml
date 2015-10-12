@@ -5,7 +5,6 @@ web:
    - "5001:5000"
   links:
    - postgres
-   - registry
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
    - ./dockci:/code/dockci
@@ -16,3 +15,5 @@ postgres:
     POSTGRES_PASSWORD: letmein
 registry:
   image: registry:2
+  ports:
+   - "5000:5000"

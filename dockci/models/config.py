@@ -51,7 +51,7 @@ def default_registry_host():
     except KeyError:
         pass
 
-    return default_host("http://{ip}:5000", "http://127.0.0.1:5000")
+    return "http://localhost:5000"
 
 
 def default_host(format_string, local_default=None):
