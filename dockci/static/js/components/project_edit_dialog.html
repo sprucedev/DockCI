@@ -1,14 +1,15 @@
-<div data-bind="modal: {
-    visible: visible,
-    dialogCss: 'modal-lg',
-    header: { data: { label: title } },
-    body: { name: 'project-edit-dialog-body' },
-    footer: { name: 'project-edit-dialog-footer', data: {
-          action: saveProject
-        , saving: saving
-        , saveLabel: saveLabel
-    }}
-}"></div>
+<form data-bind="submit: saveProject">
+  <div data-bind="modal: {
+      visible: visible,
+      dialogCss: 'modal-lg',
+      header: { data: { label: title } },
+      body: { name: 'project-edit-dialog-body' },
+      footer: { name: 'project-edit-dialog-footer', data: {
+            saving: saving
+          , saveLabel: saveLabel
+      }}
+  }"></div>
+</form>
 <script type="text/html" id="project-edit-dialog-body">
   <div data-bind="if: $parent.visible">
     <project-edit params="project: $parent.project,
@@ -19,7 +20,7 @@
   </div>
 </script>
 <script type="text/html" id="project-edit-dialog-footer">
-  <button class="btn btn-primary" data-bind="click: action, disable: saving">
+  <button type="submit" class="btn btn-primary" data-bind="disable: saving">
     <span data-bind="visible: !saving(), html: saveLabel"></span>
     <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
   </button>

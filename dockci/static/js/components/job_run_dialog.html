@@ -1,17 +1,18 @@
-<div data-bind="modal: {
-    visible: visible,
-    dialogCss: 'modal-lg',
-    header: { data: { label: title } },
-    body: { name: 'job-run-dialog-body', data: {
-          project: project
-        , commitRef: commitRef
-        , messages: messages
-    }},
-    footer: { name: 'job-run-dialog-footer', data: {
-          action: queueJob
-        , saving: saving
-    }}
-}"></div>
+<form data-bind="submit: queueJob">
+  <div data-bind="modal: {
+      visible: visible,
+      dialogCss: 'modal-lg',
+      header: { data: { label: title } },
+      body: { name: 'job-run-dialog-body', data: {
+            project: project
+          , commitRef: commitRef
+          , messages: messages
+      }},
+      footer: { name: 'job-run-dialog-footer', data: {
+            saving: saving
+      }}
+  }"></div>
+</form>
 <script type="text/html" id="job-run-dialog-body">
   <ul class="list-group" data-bind="foreach:messages">
       <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
@@ -32,7 +33,7 @@
   </div>
 </script>
 <script type="text/html" id="job-run-dialog-footer">
-  <button class="btn btn-success" data-bind="click: action, disable: saving">
+  <button type="submit" class="btn btn-success" data-bind="disable: saving">
     <span data-bind="visible: !saving()">Queue</span>
     <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
   </button>
