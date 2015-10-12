@@ -26,6 +26,9 @@ class GunicornWrapper(BaseApplication):
         for key, value in config.items():
             self.cfg.set(key.lower(), value)
 
+        # TODO required for streaming logs, but a bad idea in other cases
+        self.cfg.set('timeout', 0)
+
     def load(self):
         """ Get the Flask app """
         return APP
