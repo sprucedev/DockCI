@@ -38,7 +38,10 @@ def config_edit_view():
         'docker_use_registry', 'docker_registry',
     )
 
-    saved = request_fill(CONFIG, all_fields)
+    if request.method == 'POST':
+        saved = request_fill(CONFIG, all_fields)
+    else:
+        saved = False
 
     try:
         CONFIG.load()
