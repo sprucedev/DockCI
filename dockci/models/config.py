@@ -2,6 +2,7 @@
 Application configuration models
 """
 
+import os
 import socket
 
 from urllib.parse import urlparse
@@ -26,6 +27,14 @@ def default_docker_host(format_string, local_default=None):
     to use for a TCP connection. Otherwise, defaults to the default
     unix socket.
     """
+    try:
+        return os.environ['DOCKER_HOST']
+    except KeyError:
+        pass
+
+    if py.path.local('/var/run/docker.sock').check():
+        return 'unix:///var/run/docker.sock'
+
     docker_files = [py.path.local(path)
                     for path in ('/.dockerenv', '/.dockerinit')]
     if any(path.check() for path in docker_files):
