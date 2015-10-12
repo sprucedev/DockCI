@@ -15,17 +15,24 @@ from flask_migrate import Migrate
 from flask_restful import Api
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.pool import NullPool
 
 #from dockci.data_adapters.flask_security import YAMLModelUserDataStore
 from dockci.models.config import Config
 from dockci.util import setup_templates, tokengetter_for
 
 
+class WrappedSQLAlchemy(SQLAlchemy):
+    """ ``SQLAlchemy`` object that makes the ``poolclass`` a ``NullPool`` """
+    def apply_pool_defaults(self, app, options):
+        options['poolclass'] = NullPool
+
+
 APP = Flask(__name__)
 MAIL = Mail()
 CONFIG = Config()
 SECURITY = Security()
-DB = SQLAlchemy()
+DB = WrappedSQLAlchemy()
 OAUTH = OAuth(APP)
 API = Api(APP, prefix='/api/v1')
 MANAGER = Manager(APP)
