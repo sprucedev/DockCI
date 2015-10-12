@@ -11,6 +11,7 @@ from flask_oauthlib.client import OAuth
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_mail import Mail
 from flask_restful import Api
+from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
 
 #from dockci.data_adapters.flask_security import YAMLModelUserDataStore
@@ -25,6 +26,7 @@ SECURITY = Security()
 DB = SQLAlchemy()
 OAUTH = OAuth(APP)
 API = Api(APP, prefix='/api/v1')
+MANAGER = Manager(APP)
 
 APP.config.model = CONFIG  # For templates
 

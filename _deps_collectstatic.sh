@@ -1,4 +1,11 @@
-#!/bin/sh -x
+#!/bin/sh
+set -e
+set -x
+
+mkdir -p dockci/static/lib/css
+mkdir -p dockci/static/lib/fonts
+mkdir -p dockci/static/lib/js
+
 cp bower_components/bootstrap/dist/css/bootstrap.min.css dockci/static/lib/css
 
 cp bower_components/bootstrap/dist/fonts/glyphicons-halflings-regular.woff dockci/static/lib/fonts

@@ -10,7 +10,7 @@ install:
   - ./manage.sh htmldeps
   - ./manage.sh collectstatic
   - ./manage.sh pythondeps
-script: ./manage.sh ci
+script: ./manage.py ci
 notifications:
   webhooks:
     urls:
