@@ -40,7 +40,6 @@ def run_migrations_offline():
     script output.
 
     """
-    app_init({})
     url = APP.config['SQLALCHEMY_DATABASE_URI']
     context.configure(
         url=url, target_metadata=target_metadata, literal_binds=True)
@@ -56,7 +55,6 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    app_init({})
     connectable = DB.engine
 
     with connectable.connect() as connection:

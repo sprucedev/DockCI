@@ -11,6 +11,7 @@ from flask import Flask
 from flask_oauthlib.client import OAuth
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_mail import Mail
+from flask_migrate import Migrate
 from flask_restful import Api
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
@@ -28,6 +29,7 @@ DB = SQLAlchemy()
 OAUTH = OAuth(APP)
 API = Api(APP, prefix='/api/v1')
 MANAGER = Manager(APP)
+MIGRATE = Migrate(APP, DB, directory='alembic')
 
 APP.config.model = CONFIG  # For templates
 
@@ -94,9 +96,13 @@ def app_init(app_args={}):
     from dockci.models.auth import User, Role
     from dockci.models.job import Job
     from dockci.models.project import Project
-    SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
+
+    if 'security' not in APP.blueprints:
+        SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
+
     MAIL.init_app(APP)
     DB.init_app(APP)
+
     app_init_oauth()
     app_init_handlers()
     app_init_api()
@@ -118,20 +124,21 @@ def app_init_oauth():
     Initialize the OAuth integrations
     """
     if CONFIG.github_key and CONFIG.github_secret:
-        scope = 'user:email,admin:repo_hook,repo'
-        OAUTH_APPS_SCOPES['github'] = \
-            OAUTH_APPS_SCOPE_SERIALIZERS['github'](scope)
-        OAUTH_APPS['github'] = OAUTH.remote_app(
-            'github',
-            consumer_key=CONFIG.github_key,
-            consumer_secret=CONFIG.github_secret,
-            request_token_params={'scope': scope},
-            base_url='https://api.github.com/',
-            request_token_url=None,
-            access_token_method='POST',
-            access_token_url='https://github.com/login/oauth/access_token',
-            authorize_url='https://github.com/login/oauth/authorize'
-        )
+        if 'github' not in OAUTH_APPS:
+            scope = 'user:email,admin:repo_hook,repo'
+            OAUTH_APPS_SCOPES['github'] = \
+                OAUTH_APPS_SCOPE_SERIALIZERS['github'](scope)
+            OAUTH_APPS['github'] = OAUTH.remote_app(
+                'github',
+                consumer_key=CONFIG.github_key,
+                consumer_secret=CONFIG.github_secret,
+                request_token_params={'scope': scope},
+                base_url='https://api.github.com/',
+                request_token_url=None,
+                access_token_method='POST',
+                access_token_url='https://github.com/login/oauth/access_token',
+                authorize_url='https://github.com/login/oauth/authorize'
+            )
 
     for oauth_app in OAUTH_APPS.values():
         oauth_app.tokengetter(tokengetter_for(oauth_app))
