@@ -7,9 +7,9 @@ env:
 sudo: false
 install:
   - pip3 install virtualenv
-  - ./manage.sh htmldeps
-  - ./manage.sh collectstatic
-  - ./manage.sh pythondeps
+  - ./_deps_html.sh
+  - ./_deps_collectstatic.sh
+  - ./_deps_python.sh
 script: ./manage.py ci
 notifications:
   webhooks:
