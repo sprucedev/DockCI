@@ -20,7 +20,7 @@ from dockci.util import (client_kwargs_from_config,
                          )
 
 
-def default_docker_host(format_string, local_default=None):
+def default_docker_host():
     """
     Get a default value for the docker_host variable. This will work out
     if DockCI is running in Docker, and try and guess the Docker IP address
@@ -35,12 +35,37 @@ def default_docker_host(format_string, local_default=None):
     if py.path.local('/var/run/docker.sock').check():
         return 'unix:///var/run/docker.sock'
 
+    return default_host(
+        "tcp://{ip}:2375",
+        "unix:///var/run/docker.sock",
+    )
+
+
+def default_registry_host():
+    try:
+        return "http://{host}:{port}".format(
+            host=os.environ['REGISTRY_PORT_5000_TCP_ADDR'],
+            port=os.environ['REGISTRY_PORT_5000_TCP_PORT'],
+        )
+
+    except KeyError:
+        pass
+
+    return default_host("http://{ip}:5000", "http://127.0.0.1:5000")
+
+
+def default_host(format_string, local_default=None):
     docker_files = [py.path.local(path)
                     for path in ('/.dockerenv', '/.dockerinit')]
     if any(path.check() for path in docker_files):
         return format_string.format(ip=default_gateway())
 
     return local_default
+
+
+def default_use_registry():
+    return ('REGISTRY_PORT_5000_TCP_ADDR' in os.environ and
+            'REGISTRY_PORT_5000_TCP_PORT' in os.environ)
 
 
 class Config(SingletonModel):  # pylint:disable=too-few-public-methods
@@ -56,15 +81,11 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                                        input_transform=bool)
     docker_hosts = LoadOnAccess(
         input_transform=guess_multi_value,
-        default=lambda _: [default_docker_host(
-            "tcp://{ip}:2375", "unix:///var/run/docker.sock"
-        )]
+        default=lambda _: [default_docker_host()]
     )
-    docker_use_registry = LoadOnAccess(default=lambda _: False,
+    docker_use_registry = LoadOnAccess(default=lambda _: default_use_registry(),
                                        input_transform=bool)
-    docker_registry = LoadOnAccess(default=lambda _: default_docker_host(
-        "http://{ip}:5000", "http://127.0.0.1:5000"
-    ))
+    docker_registry = LoadOnAccess(default=lambda _: default_registry_host())
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")
     mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)

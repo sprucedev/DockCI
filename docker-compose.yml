@@ -5,10 +5,14 @@ web:
    - "5001:5000"
   links:
    - postgres
+   - registry
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
+   - ./dockci:/code/dockci
 postgres:
   image: postgres
   environment:
     POSTGRES_USER: dockci
     POSTGRES_PASSWORD: letmein
+registry:
+  image: registry:2
