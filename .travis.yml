@@ -10,7 +10,7 @@ install:
   - ./_deps_html.sh
   - ./_deps_collectstatic.sh
   - ./_deps_python.sh
-script: ./manage.py ci
+script: python_env/bin/python manage.py ci
 notifications:
   webhooks:
     urls:
