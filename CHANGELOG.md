@@ -5,6 +5,7 @@
 - Implement a RESTful API
 - Overhaul front end with new API-driven JS
 - Compose file for quickly starting a dev environment
+- Use Flask-Script for better command integration
 
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
