@@ -4,6 +4,7 @@
 - Replace data store with PostgreSQL/SQLAlchemy
 - Implement a RESTful API
 - Overhaul front end with new API-driven JS
+- Compose file for quickly starting a dev environment
 
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
