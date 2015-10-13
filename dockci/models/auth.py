@@ -27,6 +27,7 @@ class Role(DB.Model, RoleMixin):
 
 
 class OAuthToken(DB.Model):
+    """ An OAuth token from a service, for a user """
     id = DB.Column(DB.Integer(), primary_key=True)
     service = DB.Column(DB.String(31))
     key = DB.Column(DB.String(80))

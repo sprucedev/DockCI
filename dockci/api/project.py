@@ -1,3 +1,4 @@
+""" API relating to Project model objects """
 import re
 
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
@@ -11,14 +12,11 @@ from dockci.models.project import Project
 from dockci.server import API
 
 
-class NoValue(object):
-    pass
-
-
 DOCKER_REPO_RE = re.compile(r'^[a-z0-9-_.]+$')
 
 
 def docker_repo_field(value, name):
+    """ User input validation that a value is a valid Docker image name """
     if not DOCKER_REPO_RE.match(value):
         raise ValueError(("Invalid %s. Must only contain lower case, 0-9, "
                           "and the characters '-', '_' and '.'") % name)
@@ -82,19 +80,27 @@ PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
 
 
 class ProjectList(Resource):
+    """ API resource that handles listing projects """
     @marshal_with(LIST_FIELDS)
     def get(self):
+        """ List of all projects """
         return filter_query_args(PROJECT_FILTERS_PARSER, Project.query).all()
 
 
 class ProjectDetail(BaseDetailResource):
+    """
+    API resource to handle getting project details, creating new projects,
+    updating existing projects, and deleting projects
+    """
     @marshal_with(DETAIL_FIELDS)
     def get(self, project_slug):
+        """ Get project details """
         return Project.query.filter_by(slug=project_slug).first_or_404()
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def put(self, project_slug):
+        """ Create a new project """
         try:
             docker_repo_field(project_slug, 'slug')
         except ValueError as ex:
@@ -106,11 +112,13 @@ class ProjectDetail(BaseDetailResource):
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def post(self, project_slug):
+        """ Update an existing project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         return self.handle_write(project, PROJECT_EDIT_PARSER)
 
     @login_required
     def delete(self, project_slug):
+        """ Delete a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         project_name = project.name
         project.purge()

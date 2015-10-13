@@ -1,3 +1,8 @@
+"""
+Flask RESTful fields, and WTForms input validators for validation and
+marshaling
+"""
+
 from flask_restful import fields
 
 

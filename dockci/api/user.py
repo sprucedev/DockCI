@@ -1,3 +1,4 @@
+""" API relating to User model objects """
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
@@ -47,39 +48,48 @@ USER_EDIT_PARSER.add_argument('active',
 
 
 class UserList(BaseDetailResource):
+    """ API resource that handles listing users, and creating new users """
     @login_required
     @marshal_with(LIST_FIELDS)
     def get(self):
+        """ List all users """
         return User.query.all()
 
     @marshal_with(DETAIL_FIELDS)
     def post(self):
+        """ Create a new user """
         user = User()
         return self.handle_write(user, USER_NEW_PARSER)
 
 
 class UserDetail(BaseDetailResource):
+    """ API resource that handles getting user details, and updating users """
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def get(self, user_id):
+        """ Get a user's details """
         return User.query.get_or_404(user_id)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def post(self, user_id, user=None):
+        """ Update a user """
         if user is None:
             user = User.query.get_or_404(user_id)
         return self.handle_write(user, USER_EDIT_PARSER)
 
 
 class MeDetail(Resource):
+    """ Wrapper around ``UserDetail`` to user the current user """
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def get(self):
+        """ Get details of the current user """
         return current_user
 
     @login_required
     def post(self):
+        """ Update the current user """
         return UserDetail().post(none, current_user)
 
 

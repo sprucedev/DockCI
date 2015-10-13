@@ -42,6 +42,10 @@ def default_docker_host():
 
 
 def default_registry_host():
+    """
+    Get a default value for the registry_host variable. This will try Docker
+    link env vars, and fall back to localhost:5000
+    """
     try:
         return "http://{host}:{port}".format(
             host=os.environ['REGISTRY_PORT_5000_TCP_ADDR'],
@@ -55,6 +59,10 @@ def default_registry_host():
 
 
 def default_host(format_string, local_default=None):
+    """
+    Get a default host. If running in Docker, we get the default gateway, and
+    use format string with the IP. Otherwise, returns the ``local_default``
+    """
     docker_files = [py.path.local(path)
                     for path in ('/.dockerenv', '/.dockerinit')]
     if any(path.check() for path in docker_files):
@@ -64,6 +72,10 @@ def default_host(format_string, local_default=None):
 
 
 def default_use_registry():
+    """
+    Get a value for the ``use_registry`` variable. True if Docker link env vars
+    are set
+    """
     return ('REGISTRY_PORT_5000_TCP_ADDR' in os.environ and
             'REGISTRY_PORT_5000_TCP_PORT' in os.environ)
 

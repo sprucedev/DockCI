@@ -1,3 +1,4 @@
+""" Flask-Script commands useful for debugging """
 import os
 
 from dockci.server import MANAGER

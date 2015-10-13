@@ -1,3 +1,4 @@
+""" Flask-Script commands for starting/managing Gunicorn """
 import time
 
 from sys import stderr

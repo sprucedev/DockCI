@@ -1,3 +1,4 @@
+""" Flask-Script commands for running unit/style/static tests """
 import os
 
 from py.path import local

@@ -45,6 +45,7 @@ from dockci.util import (bytes_human_readable,
 
 
 class JobResult(Enum):
+    """ Possible results for Job models """
     success = 'success'
     fail = 'fail'
     broken = 'broken'
@@ -110,12 +111,17 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
 
     @property
     def db_session(self):
+        """
+        DB session for this Job is used in job workers without an application
+        context
+        """
         if self._db_session is None:
             self._db_session = DB.session()
         return self._db_session
 
     @property
     def job_config(self):
+        """ JobConfig for this Job """
         if self._job_config is None:
             self._job_config = JobConfig(self)
         return self._job_config

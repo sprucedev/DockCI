@@ -1,3 +1,4 @@
+""" API relating to JWT authentication """
 from datetime import datetime
 
 import jwt
@@ -25,13 +26,16 @@ JWT_NEW_PARSER.add_argument('exp',
 
 
 class JwtString(fields.String):
+    """ Marshalling field that JWT-encodes a value with the global secret """
     def format(self, value):
         return jwt.encode(value, CONFIG.secret).decode()
 
 
 class JwtNew(Resource):
+    """ API resource that handles creating JWT tokens """
     @login_required
     def post(self, id):
+        """ Create a JWT token for a user """
         if current_user.id != id:
             raise OnlyMeError("create JWT tokens")
 
@@ -50,8 +54,13 @@ class JwtNew(Resource):
 
 
 class JwtMeDetail(Resource):
+    """
+    API resource to handle getting current JWT token details, and creating one
+    for the current user
+    """
     @login_required
     def get(self):
+        """ Get details about the current JWT token """
         args = JWT_ME_DETAIL_PARSER.parse_args()
         if args['api_key'] is None:
             raise WrongAuthMethodError("a JWT token")
@@ -60,11 +69,14 @@ class JwtMeDetail(Resource):
 
     @login_required
     def post(self):
+        """ Create a JWT token for the currently logged in user """
         return JwtNew().post(current_user.id)
 
 
 class JwtDetail(Resource):
+    """ API resource to handle getting job details """
     def get(self, token):
+        """ Get details about a JWT token """
         try:
             jwt_data = jwt.decode(token, CONFIG.secret)
 

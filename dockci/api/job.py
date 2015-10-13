@@ -1,3 +1,4 @@
+""" API relating to Job model objects """
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
@@ -73,14 +74,17 @@ def get_validate_job(project_slug, job_slug):
 
 
 class JobList(BaseDetailResource):
+    """ API resource that handles listing, and creating jobs """
     @marshal_with(LIST_FIELDS)
     def get(self, project_slug):
+        """ List all jobs for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         return project.jobs.all()
 
     @login_required
     @marshal_with(CREATE_FIELDS)
     def post(self, project_slug):
+        """ Create a new job for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         job = Job(project=project, repo=project.repo)
         self.handle_write(job, JOB_NEW_PARSER)
@@ -90,13 +94,17 @@ class JobList(BaseDetailResource):
 
 
 class JobDetail(BaseDetailResource):
+    """ API resource to handle getting job details """
     @marshal_with(DETAIL_FIELDS)
     def get(self, project_slug, job_slug):
+        """ Show job details """
         return get_validate_job(project_slug, job_slug)
 
 
 class StageList(Resource):
+    """ API resource that handles listing stage slugs for a job """
     def get(self, project_slug, job_slug):
+        """ List all stage slugs for a job """
         return [
             stage.slug for stage in
             get_validate_job(project_slug, job_slug).job_stages
@@ -104,7 +112,9 @@ class StageList(Resource):
 
 
 class ArtifactList(Resource):
+    """ API resource that handles listing artifacts for a job """
     def get(self, project_slug, job_slug):
+        """ List output details for a job """
         return get_validate_job(project_slug, job_slug).job_output_details
 
 
