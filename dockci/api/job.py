@@ -65,13 +65,13 @@ JOB_NEW_PARSER.add_argument('commit',
 
 
 def get_validate_job(project_slug, job_slug):
-        """ Get the job object, validate that project slug matches expected """
-        job_id = Job.id_from_slug(job_slug)
-        job = Job.query.get_or_404(job_id)
-        if job.project.slug != project_slug:
-            abort(404)
+    """ Get the job object, validate that project slug matches expected """
+    job_id = Job.id_from_slug(job_slug)
+    job = Job.query.get_or_404(job_id)
+    if job.project.slug != project_slug:
+        abort(404)
 
-        return job
+    return job
 
 
 class JobList(BaseDetailResource):
