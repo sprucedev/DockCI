@@ -1,6 +1,10 @@
 from copy import copy
 
 from flask import request
+from flask_restful import fields
+
+
+DT_FORMATTER = fields.DateTime('iso8601')
 
 
 def set_attrs(obj, values):

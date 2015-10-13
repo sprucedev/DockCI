@@ -6,10 +6,10 @@ from flask import url_for
 from flask_restful import fields, Resource
 from flask_security import current_user, login_required
 
-from . import DT_FORMATTER
 from .base import BaseRequestParser
 from .exceptions import OnlyMeError, WrappedTokenError, WrongAuthMethodError
 from .fields import NonBlankInput
+from .util import DT_FORMATTER
 from dockci.server import API, CONFIG
 
 

@@ -1,10 +1,9 @@
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
-from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput, RewriteUrl
-from .util import new_edit_parsers
+from .util import DT_FORMATTER, new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API
 

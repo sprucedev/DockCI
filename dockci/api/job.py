@@ -1,9 +1,9 @@
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
-from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput, RewriteUrl
+from .util import DT_FORMATTER
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API
