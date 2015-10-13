@@ -6,7 +6,7 @@ from flask_security import UserMixin, RoleMixin
 
 from dockci.server import DB
 
-roles_users = DB.Table(
+ROLES_USERS = DB.Table(
     'roles_users',
     DB.Column('user_id', DB.Integer(), DB.ForeignKey('user.id'), index=True),
     DB.Column('role_id', DB.Integer(), DB.ForeignKey('role.id')),
@@ -54,7 +54,7 @@ class User(DB.Model, UserMixin):
     active = DB.Column(DB.Boolean())
     confirmed_at = DB.Column(DB.DateTime())
     roles = DB.relationship('Role',
-                            secondary=roles_users,
+                            secondary=ROLES_USERS,
                             backref=DB.backref('users', lazy='dynamic'))
 
     def __str__(self):
