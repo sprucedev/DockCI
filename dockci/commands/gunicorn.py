@@ -5,7 +5,7 @@ from sys import stderr
 
 from flask_migrate import upgrade as db_upgrade
 from gunicorn.app.base import BaseApplication
-from py.path import local
+from py.path import local  # pylint:disable=import-error
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 

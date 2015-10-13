@@ -1,7 +1,7 @@
 """ Flask-Script commands for running unit/style/static tests """
 import os
 
-from py.path import local
+from py.path import local  # pylint:disable=import-error
 
 from dockci.server import MANAGER
 
