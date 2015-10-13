@@ -149,6 +149,7 @@ def app_init_oauth():
     for oauth_app in OAUTH_APPS.values():
         oauth_app.tokengetter(tokengetter_for(oauth_app))
 
+
 def app_init_handlers():
     """ Initialize event handlers """
     import dockci.handlers
