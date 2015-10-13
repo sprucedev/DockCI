@@ -144,7 +144,7 @@ class GitChangesStage(CommandJobStage):
 
     def __init__(self, job, workdir):
         cmd_args = None
-        if job.ancestor_job != None:
+        if job.ancestor_job is not None:
             revision_range_string = '%s..%s' % (
                 job.ancestor_job.commit,  # pylint:disable=no-member
                 job.commit,
