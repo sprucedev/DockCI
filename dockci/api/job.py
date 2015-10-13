@@ -1,4 +1,5 @@
 """ API relating to Job model objects """
+from flask import abort
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
