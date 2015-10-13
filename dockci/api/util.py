@@ -26,7 +26,7 @@ def clean_attrs(values):
     }
 
 
-def new_edit_parsers(new_parser, edit_parser, fields):
+def new_edit_parsers(new_parser, edit_parser, field_data):
     """
     Create parsers for new, and edit where 'required' args that have the value
     ``None`` are replaced with ``True`` for new, and ``False`` for edit (ie
@@ -35,7 +35,7 @@ def new_edit_parsers(new_parser, edit_parser, fields):
     for parser, required_val in (
         (new_parser, True), (edit_parser, False),
     ):
-        for arg_name, arg_kwargs in fields.items():
+        for arg_name, arg_kwargs in field_data.items():
             if 'required' in arg_kwargs and arg_kwargs['required'] is None:
                 arg_kwargs = copy(arg_kwargs)
                 arg_kwargs['required'] = required_val
