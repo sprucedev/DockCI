@@ -3,6 +3,7 @@ from werkzeug.exceptions import HTTPException
 
 class BaseActionException(HTTPException):
     response = None
+
     def __init__(self, action=None):
         if action is not None:
             self.action = action
@@ -26,6 +27,7 @@ class WrongAuthMethodError(BaseActionException):
 
 class WrappedException(HTTPException):
     response = None
+
     def __init__(self, ex):
         self.description = str(ex)
 
