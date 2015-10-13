@@ -68,7 +68,6 @@ class JobStageTmp(DB.Model):
         foreign_keys="JobStageTmp.job_id",
         backref=DB.backref(
             'job_stages',
-            #lazy='dynamic',
             order_by=sqlalchemy.asc('id'),
             ))
 
