@@ -108,7 +108,6 @@ def job_output_json(project_slug, job_slug):
                     'git_committer_name', 'git_committer_email',
                     'git_changes',
                 )) + (
-                    #('ancestor_job_slug', job.ancestor_job.slug),
                     ('project_slug', project.slug),
                     ('job_stage_slugs', [stage.slug for stage in job.job_stages]),
                 )
