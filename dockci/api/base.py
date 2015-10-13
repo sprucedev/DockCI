@@ -10,7 +10,7 @@ AUTH_FORM_LOCATIONS = ('form', 'headers', 'json')
 
 class BaseDetailResource(Resource):
     """ Base resource for details API endpoints """
-    def handle_write(self, model, parser):
+    def handle_write(self, model, parser):  # pylint:disable=no-self-use
         """ Parse request args, set attrs on the model, and commit """
         args = parser.parse_args(strict=True)
         args = clean_attrs(args)

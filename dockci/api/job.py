@@ -74,6 +74,8 @@ def get_validate_job(project_slug, job_slug):
     return job
 
 
+# pylint:disable=no-self-use
+
 class JobList(BaseDetailResource):
     """ API resource that handles listing, and creating jobs """
     @marshal_with(LIST_FIELDS)

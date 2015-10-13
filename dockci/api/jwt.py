@@ -25,6 +25,8 @@ JWT_NEW_PARSER.add_argument('exp',
                             help="Expiration time of the token")
 
 
+# pylint:disable=no-self-use
+
 class JwtString(fields.String):
     """ Marshalling field that JWT-encodes a value with the global secret """
     def format(self, value):

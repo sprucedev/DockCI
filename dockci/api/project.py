@@ -79,6 +79,8 @@ PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
 
 
+# pylint:disable=no-self-use
+
 class ProjectList(Resource):
     """ API resource that handles listing projects """
     @marshal_with(LIST_FIELDS)

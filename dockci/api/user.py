@@ -47,6 +47,8 @@ USER_EDIT_PARSER.add_argument('active',
                               type=inputs.boolean)
 
 
+# pylint:disable=no-self-use
+
 class UserList(BaseDetailResource):
     """ API resource that handles listing users, and creating new users """
     @login_required

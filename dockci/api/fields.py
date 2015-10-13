@@ -35,7 +35,7 @@ class RewriteUrl(fields.Url):
 
 class NonBlankInput(object):
     """ Don't allow a field to be blank, or None """
-    def _raise_error(self, name):
+    def _raise_error(self, name):  # pylint:disable=no-self-use
         """ Central place to handle invalid input """
         raise ValueError("The '%s' parameter can not be blank" % name)
 
