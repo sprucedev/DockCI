@@ -65,6 +65,6 @@ def styletest():
 
 
 @MANAGER.command
-def ci():
+def ci():  # pylint:disable=invalid-name
     """ Run all tests """
     return call_seq(styletest, unittest)
