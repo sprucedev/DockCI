@@ -24,7 +24,6 @@ LIST_FIELDS.update(BASIC_FIELDS)
 
 DETAIL_FIELDS = {
     'confirmed_at': DT_FORMATTER,
-    #'roles': fields.Nested(),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
@@ -59,6 +58,7 @@ class UserList(BaseDetailResource):
     def post(self):
         user = User()
         return self.handle_write(user, USER_NEW_PARSER)
+
 
 class UserDetail(BaseDetailResource):
     @login_required
