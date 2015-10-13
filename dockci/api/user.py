@@ -90,7 +90,7 @@ class MeDetail(Resource):
     @login_required
     def post(self):
         """ Update the current user """
-        return UserDetail().post(none, current_user)
+        return UserDetail().post(None, current_user)
 
 
 API.add_resource(UserList,
