@@ -34,14 +34,14 @@ class JwtString(fields.String):
 class JwtNew(Resource):
     """ API resource that handles creating JWT tokens """
     @login_required
-    def post(self, id):
+    def post(self, user_id):
         """ Create a JWT token for a user """
-        if current_user.id != id:
+        if current_user.id != user_id:
             raise OnlyMeError("create JWT tokens")
 
         args = JWT_NEW_PARSER.parse_args(strict=True)
         args.update({
-            'sub': id,
+            'sub': user_id,
             'iat': datetime.utcnow(),
         })
         args = {
