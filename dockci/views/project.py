@@ -56,7 +56,7 @@ def project_view(slug):
     if versioned:
         jobs = jobs.filter(
             Job.result == 'success',
-            Job.tag != None,
+            Job.tag is not None,
         )
 
     jobs = jobs.order_by(sqlalchemy.desc(Job.create_ts))
