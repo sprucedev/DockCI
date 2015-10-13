@@ -9,7 +9,6 @@ import subprocess
 import requests.exceptions
 
 from dockci.exceptions import AlreadyRunError, DockerUnreachableError
-from dockci.server import DB
 
 
 class JobStageBase(object):

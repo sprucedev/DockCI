@@ -1,6 +1,5 @@
 import re
 
-from flask import request
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import login_required
 
@@ -9,7 +8,7 @@ from .exceptions import WrappedValueError
 from .fields import NonBlankInput, RewriteUrl
 from .util import filter_query_args, new_edit_parsers
 from dockci.models.project import Project
-from dockci.server import API, DB
+from dockci.server import API
 
 
 class NoValue(object):

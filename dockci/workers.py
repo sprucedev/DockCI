@@ -7,8 +7,7 @@ import os
 from flask_mail import Message
 
 from dockci.models.job import Job
-from dockci.models.project import Project
-from dockci.server import APP, DB, MAIL
+from dockci.server import APP, MAIL
 from dockci.notifications import HipChat
 
 

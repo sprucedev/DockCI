@@ -11,16 +11,9 @@ import py.error  # pylint:disable=import-error
 import sqlalchemy
 
 from flask import url_for
-from yaml_model import (LoadOnAccess,
-                        Model,
-                        ModelReference,
-                        OnAccess,
-                        ValidationError,
-                        )
 
-from dockci.models.auth import User
 from dockci.server import DB, OAUTH_APPS
-from dockci.util import is_yaml_file, is_git_ancestor
+from dockci.util import is_git_ancestor
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')

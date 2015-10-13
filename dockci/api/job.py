@@ -1,14 +1,12 @@
-from flask import request
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
 from . import DT_FORMATTER
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput, RewriteUrl
-from .util import new_edit_parsers
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import API, DB
+from dockci.server import API
 
 
 BASIC_FIELDS = {

@@ -2,8 +2,6 @@
 Views related to project management
 """
 
-import re
-
 import sqlalchemy
 
 from flask import redirect, render_template, request

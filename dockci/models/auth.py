@@ -4,8 +4,6 @@ Users and permissions models
 
 from flask_security import UserMixin, RoleMixin
 
-from yaml_model import LoadOnAccess, Model, ValidationError
-
 from dockci.server import DB
 
 roles_users = DB.Table(

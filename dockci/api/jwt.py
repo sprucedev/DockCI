@@ -2,17 +2,15 @@ from datetime import datetime
 
 import jwt
 
-from flask import request, url_for
-from flask_restful import fields, inputs, marshal_with, Resource
+from flask import url_for
+from flask_restful import fields, Resource
 from flask_security import current_user, login_required
 
 from . import DT_FORMATTER
-from .base import BaseDetailResource, BaseRequestParser
+from .base import BaseRequestParser
 from .exceptions import OnlyMeError, WrappedTokenError, WrongAuthMethodError
 from .fields import NonBlankInput
-from .util import clean_attrs, new_edit_parsers
-from dockci.models.auth import User
-from dockci.server import API, CONFIG, DB
+from dockci.server import API, CONFIG
 
 
 JWT_ME_DETAIL_PARSER = BaseRequestParser()

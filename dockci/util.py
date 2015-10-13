@@ -31,13 +31,6 @@ from yaml_model import ValidationError
 AUTH_TOKEN_EXPIRY = 36000  # 10 hours
 
 
-def is_yaml_file(filename):
-    """
-    Check if the filename provided points to a file, and ends in .yaml
-    """
-    return filename.check(file=True) and filename.ext == '.yaml'
-
-
 def request_fill(model_obj, fill_atts, data=None, save=True):
     """
     Fill given model attrs from a POST request (and ignore other requests).
@@ -211,13 +204,6 @@ def is_git_hash(value):
     Validate a git commit hash for validity
     """
     return is_hex_string(value, 40)
-
-
-def is_docker_id(value):
-    """
-    Validate a Docker Id (image, container) for validity
-    """
-    return is_hex_string(value, 64)
 
 
 def is_git_ancestor(workdir, parent_check, child_check):

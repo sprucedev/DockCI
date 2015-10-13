@@ -18,12 +18,6 @@ import sqlalchemy
 from docker.utils import kwargs_from_env
 from flask import url_for
 from sqlalchemy.sql import func as sql_func
-from yaml_model import (LoadOnAccess,
-                        Model,
-                        ModelReference,
-                        OnAccess,
-                        ValidationError,
-                        )
 
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job_meta.config import JobConfig
@@ -44,11 +38,9 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    UtilStage,
                                                    WorkdirStage,
                                                    )
-from dockci.models.project import Project
 from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (bytes_human_readable,
                          client_kwargs_from_config,
-                         is_docker_id,
                          )
 
 

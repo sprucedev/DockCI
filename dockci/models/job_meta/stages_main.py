@@ -9,7 +9,6 @@ import docker.errors
 
 from dockci.exceptions import AlreadyBuiltError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.server import DB
 from dockci.util import built_docker_image_id, is_semantic
 
 

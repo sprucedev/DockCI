@@ -7,7 +7,6 @@ import py.error  # pylint:disable=import-error
 from flask import render_template, request
 from flask_security import login_required
 
-from dockci.models.project import Project
 from dockci.server import APP, CONFIG
 from dockci.util import request_fill
 

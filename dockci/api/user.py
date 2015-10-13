@@ -1,4 +1,3 @@
-from flask import request
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
@@ -7,7 +6,7 @@ from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput, RewriteUrl
 from .util import new_edit_parsers
 from dockci.models.auth import User
-from dockci.server import API, DB
+from dockci.server import API
 
 
 BASIC_FIELDS = {

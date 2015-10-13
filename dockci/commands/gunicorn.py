@@ -1,8 +1,6 @@
-import socket
 import time
 
 from sys import stderr
-from urllib.parse import urlparse
 
 from flask_migrate import upgrade as db_upgrade
 from gunicorn.app.base import BaseApplication
