@@ -18,11 +18,13 @@ class NoValue(object):
 
 DOCKER_REPO_RE = re.compile(r'^[a-z0-9-_.]+$')
 
+
 def docker_repo_field(value, name):
     if not DOCKER_REPO_RE.match(value):
         raise ValueError(("Invalid %s. Must only contain lower case, 0-9, "
                           "and the characters '-', '_' and '.'") % name)
     return value
+
 
 BASIC_FIELDS = {
     'name': fields.String(),
