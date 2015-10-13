@@ -109,7 +109,9 @@ def job_output_json(project_slug, job_slug):
                     'git_changes',
                 )) + (
                     ('project_slug', project.slug),
-                    ('job_stage_slugs', [stage.slug for stage in job.job_stages]),
+                    ('job_stage_slugs', [
+                        stage.slug for stage in job.job_stages
+                    ]),
                 )
             ),
             cls=DateTimeEncoder,

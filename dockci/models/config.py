@@ -83,8 +83,10 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
         input_transform=guess_multi_value,
         default=lambda _: [default_docker_host()]
     )
-    docker_use_registry = LoadOnAccess(default=lambda _: default_use_registry(),
-                                       input_transform=bool)
+    docker_use_registry = LoadOnAccess(
+        default=lambda _: default_use_registry(),
+        input_transform=bool,
+    )
     docker_registry = LoadOnAccess(default=lambda _: default_registry_host())
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")

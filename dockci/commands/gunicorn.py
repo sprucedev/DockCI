@@ -76,7 +76,9 @@ def run(**kwargs):
             return 1
 
     if kwargs['db_migrate']:
-        ret = db_upgrade(local(__file__).dirpath().join('../../alembic').strpath)
+        ret = db_upgrade(
+            local(__file__).dirpath().join('../../alembic').strpath
+        )
         if ret != 0 and ret is not None:
             return ret
 

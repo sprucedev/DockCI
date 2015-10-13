@@ -18,13 +18,18 @@ BASIC_FIELDS = {
 
 
 LIST_FIELDS = {
-    'detail': RewriteUrl('job_detail', rewrites=dict(project_slug='project.slug', job_slug='slug')),
+    'detail': RewriteUrl('job_detail', rewrites=dict(
+        project_slug='project.slug',
+        job_slug='slug',
+    )),
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
 
 CREATE_FIELDS = {
-    'project_detail': RewriteUrl('project_detail', rewrites=dict(project_slug='project.slug')),
+    'project_detail': RewriteUrl('project_detail', rewrites=dict(
+        project_slug='project.slug',
+    )),
     'create_ts': DT_FORMATTER,
     'repo': fields.String(),
     'commit': fields.String(),
@@ -32,7 +37,10 @@ CREATE_FIELDS = {
 CREATE_FIELDS.update(LIST_FIELDS)
 
 DETAIL_FIELDS = {
-    'ancestor_detail': RewriteUrl('job_detail', rewrites=dict(project_slug='project.slug', job_slug='ancestor_job.slug')),
+    'ancestor_detail': RewriteUrl('job_detail', rewrites=dict(
+        project_slug='project.slug',
+        job_slug='ancestor_job.slug',
+    )),
 
     'start_ts': DT_FORMATTER,
     'complete_ts': DT_FORMATTER,
@@ -102,15 +110,23 @@ class ArtifactList(Resource):
         return get_validate_job(project_slug, job_slug).job_output_details
 
 
-API.add_resource(JobList,
-                 '/projects/<string:project_slug>/jobs',
-                 endpoint='job_list')
-API.add_resource(JobDetail,
-                 '/projects/<string:project_slug>/jobs/<string:job_slug>',
-                 endpoint='job_detail')
-API.add_resource(StageList,
-                 '/projects/<string:project_slug>/jobs/<string:job_slug>/stages',
-                 endpoint='stage_list')
-API.add_resource(ArtifactList,
-                 '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
-                 endpoint='artifact_list')
+API.add_resource(
+    JobList,
+    '/projects/<string:project_slug>/jobs',
+    endpoint='job_list',
+)
+API.add_resource(
+    JobDetail,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>',
+    endpoint='job_detail',
+)
+API.add_resource(
+    StageList,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>/stages',
+    endpoint='stage_list',
+)
+API.add_resource(
+    ArtifactList,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
+    endpoint='artifact_list',
+)

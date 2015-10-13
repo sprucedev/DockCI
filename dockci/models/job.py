@@ -76,10 +76,15 @@ class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
     """ An individual project job, and result """
 
     id = DB.Column(DB.Integer(), primary_key=True)
-    create_ts = DB.Column(DB.DateTime(), nullable=False, default=sql_func.now())
+    create_ts = DB.Column(
+        DB.DateTime(), nullable=False, default=sql_func.now(),
+    )
     start_ts = DB.Column(DB.DateTime())
     complete_ts = DB.Column(DB.DateTime())
-    result = DB.Column(DB.Enum(*JobResult.__members__, name='job_results'), index=True)
+    result = DB.Column(DB.Enum(
+        *JobResult.__members__,
+        name='job_results'
+    ), index=True)
     repo = DB.Column(DB.Text(), nullable=False)
     commit = DB.Column(DB.String(41), nullable=False)
     tag = DB.Column(DB.Text())
