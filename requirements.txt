@@ -30,7 +30,7 @@ pytz==2015.4
 PyYAML==3.11
 requests-oauthlib==0.5.0
 requests==2.7.0
-six==1.9.0
+six==1.10.0
 SQLAlchemy==1.0.8
 websocket-client==0.32.0
 Werkzeug==0.10.4
