@@ -7,6 +7,7 @@ class BaseActionException(HTTPException):
     response = None
 
     def __init__(self, action=None):
+        super(BaseActionException, self).__init__()
         if action is not None:
             self.action = action
 
@@ -40,6 +41,7 @@ class WrappedException(HTTPException):
     response = None
 
     def __init__(self, ex):
+        super(WrappedException, self).__init__()
         self.description = str(ex)
 
 
