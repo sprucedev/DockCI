@@ -60,7 +60,7 @@ def unauthorized_handler():
 
 
 @LOGIN_MANAGER.request_loader
-def request_loader(request):
+def request_loader(_):  # has request as arg
     """
     Request loader that first tries the ``LOGIN_FORM`` request parser (see
     ``try_reqparser``), then basic auth (see ``try_basic_auth``)
@@ -75,7 +75,7 @@ def try_jwt(token):
 
     try:
         jwt_data = jwt.decode(token, CONFIG.secret)
-    except jwt.exceptions.InvalidTokenError as ex:
+    except jwt.exceptions.InvalidTokenError:
         return None
 
     else:

@@ -29,7 +29,7 @@ def job_view(project_slug, job_slug):
     """
     View to display a job
     """
-    project = Project.query.filter_by(slug=project_slug).first_or_404()
+    Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
 
     return render_template('job.html', job=job)
@@ -126,7 +126,7 @@ def job_output_view(project_slug, job_slug, filename):
     """
     View to download some job output
     """
-    project = Project.query.filter_by(slug=project_slug).first_or_404()
+    Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
     job_id = job.id
 

@@ -47,7 +47,7 @@ OAUTH_APPS_SCOPE_SERIALIZERS = {
 }
 
 
-def get_db_uri(app_args):
+def get_db_uri():
     """ Try to get the DB URI from multiple sources """
     if 'DOCKCI_DB_URI' in os.environ:
         return os.environ['DOCKCI_DB_URI']
@@ -68,7 +68,7 @@ def get_db_uri(app_args):
         )
 
 
-def app_init(app_args={}):
+def app_init():
     """
     Pre-run app setup
     """
@@ -95,13 +95,13 @@ def app_init(app_args={}):
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
-    APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri(app_args)
+    APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
     from dockci.models.auth import User, Role
-    from dockci.models.job import Job
-    from dockci.models.project import Project
+    from dockci.models.job import Job  # pylint:disable=unused-variable
+    from dockci.models.project import Project  # pylint:disable=unused-variable
 
     if 'security' not in APP.blueprints:
         SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
@@ -152,11 +152,13 @@ def app_init_oauth():
 
 def app_init_handlers():
     """ Initialize event handlers """
+    # pylint:disable=unused-variable
     import dockci.handlers
 
 
 def app_init_api():
     """ Activate the DockCI API """
+    # pylint:disable=unused-variable
     import dockci.api.job
     import dockci.api.jwt
     import dockci.api.project
@@ -177,18 +179,3 @@ def app_init_views():
     import dockci.views.test
 
     setup_templates(APP)
-
-
-def run(app_args):
-    """
-    Setup, and run the DockCI application server, using the args given to
-    configure it
-    """
-    app_init(app_args)
-    server_args = {
-        key: val
-        for key, val in app_args.items()
-        if key in ('host', 'port', 'debug')
-    }
-
-    APP.run(**server_args)

@@ -57,14 +57,14 @@ def run(**kwargs):
     if kwargs['db_timeout'] != 0:
         start_time = time.time()
         db_engine = create_engine(
-            get_db_uri(kwargs),
+            get_db_uri(),
             connect_args=dict(connect_timeout=2),
         )
         db_conn = None
         while time.time() - start_time < kwargs['db_timeout']:
             try:
                 db_conn = db_engine.connect()
-            except OperationalError as ex:
+            except OperationalError:
                 time.sleep(2)
             else:
                 break
@@ -82,6 +82,6 @@ def run(**kwargs):
 
     else:
         # Migrate will init the app for us
-        app_init(kwargs)
+        app_init()
 
     GunicornWrapper(kwargs).run()
