@@ -12,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from dockci.server import APP, app_init, get_db_uri, MANAGER
 
 
-class GunicornWrapper(BaseApplication):
+class GunicornWrapper(BaseApplication):  # pylint:disable=abstract-method
     """ Gunicorn application for DockCI Flask app """
     def __init__(self, options=None):
         self.options = options or {}
