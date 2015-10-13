@@ -159,10 +159,7 @@ def app_init_handlers():
 def app_init_api():
     """ Activate the DockCI API """
     # pylint:disable=unused-variable
-    import dockci.api.job
-    import dockci.api.jwt
-    import dockci.api.project
-    import dockci.api.user
+    import dockci.api
 
 
 def app_init_views():
@@ -170,12 +167,5 @@ def app_init_views():
     Activate all DockCI views
     """
     # pylint:disable=unused-variable
-    import dockci.views.core
-
-    import dockci.views.job
-    import dockci.views.external
-    import dockci.views.project
-    import dockci.views.oauth
-    import dockci.views.test
-
+    import dockci.views
     setup_templates(APP)
