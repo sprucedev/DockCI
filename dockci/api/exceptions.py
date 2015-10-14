@@ -2,12 +2,12 @@
 from werkzeug.exceptions import HTTPException
 
 
-class BaseActionException(HTTPException):
+class BaseActionExceptionMixin(HTTPException):
     """ An HTTP exception for when an action can't be performed """
     response = None
 
     def __init__(self, action=None):
-        super(BaseActionException, self).__init__()
+        super(BaseActionExceptionMixin, self).__init__()
         if action is not None:
             self.action = action
 
@@ -17,7 +17,7 @@ class BaseActionException(HTTPException):
         return self.message_fs % self.action
 
 
-class OnlyMeError(BaseActionException):
+class OnlyMeError(BaseActionExceptionMixin):
     """
     Raised when a user tries an action on another user that can only be
     performed on themselves
@@ -27,7 +27,7 @@ class OnlyMeError(BaseActionException):
     message_fs = "Can not %s for another user"
 
 
-class WrongAuthMethodError(BaseActionException):
+class WrongAuthMethodError(BaseActionExceptionMixin):
     """ Raised when user authenticated with an invalid auth method """
     code = 400
     action = "another method"
