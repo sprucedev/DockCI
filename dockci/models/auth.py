@@ -26,7 +26,7 @@ class Role(DB.Model, RoleMixin):
         )
 
 
-class OAuthToken(DB.Model):
+class OAuthToken(DB.Model):  # pylint:disable=no-init
     """ An OAuth token from a service, for a user """
     id = DB.Column(DB.Integer(), primary_key=True)
     service = DB.Column(DB.String(31))
@@ -46,7 +46,7 @@ class OAuthToken(DB.Model):
         )
 
 
-class User(DB.Model, UserMixin):
+class User(DB.Model, UserMixin):  # pylint:disable=no-init
     """ User model for authentication """
     id = DB.Column(DB.Integer, primary_key=True)
     email = DB.Column(DB.String(255), unique=True, index=True)

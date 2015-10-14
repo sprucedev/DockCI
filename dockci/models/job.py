@@ -51,7 +51,7 @@ class JobResult(Enum):
     broken = 'broken'
 
 
-class JobStageTmp(DB.Model):
+class JobStageTmp(DB.Model):  # pylint:disable=no-init
     """ Quick and dirty list of job stages for the time being """
     id = DB.Column(DB.Integer(), primary_key=True)
     slug = DB.Column(DB.String(31))
@@ -65,7 +65,8 @@ class JobStageTmp(DB.Model):
             ))
 
 
-class Job(DB.Model):  # pylint:disable=too-many-instance-attributes
+# pylint:disable=too-many-instance-attributes,no-init,too-many-public-methods
+class Job(DB.Model):
     """ An individual project job, and result """
 
     id = DB.Column(DB.Integer(), primary_key=True)

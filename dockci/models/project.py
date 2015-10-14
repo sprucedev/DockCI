@@ -19,7 +19,7 @@ from dockci.util import is_git_ancestor
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
 
 
-class Project(DB.Model):  # pylint:disable=too-few-public-methods
+class Project(DB.Model):  # pylint:disable=no-init
     """
     A project, representing a container to be built
     """
