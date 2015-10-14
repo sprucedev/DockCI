@@ -58,10 +58,22 @@ def pylint():
     ])
 
 
+def pylint_forked():
+    """ Fork, and execute the pylint command """
+    pid = os.fork()
+    if not pid:
+        pylint()
+    else:
+        _, returncode = os.waitpid(pid, 0)
+
+        # Flask-Script doesn't handle exiting 1024 properly
+        return 0 if returncode == 0 else 1
+
+
 @MANAGER.command
 def styletest():
     """ Run style tests """
-    return call_seq(pep8, pylint)
+    return call_seq(pep8, pylint_forked)
 
 
 @MANAGER.command
