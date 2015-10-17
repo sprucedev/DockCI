@@ -135,7 +135,8 @@ class Project(DB.Model):  # pylint:disable=no-init
                             workdir,
                             commit,
                             passed=None,
-                            versioned=None):
+                            versioned=None,
+                            completed=None):
         """
         Find the latest job, matching the criteria, who's a git ancestor of
         the given commit
@@ -147,7 +148,14 @@ class Project(DB.Model):  # pylint:disable=no-init
             """
             return is_git_ancestor(workdir, job.commit, commit)
 
-        return self.latest_job(passed, versioned, check_job)
+        jobs_query = self.filtered_jobs(
+            passed=passed,
+            versioned=versioned,
+            completed=completed,
+        )
+        for job in jobs_query:
+            if is_git_ancestor(workdir, job.commit, commit):
+                return job
 
     def add_github_webhook(self):
         """
