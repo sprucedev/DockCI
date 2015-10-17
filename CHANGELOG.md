@@ -4,6 +4,7 @@
 - Replace data store with PostgreSQL/SQLAlchemy
 - Implement a RESTful API
 - Overhaul front end with new API-driven JS
+- Revert to stock bootstap for ease of development
 - Compose file for quickly starting a dev environment
 - Use Flask-Script for better command integration
 - Early job worker loop to handle dirty DB from the UI workers
