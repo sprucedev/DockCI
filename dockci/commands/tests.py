@@ -1,5 +1,6 @@
 """ Flask-Script commands for running unit/style/static tests """
 import os
+import sys
 
 from py.path import local  # pylint:disable=import-error
 
@@ -9,6 +10,11 @@ from dockci.server import MANAGER
 def project_root():
     """ Get the DockCI project root """
     return local(__file__).dirpath().join('../..')
+
+
+def bin_root():
+    """ Get the bin directory of the execution env """
+    return local(sys.prefix).join('bin')
 
 
 def call_seq(*commands):
@@ -51,8 +57,9 @@ def pylint():
     code_dir = root_path.join('dockci')
     rc_file = root_path.join('pylint.conf')
 
-    os.execvp('pylint', [
-        'pylint',
+    pylint_path = bin_root().join('pylint').strpath
+    os.execvp(pylint_path, [
+        pylint_path,
         '--rcfile', rc_file.strpath,
         code_dir.strpath,
     ])
