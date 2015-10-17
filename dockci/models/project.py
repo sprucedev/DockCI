@@ -142,12 +142,6 @@ class Project(DB.Model):  # pylint:disable=no-init
         the given commit
         """
 
-        def check_job(job):
-            """
-            Use git merge-base to check
-            """
-            return is_git_ancestor(workdir, job.commit, commit)
-
         jobs_query = self.filtered_jobs(
             passed=passed,
             versioned=versioned,
