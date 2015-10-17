@@ -136,6 +136,9 @@ class TestGitAncestor(object):
         """
         with tmpdir.as_cwd():
             subprocess.check_call(['git', 'init'])
+            subprocess.check_call(['git', 'config', 'user.name', 'DockCI Test'])
+            subprocess.check_call(['git', 'config', 'user.email', 'test@example.com'])
+
             with tmpdir.join('file_a.txt').open('w') as handle:
                 handle.write('first file')
 
