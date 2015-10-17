@@ -74,7 +74,7 @@ def security_mail_task(message):
     """ Handle mail failures in Flask-Security by flashing a message """
     try:
         MAIL.send(message)
-    except Exception:
+    except Exception:  # pylint:disable=broad-except
         flash("Couldn't send email message", 'danger')
 
 
