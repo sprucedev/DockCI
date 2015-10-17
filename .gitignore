@@ -7,6 +7,7 @@ __pycache__/
 .python-version
 
 /docker_build_stream
+/python_env
 
 .DS_Store
 
