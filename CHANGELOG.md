@@ -10,6 +10,7 @@
 - Use Flask-Script for better command integration #260
 - Early job worker loop to handle dirty DB from the UI workers #260
 - Handle mail failures in Flask-Security gracefully #266
+- Move requirements to `pip-compile` syntax of new `pip-tools` #268
 
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220

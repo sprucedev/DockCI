@@ -7,7 +7,8 @@ utilities:
     command: |-
       sh -c '
         apk add --update postgresql-dev;
-        pip wheel -r requirements.txt -r test-requirements.txt
+        pip wheel -r requirements.txt;
+        pip wheel -r test-requirements.txt
       '
     output:
       - from: /work/wheelhouse
