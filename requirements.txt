@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements.in
 #
-alembic==0.7.7
+alembic==0.8.3
 aniso8601==1.0.0          # via flask-restful
 blinker==1.4              # via flask-mail, flask-principal
 docker-py==1.3.0
@@ -32,6 +32,7 @@ py-bcrypt==0.4
 py==1.4.30
 PyJWT==1.4.0
 python-dateutil==2.4.2    # via hypchat
+python-editor==0.4        # via alembic
 pytz==2015.6              # via flask-restful
 pyyaml==3.11
 requests-oauthlib==0.5.0  # via flask-oauthlib
