@@ -20,7 +20,7 @@ flask-sqlalchemy==2.0
 flask-wtf==0.12           # via flask-security
 flask==0.10.1
 gunicorn==19.3.0
-hypchat==0.18
+hypchat==0.20
 itsdangerous==0.24        # via flask, flask-security
 jinja2==2.8               # via flask
 mako==1.0.2               # via alembic
