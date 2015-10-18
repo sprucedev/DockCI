@@ -1,7 +1,8 @@
 # Changelog
 
-### v0.0.8
-- Replace data store with PostgreSQL/SQLAlchemy #260
+### v0.0.8 (Breaking)
+- **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
+  - No migration from yaml_model to PostgreSQL
 - Implement a RESTful API #260
 - Overhaul front end with new API-driven JS #260
 - Revert to stock bootstap for ease of development #260
