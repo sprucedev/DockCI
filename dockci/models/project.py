@@ -8,38 +8,68 @@ import re
 from uuid import uuid4
 
 import py.error  # pylint:disable=import-error
+import sqlalchemy
 
 from flask import url_for
-from yaml_model import (LoadOnAccess,
-                        Model,
-                        ModelReference,
-                        OnAccess,
-                        ValidationError,
-                        )
 
-from dockci.models.auth import User
-from dockci.server import OAUTH_APPS
-from dockci.util import is_yaml_file, is_git_ancestor
+from dockci.server import DB, OAUTH_APPS
+from dockci.util import is_git_ancestor
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
 
 
-class Project(Model):  # pylint:disable=too-few-public-methods
+class Project(DB.Model):  # pylint:disable=no-init
     """
     A project, representing a container to be built
     """
-    def __init__(self, slug=None):
-        super(Project, self).__init__()
-        self.slug = slug
 
-    def delete(self):
+    id = DB.Column(DB.Integer(), primary_key=True)
+    slug = DB.Column(DB.String(255), unique=True, nullable=False, index=True)
+    repo = DB.Column(DB.String(255), nullable=False)
+    name = DB.Column(DB.String(255), nullable=False)
+    utility = DB.Column(DB.Boolean(), nullable=False, index=True)
+
+    # TODO encrypt decrypt sensitive data etc..
+    hipchat_api_token = DB.Column(DB.String(255))
+    hipchat_room = DB.Column(DB.String(255))
+
+    # TODO repo ID from repo
+    github_repo_id = DB.Column(DB.String(255))
+    github_hook_id = DB.Column(DB.Integer())
+    github_secret = DB.Column(DB.String(255))
+    github_auth_token_id = DB.Column(
+        DB.Integer, DB.ForeignKey('o_auth_token.id'),
+    )
+    github_auth_token = DB.relationship(
+        'OAuthToken',
+        foreign_keys="Project.github_auth_token_id",
+        backref=DB.backref('projects', lazy='dynamic'),
+    )
+
+    jobs = DB.relationship(
+        'Job',
+        foreign_keys='Job.project_id',
+        cascade='all,delete-orphan',
+        backref='project',
+        lazy='dynamic',
+    )
+
+    def __str__(self):
+        return '<{klass}: {project_slug}>'.format(
+            klass=self.__class__.__name__,
+            project_slug=self.slug,
+        )
+
+    def purge(self):
         """
         Delete the project, including GitHub hooks, and related job data
 
         Notes:
           If there's an error deleting GitHub hook, it's ignored
         """
+        DB.session.delete(self)  # No commit just yet
+
         from dockci.models.job import Job
 
         try:
@@ -60,29 +90,7 @@ class Project(Model):  # pylint:disable=too-few-public-methods
         except py.error.ENOENT:
             pass
 
-        return super(Project, self).delete()
-
-    def _all_jobs(self, reverse_=True):
-        """
-        Get all the jobs associated with this project
-        """
-        from dockci.models.job import Job
-
-        try:
-            jobs = []
-
-            all_files = Job.data_dir_path().join(self.slug).listdir()
-            all_files.sort(reverse=reverse_)
-
-            for filename in all_files:
-                if is_yaml_file(filename):
-                    jobs.append(Job(project=self,
-                                    slug=filename.purebasename))
-
-            return jobs
-
-        except py.error.ENOENT:
-            return []
+        DB.session.commit()
 
     def latest_job(self, passed=None, versioned=None, other_check=None):
         """
@@ -116,9 +124,12 @@ class Project(Model):  # pylint:disable=too-few-public-methods
 
     def latest_completed_job(self):
         """ Find the latest job that is completed """
-        return self.latest_job(other_check=lambda job: job.result in (
-            'success', 'fail', 'broken'
-        ))
+        from dockci.models.job import Job
+        return self.jobs.filter(
+            Job.result.in_(('success', 'fail', 'broken'))
+        ).order_by(
+            sqlalchemy.desc(Job.create_ts)
+        ).first()
 
     def latest_job_ancestor(self,
                             workdir,
@@ -137,26 +148,6 @@ class Project(Model):  # pylint:disable=too-few-public-methods
             return is_git_ancestor(workdir, job.commit, commit)
 
         return self.latest_job(passed, versioned, check_job)
-
-    def validate(self):
-        with self.parent_validation(Project):
-            errors = []
-
-            if not DOCKER_REPO_RE.match(self.slug):
-                errors.append("Invalid slug. Must only contain lower case, "
-                              "0-9, and the characters '-', '_' and '.'")
-            if not self.repo:
-                errors.append("Repository can not be blank")
-            if not self.name:
-                errors.append("Name can not be blank")
-
-            if bool(self.hipchat_api_token) != bool(self.hipchat_room):
-                errors.append("Both, or neither HipChat values must be given")
-
-            if errors:
-                raise ValidationError(errors)
-
-        return True
 
     def add_github_webhook(self):
         """
@@ -184,7 +175,8 @@ class Project(Model):  # pylint:disable=too-few-public-methods
             except KeyError:
                 pass
 
-            self.save()
+            DB.session.add(self)
+            DB.session.commit()
 
         return result
 
@@ -199,7 +191,7 @@ class Project(Model):  # pylint:disable=too-few-public-methods
             self.github_hook_id = None
 
             if save:
-                self.save()
+                DB.session.add(self)
 
         return result
 
@@ -270,21 +262,3 @@ class Project(Model):  # pylint:disable=too-few-public-methods
         return url_for('job_new_view',
                        project_slug=self.slug,
                        _external=True)
-
-    slug = None
-    repo = LoadOnAccess(default=lambda _: '')
-    name = LoadOnAccess(default=lambda _: '')
-    utility = LoadOnAccess(default=False, input_transform=bool, index=True)
-
-    # TODO encrypt decrypt sensitive data etc..
-    hipchat_api_token = LoadOnAccess(default=lambda _: '')
-    hipchat_room = LoadOnAccess(default=lambda _: '')
-
-    github_repo_id = LoadOnAccess(default=lambda _: None)
-    github_hook_id = LoadOnAccess(default=lambda _: None)
-    github_secret = LoadOnAccess(default=lambda _: None)
-    github_auth_user = ModelReference(lambda self: User(
-        self.github_auth_user_slug
-    ), default=lambda _: None)
-
-    jobs = OnAccess(_all_jobs)

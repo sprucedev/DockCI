@@ -10,7 +10,8 @@ from urllib.parse import urlencode
 from flask import abort, flash, redirect, request, url_for
 from flask_security import current_user, login_required
 
-from dockci.server import APP, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
+from dockci.models.auth import OAuthToken
+from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
 from dockci.util import get_token_for
 
 
@@ -33,12 +34,16 @@ def oauth_authorized(name):
         ), 'danger')
 
     else:
-        current_user.oauth_tokens[name] = {
-            'key': resp['access_token'],
-            'secret': '',
-            'scope': OAUTH_APPS_SCOPE_SERIALIZERS[name](resp['scope']),
-        }
-        current_user.save()
+        oauth_token = OAuthToken(
+            service=name,
+            key=resp['access_token'],
+            secret='',
+            scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](resp['scope'])
+        )
+        current_user.oauth_tokens.append(oauth_token)
+        DB.session.add(oauth_token)
+        DB.session.add(current_user)
+        DB.session.commit()
 
         flash(u"Connected to %s" % name.title(), 'success')
 

@@ -1,5 +1,15 @@
 # Changelog
 
+### v0.0.8
+- Replace data store with PostgreSQL/SQLAlchemy
+- Implement a RESTful API
+- Overhaul front end with new API-driven JS
+- Revert to stock bootstap for ease of development
+- Compose file for quickly starting a dev environment
+- Use Flask-Script for better command integration
+- Early job worker loop to handle dirty DB from the UI workers
+- New jobs will determine, store, and display branch name
+
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
 - Create utility project #220
@@ -8,7 +18,10 @@
 - Add `skip_tests` option to `dockci.yaml` for use with utilites #223
 - Specify `Dockerfile` to use in `dockci.yaml` #227
 - Allow override of TLS params per Docker host #235
-- New jobs will determine, store, and display branch name
+- Fix possible infinite loop on job page #239
+- Job stage panel class is now md5 #239
+- DockCI builds with utilites #240
+- Replace Makefile with manage.sh #240
 
 ### v0.0.6
 - Significant decrease in browser load on jobs with error stage #215

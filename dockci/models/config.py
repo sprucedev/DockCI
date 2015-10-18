@@ -2,6 +2,7 @@
 Application configuration models
 """
 
+import os
 import socket
 
 from urllib.parse import urlparse
@@ -19,12 +20,48 @@ from dockci.util import (client_kwargs_from_config,
                          )
 
 
-def default_docker_host(format_string, local_default=None):
+def default_docker_host():
     """
     Get a default value for the docker_host variable. This will work out
     if DockCI is running in Docker, and try and guess the Docker IP address
     to use for a TCP connection. Otherwise, defaults to the default
     unix socket.
+    """
+    try:
+        return os.environ['DOCKER_HOST']
+    except KeyError:
+        pass
+
+    if py.path.local('/var/run/docker.sock').check():
+        return 'unix:///var/run/docker.sock'
+
+    return default_host(
+        "tcp://{ip}:2375",
+        "unix:///var/run/docker.sock",
+    )
+
+
+def default_registry_host():
+    """
+    Get a default value for the registry_host variable. This will try Docker
+    link env vars, and fall back to localhost:5000
+    """
+    try:
+        return "http://{host}:{port}".format(
+            host=os.environ['REGISTRY_PORT_5000_TCP_ADDR'],
+            port=os.environ['REGISTRY_PORT_5000_TCP_PORT'],
+        )
+
+    except KeyError:
+        pass
+
+    return "http://localhost:5000"
+
+
+def default_host(format_string, local_default=None):
+    """
+    Get a default host. If running in Docker, we get the default gateway, and
+    use format string with the IP. Otherwise, returns the ``local_default``
     """
     docker_files = [py.path.local(path)
                     for path in ('/.dockerenv', '/.dockerinit')]
@@ -32,6 +69,15 @@ def default_docker_host(format_string, local_default=None):
         return format_string.format(ip=default_gateway())
 
     return local_default
+
+
+def default_use_registry():
+    """
+    Get a value for the ``use_registry`` variable. True if Docker link env vars
+    are set
+    """
+    return ('REGISTRY_PORT_5000_TCP_ADDR' in os.environ and
+            'REGISTRY_PORT_5000_TCP_PORT' in os.environ)
 
 
 class Config(SingletonModel):  # pylint:disable=too-few-public-methods
@@ -47,15 +93,13 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                                        input_transform=bool)
     docker_hosts = LoadOnAccess(
         input_transform=guess_multi_value,
-        default=lambda _: [default_docker_host(
-            "tcp://{ip}:2375", "unix:///var/run/docker.sock"
-        )]
+        default=lambda _: [default_docker_host()]
     )
-    docker_use_registry = LoadOnAccess(default=lambda _: False,
-                                       input_transform=bool)
-    docker_registry = LoadOnAccess(default=lambda _: default_docker_host(
-        "http://{ip}:5000", "http://127.0.0.1:5000"
-    ))
+    docker_use_registry = LoadOnAccess(
+        default=lambda _: default_use_registry(),
+        input_transform=bool,
+    )
+    docker_registry = LoadOnAccess(default=lambda _: default_registry_host())
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")
     mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)

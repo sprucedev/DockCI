@@ -15,6 +15,10 @@
     "ansi_up": "https://github.com/drudru/ansi_up.git",
     "bootstrap-material-design": "~0.2.1",
     "blueimp-md5": "~1.1.0",
-    "uri.js": "~1.14.1"
+    "uri.js": "~1.16.1",
+    "knockout": "~3.3.0",
+    "knockstrap": "~1.2.1",
+    "requirejs": "~2.1.20",
+    "requirejs-text": "~2.0.14"
   }
 }

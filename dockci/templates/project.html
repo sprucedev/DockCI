@@ -1,12 +1,34 @@
 {% extends "_base.html" %}
 {% block title %}{{ project.name }}{% endblock %}
+{# URI.js is loading differently through require; has to be loaded before
+   require is so that it loads into the root #}
+{% block prescript %}<script src="/static/lib/js/URI.js"></script>{% endblock %}
 {% block header %}
-  {{ project.name }}
+  <span data-bind="text:project().name"></span>
   {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-      {{ header_button('action-delete', '#', 'btn-danger btn-flat', 'data-toggle="modal" data-target="#delete-dialog"') }}
-      {{ header_button('editor-mode-edit', '/projects/%s/edit' % project.slug) }}
-      {{ header_button('av-play-circle-outline', '/projects/%s/jobs/new' % project.slug) }}
+      <!-- ko component: {
+        name: 'header-button',
+        params: {
+          icon: 'trash',
+          click: deleteHandler,
+          buttonType: 'danger'
+        }
+      } --><!-- /ko -->
+      <!-- ko component: {
+        name: 'header-button',
+        params: {
+          icon: 'edit',
+          click: editHandler
+        }
+      } --><!-- /ko -->
+      <!-- ko component: {
+        name: 'header-button',
+        params: {
+          icon: 'play-circle',
+          click: runHandler
+        }
+      } --><!-- /ko -->
     </span>
   {% endif %}
 {% endblock %}
@@ -20,32 +42,6 @@
 <div class="checkbox col-sm-5" style="margin-top: 0px"><label>
   <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
 </label></div>
-{% if current_user.is_authenticated() %}
-  <div id="delete-dialog" class="modal fade" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-          <h4 class="modal-title">Really delete {{ project.name }}?</h4>
-        </div>
-        <div class="modal-body">
-          <p>This will delete all job logs, artifacts, and GitHub hooks but not
-             any Docker images or containers.</p>
-        </div>
-        <div class="modal-footer">
-          <form action="{{ url_for('project_view', slug=project.slug) }}" method="POST">
-            <input type="hidden" name="operation" value="delete" />
-            <input type="hidden" name="auth_token" value="{{ auth_token_delete.auth_token }}" />
-            <input type="hidden" name="expiry" value="{{ auth_token_delete.expiry }}" />
-
-            <button class="btn" data-dismiss="modal">Cancel</button>
-            <input type="submit" class="btn btn-danger" value="Delete" />
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-{% endif %}
 <table id="jobs-list" class="table table-striped">
   <tr>
     <th class="jobs-list-create-ts">Created</th>
@@ -55,7 +51,7 @@
     <th class="jobs-list-author">Author</th>
     <th class="jobs-list-state">State</th>
   </tr>
-  {% for job in jobs -%}
+  {% for job in jobs.items -%}
     <tr class="job-detail">
       <td class="jobs-list-create-ts"><a href="/projects/{{ project.slug }}/jobs/{{ job.slug }}">{{ job.create_ts }}</a></td>
       <td class="jobs-list-git-branch">{{ job.git_branch if job.git_branch else '' }}</td>
@@ -67,26 +63,92 @@
   {%- endfor %}
 </table>
 {% set versioned_str = '&versioned' if versioned else '' %}
-{% if prev_page_offset is not none -%}
-    <a href="{{ '/projects/%s?page_offset=%d&page_size=%d%s' % (project.slug, prev_page_offset, page_size, versioned_str) }}" class="pagination btn btn-default btn-lg">Previous</a>
+{% if jobs.has_prev -%}
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.prev_num, jobs.per_page, versioned_str) }}" class="btn btn-default btn-lg">Previous</a>
 {% endif -%}
-{% if next_page_offset is not none -%}
-    <a href="{{ '/projects/%s?page_offset=%d&page_size=%d%s' % (project.slug, next_page_offset, page_size, versioned_str) }}" class="pagination btn btn-default btn-lg pull-right">Next</a>
+{% if jobs.has_next -%}
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str) }}" class="btn btn-default btn-lg pull-right">Next</a>
 {% endif -%}
+<project-edit-dialog params="
+    visible: editVisible,
+    title: editTitle,
+    github: true,
+    project: project,
+    isNew: false,
+    saveLabel: 'Update'
+"></project-edit-dialog>
+<job-run-dialog params="
+      visible: runVisible
+    , title: runTitle
+    , project: project
+"></job-run-dialog>
+<project-delete-dialog params="
+      visible: deleteVisible
+    , title: deleteTitle
+    , project: project
+"></project-delete-dialog>
 <script>
-  $(document).ready(function() {
+  // URI.js is being dumb :(
+  require([
+      'jquery'
+    , 'knockout'
+    , 'app/models/project'
+
+    , 'app/components/header_button'
+    , 'app/components/project_edit_dialog'
+    , 'app/components/project_delete_dialog'
+    , 'app/components/job_run_dialog'
+
+    , 'bootstrap'
+  ], function($, ko, ProjectModel) {
     $('#filterStable').change(function(ev) {
       if (ev.target.checked) {
         document.location = URI(document.location)
-          .addQuery('versioned')
-          .removeQuery('page_offset')
+          .addSearch('versioned')
+          .removeSearch('page_offset')
           .toString();
       } else {
         document.location = URI(document.location)
-          .removeQuery('versioned')
-          .removeQuery('page_offset')
+          .removeSearch('versioned')
+          .removeSearch('page_offset')
           .toString();
       }
+    })
+
+    function ThisPage () {
+      this.project = ko.observable(new ProjectModel({'slug': '{{ project.slug }}'}))
+      this.editVisible = ko.observable(false)
+      this.editTitle = ko.computed(function() {
+        return "Edit " + this.project().name()
+      }.bind(this))
+      this.runVisible = ko.observable(false)
+      this.runTitle = ko.computed(function() {
+        return "Run " + this.project().name()
+      }.bind(this))
+      this.deleteVisible = ko.observable(false)
+      this.deleteTitle = ko.computed(function() {
+        return "Really delete " + this.project().name() + "?"
+      }.bind(this))
+
+      this.editHandler = function () {
+        this.editVisible(true)
+      }.bind(this)
+      this.runHandler = function () {
+        this.runVisible(true)
+      }.bind(this)
+      this.deleteHandler = function () {
+        this.deleteVisible(true)
+      }.bind(this)
+      this.saveProject = function () {
+        this.saving(true)
+        this.project().save().always(function() { thisPage.saving(false) })
+      }.bind(this)
+
+      this.project().reload()
+    }
+
+    require(['knockstrap'], function () {
+        ko.applyBindings(new ThisPage())
     })
   })
 </script>

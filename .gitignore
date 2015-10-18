@@ -1,12 +1,13 @@
 bower_components/
 data/
-dockci/static/
+dockci/static/lib/
 node_modules/
 python_env/
 __pycache__/
 .python-version
 
 /docker_build_stream
+/python_env
 
 .DS_Store
 

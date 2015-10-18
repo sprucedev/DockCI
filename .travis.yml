@@ -2,11 +2,15 @@ language: python
 python:
   - "3.4"
 
+env:
+  - WHEELS_ONLY=1
+sudo: false
 install:
   - pip3 install virtualenv
-  - make deps
-  - make testdeps
-script: make test
+  - ./_deps_html.sh
+  - ./_deps_collectstatic.sh
+  - ./_deps_python.sh
+script: python_env/bin/python manage.py ci
 notifications:
   webhooks:
     urls:

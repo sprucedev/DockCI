@@ -1,0 +1,83 @@
+<ul class="list-group" data-bind="foreach:messages">
+    <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+</ul>
+<loading-bar params="visible: loading"></loading-bar>
+<div class="form-horizontal bs-component" role="form" action="" id="projectForm" method="POST" data-bind="visible:!loading()">
+  <div class="form-group">
+    <label class="col-sm-2 control-label">Repo type</label>
+    <div class="col-sm-10">
+      <div class="btn-group form-group" data-toggle="buttons" data-bind="radio: currentTab">
+          <!-- ko if: githubEnabled -->
+          <label class="btn btn-default">
+              <input type="radio" name="currentTab" value="github" />
+              GitHub
+          </label>
+          <!-- /ko -->
+          <label class="btn btn-default">
+              <input type="radio" name="currentTab" value="manual" />
+              Manual
+          </label>
+      </div>
+    </div>
+  </div>
+  <!-- ko if: githubEnabled -->
+  <div data-bind="visible: currentTab() === 'github'">
+    <div class="form-group">
+      <label for="inputName" class="col-sm-2 control-label">Settings from</label>
+      <p class="col-sm-10 form-control-static" data-bind="visible: !isNew(), text: project().github_repo_id"></p>
+      <div class="col-sm-10" data-bind="visible: isNew">
+        <github-repos-list params="
+          trigReload: trigGithubReload,
+          action: githubAction,
+          columnSize: 5,
+          reload: githubDefault
+        "></github-repos-list>
+      </div>
+    </div>
+  </div>
+  <!-- /ko -->
+  <div data-bind="visible: currentTab() === 'manual'">
+    <div class="form-group">
+      <label for="inputRepo" class="col-sm-2 control-label">Git Repository</label>
+      <div class="col-sm-10">
+        <input required class="form-control" id="inputRepo" name="repo" placeholder="https://your.repo.url" data-bind="value:project().repo">
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="inputSlug" class="col-sm-2 control-label">Slug</label>
+    <div class="col-sm-10">
+      <div data-bind="visible:isNew">
+        <input required class="form-control" id="inputSlug" name="slug" placeholder="Slug" data-bind="value:project().slug">
+        <span class="help-block">Must only contain lowercase letters, numbers, and characters <code>_</code>, <code>-</code>, or <code>.</code></span>
+      </div>
+      <div data-bind="visible:!isNew()">
+        <p class="form-control-static" data-bind="text:project().slug"></p>
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="inputName" class="col-sm-2 control-label">Name</label>
+    <div class="col-sm-10">
+      <input required class="form-control" id="inputName" name="name" placeholder="Name" data-bind="value:project().name">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="inputGithubSecret" class="col-sm-2 control-label">GitHub Webhook Secret</label>
+    <div class="col-sm-10">
+      <input class="form-control" id="inputGithubSecret" name="github_secret" data-bind="attr: { placeholder: secretsPlaceholder }">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="inputHipchatApiToken" class="col-sm-2 control-label">HipChat API Token</label>
+    <div class="col-sm-10">
+      <input class="form-control" type="password" id="inputHipchatApiToken" name="hipchat_api_token" data-bind="attr: { placeholder: secretsPlaceholder }">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="inputHipchatRoom" class="col-sm-2 control-label">HipChat Room</label>
+    <div class="col-sm-10">
+      <input class="form-control" id="inputHipchatRoom" name="hipchat_room" data-bind="value:project().hipchat_room">
+    </div>
+  </div>
+</div>
