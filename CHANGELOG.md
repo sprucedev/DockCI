@@ -1,13 +1,13 @@
 # Changelog
 
 ### v0.0.8
-- Replace data store with PostgreSQL/SQLAlchemy
-- Implement a RESTful API
-- Overhaul front end with new API-driven JS
-- Revert to stock bootstap for ease of development
-- Compose file for quickly starting a dev environment
-- Use Flask-Script for better command integration
-- Early job worker loop to handle dirty DB from the UI workers
+- Replace data store with PostgreSQL/SQLAlchemy #260
+- Implement a RESTful API #260
+- Overhaul front end with new API-driven JS #260
+- Revert to stock bootstap for ease of development #260
+- Compose file for quickly starting a dev environment #260
+- Use Flask-Script for better command integration #260
+- Early job worker loop to handle dirty DB from the UI workers #260
 - Handle mail failures in Flask-Security gracefully #266
 
 ### v0.0.7
