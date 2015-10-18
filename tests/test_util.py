@@ -1,7 +1,9 @@
+import subprocess
+
 import docker
 import pytest
 
-from dockci.util import client_kwargs_from_config
+from dockci.util import client_kwargs_from_config, git_ref_name_of
 
 
 class TestClientKwargsFromConfig(object):
@@ -123,3 +125,54 @@ class TestClientKwargsFromConfig(object):
             tmpdir.join('key.pem').strpath,
         )
         assert out['tls'].verify == None
+
+
+class TestGitRefNameOf(object):
+    """ Test ``the git_ref_name_of`` function """
+    def test_master(self, tmpgitdir):
+        """ Test getting ref name when single commit on master """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+
+        assert git_ref_name_of(tmpgitdir, 'HEAD') == 'master'
+
+    def test_new_branch(self, tmpgitdir):
+        """ Test when branch is not master """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+
+        subprocess.check_call(['git', 'checkout', '-b', 'testbranch'])
+
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+
+        assert git_ref_name_of(tmpgitdir, 'HEAD') == 'testbranch'
+
+    def test_different_branch(self, tmpgitdir):
+        """ Test when ref is not HEAD """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+        first_hash = subprocess.check_output(
+            ['git', 'show', '-s', '--format=format:%H']).decode()
+
+        subprocess.check_call(['git', 'checkout', '-b', 'testbranch'])
+
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+
+        assert git_ref_name_of(tmpgitdir, first_hash) == 'master'

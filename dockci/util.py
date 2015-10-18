@@ -224,6 +224,26 @@ def is_git_ancestor(workdir, parent_check, child_check):
     return proc.returncode == 0
 
 
+def git_ref_name_of(workdir, ref, stderr=None):
+    """ Gets the full git ref name of a ref (eg a commit hash) """
+    proc = subprocess.Popen([
+            'git', 'name-rev',
+            '--name-only', '--no-undefined',
+            ref,
+        ],
+        stdout=subprocess.PIPE,
+        stderr=stderr,
+        cwd=workdir.strpath,
+    )
+    proc.wait()
+    if proc.returncode == 0:
+        return parse_branch_from_ref(
+            proc.stdout.read().decode().strip(),
+        )
+
+    return None
+
+
 def setup_templates(app):
     """
     Add util filters/tests/etc to the app's Jinja context
