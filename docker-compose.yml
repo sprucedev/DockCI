@@ -8,6 +8,7 @@ web:
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
    - ./dockci:/code/dockci
+   - ./alembic:/code/alembic
 postgres:
   image: postgres
   environment:
