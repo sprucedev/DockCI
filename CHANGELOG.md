@@ -1,5 +1,14 @@
 # Changelog
 
+### v0.0.8
+- Replace data store with PostgreSQL/SQLAlchemy
+- Implement a RESTful API
+- Overhaul front end with new API-driven JS
+- Revert to stock bootstap for ease of development
+- Compose file for quickly starting a dev environment
+- Use Flask-Script for better command integration
+- Early job worker loop to handle dirty DB from the UI workers
+
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
 - Create utility project #220

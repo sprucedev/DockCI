@@ -21,6 +21,7 @@ from ipaddress import ip_address
 
 import docker.errors
 import py.error  # pylint:disable=import-error
+import yaml_model
 
 from flask import flash, request
 from flask_security import current_user, login_required
@@ -28,13 +29,6 @@ from yaml_model import ValidationError
 
 
 AUTH_TOKEN_EXPIRY = 36000  # 10 hours
-
-
-def is_yaml_file(filename):
-    """
-    Check if the filename provided points to a file, and ends in .yaml
-    """
-    return filename.check(file=True) and filename.ext == '.yaml'
 
 
 def request_fill(model_obj, fill_atts, data=None, save=True):
@@ -65,7 +59,15 @@ def model_flash(model_obj, save=True):
     # TODO move the flash to views
     try:
         if save:
-            model_obj.save()
+            if isinstance(model_obj, yaml_model.Model):
+                model_obj.save()
+
+            else:
+                model_obj.validate()
+                from dockci.server import DB
+                DB.session.add(model_obj)
+                DB.session.commit()
+
             flash(u"%s saved" % model_obj.__class__.__name__.title(),
                   'success')
 
@@ -204,13 +206,6 @@ def is_git_hash(value):
     return is_hex_string(value, 40)
 
 
-def is_docker_id(value):
-    """
-    Validate a Docker Id (image, container) for validity
-    """
-    return is_hex_string(value, 64)
-
-
 def is_git_ancestor(workdir, parent_check, child_check):
     """
     Figures out if the second is a child of the first.
@@ -336,14 +331,14 @@ def get_token_for(oauth_app):
     Get a token for the currently logged in user
     """
     if current_user.is_authenticated():
-        from dockci.server import OAUTH_APPS_SCOPES
-        try:
-            detail = current_user.oauth_tokens[oauth_app.name]
-            if detail['scope'] == OAUTH_APPS_SCOPES[oauth_app.name]:
-                return (detail['key'], detail['secret'])
+        token = current_user.oauth_tokens.filter_by(
+            service=oauth_app.name,
+        ).first()
 
-        except (KeyError, TypeError):
-            pass
+        if token:
+            from dockci.server import OAUTH_APPS_SCOPES
+            if token.scope == OAUTH_APPS_SCOPES[oauth_app.name]:
+                return (token.key, token.secret)
 
     return None
 
@@ -383,9 +378,9 @@ def auth_token_data_from_form(form_data, user, model):
     form where possible
     """
     return {
-        'user_slug': user.slug,
+        'user_id': user.id,
         'model_class': fq_object_class_name(model),
-        'model_slug': full_model_slug(model),
+        'model_id': model.id,
         'operation': form_data.get('operation', None),
         'expiry': int(form_data['expiry']),  # Should be checked previously
     }
@@ -394,9 +389,9 @@ def auth_token_data_from_form(form_data, user, model):
 def auth_token_data(user, model, operation, expiry):
     """ Give the data dict necessary for an auth token """
     return {
-        'user_slug': user.slug,
+        'user_id': user.id,
         'model_class': fq_object_class_name(model),
-        'model_slug': full_model_slug(model),
+        'model_id': model.id,
         'operation': operation,
         'expiry': expiry,
     }

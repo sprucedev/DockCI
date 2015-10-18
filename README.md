@@ -26,48 +26,30 @@ Sounds great, right? And it will be! But it's not ready yet! Soooooo read on ;D
  - Docker 1.6.0 (others may work)
  - Python 3.4 (may work with 3.x, but untested)
 
-## System setup - Debian Jessie
+## Setup
 
-### Inside a Docker container (recommended)
+### [Docker Toolbox](https://www.docker.com/toolbox)
 
 Registry steps are optional. If you do not want to use a registry at all, you
 may disable registry support in the config page when DockCI is running.
-Assuming you have Docker set up and running as per instructions at
-http://docs.docker.com/installation/debian/ (or similar for your chosen OS),
-installing DockCI should be fairly straight forward:
 
-1. Install git `apt-get install git`
-1. Change your Docker defaults to listen on the `docker0` interface.
-   1. Edit `/etc/default/docker` with your favourite text editor
-      `vim /etc/default/docker`
-   1. Under the line that has `DOCKER_OPTS` on it, add the following:
-      `DOCKER_OPTS="-H tcp://172.17.42.1:2375 -H unix:///var/run/docker.sock --insecure-registry=127.0.0.1:5000"`
-      (where `172.17.42.1` is the IP of your docker0 interface. Note, the
-      `--insecure-registry` is only required if you will be setting up a
-      registry as per later instructions)
-   1. Restart Docker `systemctl restart docker.service`
-1. Clone the DockCI repo `git clone https://github.com/RickyCook/DockCI.git`
-1. Change directory to the DockCI directory, and build a docker container
-   `docker build .`
-1. Create storage directories `mkdir -p /var/opt/{dockci,docker-registry}`
-1. Start a DockCI container: `docker run --detach=true -p 127.0.0.1:5001:5000 -v /var/opt/dockci:/code/data --name dockci <image id>`
-1. Start a registry container: `docker run --detach=true -p 127.0.0.1:5000:5000 -v /var/opt/docker-registry:/code/data --name docker-registry registry`
-1. You can access your new DockCI at http://127.0.0.1:5001
+1. Install git
+1. Install the [Docker Toolbox](https://www.docker.com/toolbox)
+1. Create a new Docker machine (or reuse an existing one): `docker-machine create default`
+   - For insecure private registry support, add `--engine-insecure-registry http://localhost:5000`
+   - For VMWare Fusion, add `--driver vmwarefusion`
+   - The full command for OSX is: `docker-machine create --driver vmwarefusion --engine-insecure-registry http://localhost:5000 default`
+1. Source the new machine configuration: `eval "$(docker-machine env default)"`
+1. Clone the DockCI repo: `git clone https://github.com/RickyCook/DockCI.git`
+1. Change directory to the DockCI directory, and use compose to bring up the stack: `docker-compose up`
+1. You can get the URL to your new installation with: `echo http://$(docker-machine ip default):5001`
+1. You can reset all your data at any time with: `docker-compose rm`
 
-### Outside of Docker
+### Notes for non-dev setups
 
-Follow the previous steps for setup inside a Docker container, except the parts
-about Docker, up to the point where you build the container. Note that you will
-need one or more Docker daemons running in order to make use of DockCI, and
-they may need the `--insecure-registry` daemon option in order to pull and push
-correctly (it is assumed that you are able to docker pull/docker push using
-your registry).
-
-1. Install extra required packages `apt-get install nodejs npm python3 python3-pip python3-virtualenv`
-1. Make the `nodejs` command available as `node` `ln -s $(which nodejs) /usr/bin/node`
-1. Change directory to the DockCI directory
-1. Install dependencies `make deps`
-1. Run DockCI `make run`
+- You can specify a Postgresql database with the `DOCKCI_DB_URI` environment variable
+- The `manage.py` script is used to execute commands on the DockCI install
+- **Example full run command:** `DOCKCI_DB_URI=postgres://dockciuser:dockcipass@localhost:5432/dbname ./manage.py run --db-migrate --bind 0.0.0.0:5000`
 
 ## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly

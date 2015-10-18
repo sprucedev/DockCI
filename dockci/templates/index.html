@@ -4,31 +4,114 @@
     Projects
     {% if current_user.is_authenticated() %}
         <span class="btn-group pull-right">
-            {{ header_button('content-add', '/projects/new') }}
+            <header-button params="icon:'plus', click:addHandler.bind($data, 'project')"></header-button>
         </span>
     {% endif %}
 {% endblock %}
 {% block content %}
-<table class="table table-striped">
-    {% for project in projects %}<tr><td>
-        <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
-    </td></tr>{% else %}<div>
-        You don't have any projects
-    </div>{% endfor %}
-</table>
+<ul class="list-group" data-bind="foreach:messages, visible: messages().length > 0">
+</ul>
+
+<table class="table table-striped"><tbody data-bind="foreach:projects">
+    <tr><td><a data-bind="text:name, attr:{href:link}"></a></td></tr>
+</tbody></table>
+<ul class="list-group" data-bind="foreach:messages">
+    <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+</ul>
+<loading-bar params="visible:loadingProjects"></loading-bar>
+<div style="text-align: center" data-bind="visible:no_projects">
+    No projects
+</div>
 
 <h2>Utilities
 {% if current_user.is_authenticated() %}
     <span class="btn-group pull-right">
-        {{ header_button('content-add', '/projects/new?utility=1') }}
+        <header-button params="icon:'plus', click:addHandler.bind($data, 'utility')"></header-button>
     </span>
 {% endif %}</h2>
 
-<table class="table table-striped">
-    {% for project in utilities %}<tr><td>
-        <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
-    </td></tr>{% else %}<div>
-        You don't have any utilities
-    </div>{% endfor %}
-</table>
+<table class="table table-striped"><tbody data-bind="foreach:utilities">
+    <tr><td><a data-bind="text:name, attr:{href:link}"></a></td></tr>
+</tbody></table>
+<div style="text-align: center" data-bind="visible:no_utilities">
+    No utilities
+</div>
+
+<project-edit-dialog params="
+    visible: addVisible,
+    title: addTitle,
+    project: addBaseProject,
+    githubEnabled: dockci.githubEnabled,
+    githubDefault: dockci.githubDefault,
+    isNew: true,
+    saveLabel: 'Add',
+    action: reload_projects
+"></project-edit-dialog>
+<script>
+    require([
+          'jquery'
+        , 'knockout'
+        , 'app/util'
+        , 'app/models/project'
+
+        , 'app/components/header_button'
+        , 'app/components/project_edit_dialog'
+        , 'app/components/loading_bar'
+
+        , 'bootstrap'
+    ], function($, ko, util, ProjectModel) {
+        $(document).ready(function() {
+            function ThisPage() {
+                var self = this
+
+                self.messages = ko.observableArray()
+                self.projects = ko.observableArray()
+                self.utilities = ko.observableArray()
+
+                self.loadingProjects = ko.observable(true)
+                self.addVisible = ko.observable(false)
+                self.addTitle = ko.observable()
+                self.addBaseProject = ko.observable(new ProjectModel({}))
+
+                function no_list_gen(observable) {
+                    return ko.computed(function() {
+                        return !self.loadingProjects() && observable().length == 0
+                    })
+                }
+
+                self.no_projects = no_list_gen(self.projects)
+                self.no_utilities = no_list_gen(self.utilities)
+
+                self.addHandler = function(addWhat) {
+                    self.addBaseProject(
+                        new ProjectModel({'utility': addWhat === 'utility'})
+                    )
+                    self.addTitle("Add " + addWhat)
+                    self.addVisible(true)
+                }
+
+                function ajax_always() { self.loadingProjects(false) }
+
+                self.reload_projects = function() {
+                    self.loadingProjects(true)
+                    $.ajax("/api/v1/projects", {'dataType': 'json'})
+                        .done(function(projects) {
+                            var mappedProjects = $.map(projects, function(project) {
+                                return new ProjectModel(project)
+                            })
+                            self.projects(mappedProjects.filter(function(project) { return ! project.utility() }))
+                            self.utilities(mappedProjects.filter(function(project) { return project.utility() }))
+                        })
+                        .always(ajax_always)
+                        .fail(util.ajax_fail(self.messages))
+                }.bind(self)
+
+                self.reload_projects()
+            }
+            require(['knockstrap'], function () {
+                ko.applyBindings(new ThisPage())
+            })
+        })
+    })
+</script>
 {% endblock %}

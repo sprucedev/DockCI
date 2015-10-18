@@ -1,12 +1,8 @@
 FROM debian:jessie
 
-EXPOSE 5000
-ENTRYPOINT ["/code/manage.sh"]
-CMD ["run"]
-
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
-        git nodejs npm locales \
+        git nodejs npm libpq-dev locales \
         python3 python3-setuptools
 RUN easy_install3 pip wheel virtualenv
 RUN ln -s $(which nodejs) /usr/bin/node
@@ -16,19 +12,27 @@ ENV LANG en_AU.UTF-8
 
 RUN mkdir -p /code/data
 WORKDIR /code
-ADD ./manage.sh /code/manage.sh
 
 ADD package.json /code/package.json
 ADD bower.json /code/bower.json
-RUN ./manage.sh htmldeps
-ADD manage_collectstatic.sh /code/manage_collectstatic.sh
-RUN ./manage.sh collectstatic
+ADD _deps_html.sh /code/_deps_html.sh
+RUN ./_deps_html.sh
+ADD _deps_collectstatic.sh /code/_deps_collectstatic.sh
+RUN ./_deps_collectstatic.sh
 
+RUN apt-get install -y python3-dev
+ENV WHEELS_ONLY=1
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
-RUN ./manage.sh pythondeps
+ADD _deps_python.sh /code/_deps_python.sh
+RUN ./_deps_python.sh
 
+ADD manage.py /code/manage.py
 ADD dockci /code/dockci
 ADD tests /code/tests
 ADD pylint.conf /code/pylint.conf
-ADD wsgi.py /code/wsgi.py
+ADD alembic /code/alembic
+
+EXPOSE 5000
+ENTRYPOINT ["/code/python_env/bin/python" , "/code/manage.py"]
+CMD ["run"]

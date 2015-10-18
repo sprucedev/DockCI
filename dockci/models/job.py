@@ -8,19 +8,16 @@ import tempfile
 
 from collections import OrderedDict
 from datetime import datetime
+from enum import Enum
 from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import sqlalchemy
 
 from docker.utils import kwargs_from_env
 from flask import url_for
-from yaml_model import (LoadOnAccess,
-                        Model,
-                        ModelReference,
-                        OnAccess,
-                        ValidationError,
-                        )
+from sqlalchemy.sql import func as sql_func
 
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job_meta.config import JobConfig
@@ -41,86 +38,109 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    UtilStage,
                                                    WorkdirStage,
                                                    )
-from dockci.models.project import Project
-from dockci.server import CONFIG, OAUTH_APPS
+from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (bytes_human_readable,
                          client_kwargs_from_config,
-                         is_docker_id,
                          )
 
 
-class Job(Model):  # pylint:disable=too-many-instance-attributes
-    """
-    An individual project job, and result
+class JobResult(Enum):
+    """ Possible results for Job models """
+    success = 'success'
+    fail = 'fail'
+    broken = 'broken'
 
-    Notes:
-      Things like indexing, and other "advanced" features of yaml_model will
-      not work here due to the hacky way we have implemented composite keys
-    """
-    def __init__(self, project=None, slug=None):
-        super(Job, self).__init__()
 
-        assert project is not None, "Project is given"
+class JobStageTmp(DB.Model):  # pylint:disable=no-init
+    """ Quick and dirty list of job stages for the time being """
+    id = DB.Column(DB.Integer(), primary_key=True)
+    slug = DB.Column(DB.String(31))
+    job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'), index=True)
+    job = DB.relationship(
+        'Job',
+        foreign_keys="JobStageTmp.job_id",
+        backref=DB.backref(
+            'job_stages',
+            order_by=sqlalchemy.asc('id'),
+            ))
 
-        self.project = project
-        self.project_slug = project.slug
 
-        if slug:
-            self.slug = slug
+# pylint:disable=too-many-instance-attributes,no-init,too-many-public-methods
+class Job(DB.Model):
+    """ An individual project job, and result """
 
-    slug = OnAccess(lambda _: hex(int(datetime.now().timestamp() * 10000))[2:])
-    project = OnAccess(lambda self: Project(self.project_slug))
-    project_slug = OnAccess(lambda self: self.project.slug)  # TODO inf. loop
-    ancestor_job = ModelReference(lambda self: Job(
-        self.project,
-        self.ancestor_job_slug
-    ), default=lambda _: None)
-    create_ts = LoadOnAccess(generate=lambda _: datetime.now())
-    start_ts = LoadOnAccess(default=lambda _: None)
-    complete_ts = LoadOnAccess(default=lambda _: None)
-    result = LoadOnAccess(default=lambda _: None)
-    repo = LoadOnAccess(generate=lambda self: self.project.repo)
-    commit = LoadOnAccess(default=lambda _: None)
-    tag = LoadOnAccess(default=lambda _: None)
-    image_id = LoadOnAccess(default=lambda _: None)
-    container_id = LoadOnAccess(default=lambda _: None)
-    exit_code = LoadOnAccess(default=lambda _: None)
-    docker_client_host = LoadOnAccess(
-        generate=lambda self: self.docker_client.base_url,
+    id = DB.Column(DB.Integer(), primary_key=True)
+    create_ts = DB.Column(
+        DB.DateTime(), nullable=False, default=sql_func.now(),
     )
-    job_stage_slugs = LoadOnAccess(generate=lambda _: [])
-    job_stages = OnAccess(lambda self: [
-        JobStage(job=self, slug=slug)
-        for slug
-        in self.job_stage_slugs
-    ])
-    git_author_name = LoadOnAccess(default=lambda _: None)
-    git_author_email = LoadOnAccess(default=lambda _: None)
-    git_committer_name = LoadOnAccess(default=lambda self:
-                                      self.git_author_name)
-    git_committer_email = LoadOnAccess(default=lambda self:
-                                       self.git_author_email)
-    git_changes = LoadOnAccess(default=lambda _: None)
-    # pylint:disable=unnecessary-lambda
-    job_config = OnAccess(lambda self: JobConfig(self))
+    start_ts = DB.Column(DB.DateTime())
+    complete_ts = DB.Column(DB.DateTime())
+    result = DB.Column(DB.Enum(
+        *JobResult.__members__,
+        name='job_results'
+    ), index=True)
+    repo = DB.Column(DB.Text(), nullable=False)
+    commit = DB.Column(DB.String(41), nullable=False)
+    tag = DB.Column(DB.Text())
+    image_id = DB.Column(DB.String(65))
+    container_id = DB.Column(DB.String(65))
+    exit_code = DB.Column(DB.Integer())
+    docker_client_host = DB.Column(DB.Text())
+    git_author_name = DB.Column(DB.Text())
+    git_author_email = DB.Column(DB.Text())
+    git_committer_name = DB.Column(DB.Text())
+    git_committer_email = DB.Column(DB.Text())
+    git_changes = DB.Column(DB.Text())
+
+    ancestor_job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'))
+    ancestor_job = DB.relationship('Job',
+                                   uselist=False,
+                                   foreign_keys="Job.ancestor_job_id")
+    project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
 
     _provisioned_containers = []
 
-    def validate(self):
-        with self.parent_validation(Job):
-            errors = []
+    _job_config = None
+    _db_session = None
 
-            if not self.project:
-                errors.append("Parent project not given")
-            if self.image_id and not is_docker_id(self.image_id):
-                errors.append("Invalid Docker image ID")
-            if self.container_id and not is_docker_id(self.container_id):
-                errors.append("Invalid Docker container ID")
+    def __str__(self):
+        return '<{klass}: {project_slug}/{job_slug}>'.format(
+            klass=self.__class__.__name__,
+            project_slug=self.project.slug,
+            job_slug=self.slug,
+        )
 
-            if errors:
-                raise ValidationError(errors)
+    @property
+    def db_session(self):
+        """
+        DB session for this Job is used in job workers without an application
+        context
+        """
+        if self._db_session is None:
+            self._db_session = DB.session()
+        return self._db_session
 
-        return True
+    @property
+    def job_config(self):
+        """ JobConfig for this Job """
+        if self._job_config is None:
+            self._job_config = JobConfig(self)
+        return self._job_config
+
+    @property
+    def slug(self):
+        """ Generated web slug for this job """
+        return self.slug_from_id(self.id)
+
+    @classmethod
+    def id_from_slug(cls, slug):
+        """ Convert a slug to an ID for ORM lookup """
+        return int(slug, 16)
+
+    @classmethod
+    def slug_from_id(cls, id_):
+        """ Convert an ID to a slug (padded hex) """
+        return '{:0>6}'.format(hex(id_)[2:])
 
     @property
     def compound_slug(self):
@@ -129,12 +149,6 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         unique in the data set
         """
         return '%s/%s' % (self.project.slug, self.slug)
-
-    @classmethod
-    def from_compound_slug(cls, compound_slug):
-        """ Create a job object from a compound slug """
-        project_slug, job_slug = compound_slug.split('/')
-        return cls(Project(project_slug), job_slug)
 
     @property
     def url(self):
@@ -180,8 +194,8 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
 
         CACHED VALUES NOT AVAILABLE OUTSIDE FORK
         """
-        if not self._docker_client:
-            if self.has_value('docker_client_host'):
+        if self._docker_client is None:
+            if self.docker_client_host is not None:
                 for host_str in CONFIG.docker_hosts:
                     if host_str.startswith(self.docker_client_host):
                         docker_client_args = client_kwargs_from_config(
@@ -197,8 +211,11 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
                     random.choice(CONFIG.docker_hosts),
                 )
 
+            self.docker_client_host = docker_client_args['base_url']
+            self.db_session.add(self)
+            self.db_session.commit()
+
             self._docker_client = docker.Client(**docker_client_args)
-            self.save()
 
         return self._docker_client
 
@@ -215,7 +232,7 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         return {
             name: {'size': bytes_human_readable(path.size()),
                    'link': url_for('job_output_view',
-                                   project_slug=self.project_slug,
+                                   project_slug=self.project.slug,
                                    job_slug=self.slug,
                                    filename='%s.tar' % name,
                                    ),
@@ -231,9 +248,9 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         """
         if CONFIG.docker_use_registry:
             return '{host}/{name}'.format(host=CONFIG.docker_registry_host,
-                                          name=self.project_slug)
+                                          name=self.project.slug)
 
-        return self.project_slug
+        return self.project.slug
 
     @property
     def docker_full_name(self):
@@ -278,18 +295,16 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         """ Get the path that jobs reside in for the given project """
         return cls.data_dir_path().join(project.slug)
 
-    def data_file_path(self):
-        # Add the project name before the job slug in the path
-        data_file_path = super(Job, self).data_file_path()
-        return self.data_dir_path_for_project(self.project).join(
-            data_file_path.basename
-        )
+    @classmethod
+    def data_dir_path(cls):
+        """ Temporary mock for removing YAML model """
+        path = py.path.local('data')
+        path.ensure(dir=True)
+        return path
 
     def job_output_path(self):
-        """
-        Directory for any job output data
-        """
-        return self.data_file_path().join('..', '%s_output' % self.slug)
+        """ Directory for any job output data """
+        return self.data_dir_path_for_project(self.project).join(self.slug)
 
     def queue(self):
         """
@@ -298,16 +313,16 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        # TODO fix and reenable pylint check for cyclic-import
-        from dockci.workers import run_job_async
-        run_job_async(self.project_slug, self.slug)
+        from dockci.server import APP
+        APP.worker_queue.put(self.id)
 
     def _run_now(self):
         """
         Worker func that performs the job
         """
         self.start_ts = datetime.now()
-        self.save()
+        self.db_session.add(self)
+        self.db_session.commit()
 
         try:
             with tempfile.TemporaryDirectory() as workdir:
@@ -348,20 +363,27 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
 
                 if not all(prepare):
                     self.result = 'broken'
+                    self.db_session.add(self)
+                    self.db_session.commit()
                     return False
 
                 if not TestStage(self).run(0):
                     self.result = 'fail'
+                    self.db_session.add(self)
+                    self.db_session.commit()
                     return False
 
                 # We should fail the job here because if this is a tagged
                 # job, we can't rebuild it
                 if not PushStage(self).run(0):
                     self.result = 'broken'
+                    self.db_session.add(self)
+                    self.db_session.commit()
                     return False
 
                 self.result = 'success'
-                self.save()
+                self.db_session.add(self)
+                self.db_session.commit()
 
                 # Failing this doesn't indicate job failure
                 # TODO what kind of a failure would this not working be?
@@ -370,6 +392,8 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
             return True
         except Exception:  # pylint:disable=broad-except
             self.result = 'broken'
+            self.db_session.add(self)
+            self.db_session.commit()
             self._error_stage('error')
 
             return False
@@ -383,7 +407,8 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
                 self._error_stage('post_error')
 
             self.complete_ts = datetime.now()
-            self.save()
+            self.db_session.add(self)
+            self.db_session.commit()
 
     def send_github_status(self, state=None, state_msg=None, context='push'):
         """
@@ -434,8 +459,9 @@ class Job(Model):  # pylint:disable=too-many-instance-attributes
         Create an error stage and add stack trace for it
         """
         # TODO all this should be in the try/except
-        self.job_stage_slugs.append(stage_slug)  # pylint:disable=no-member
-        self.save()
+        stage = JobStageTmp(job=self, slug=stage_slug)
+        self.db_session.add(stage)
+        self.db_session.commit()
 
         message = None
         try:

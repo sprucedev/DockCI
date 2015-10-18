@@ -47,11 +47,13 @@ class JobStageBase(object):
         if self.returncode is not None:
             raise AlreadyRunError(self)
 
-        self.job.job_stage_slugs.append(self.slug)
-        self.job.save()
+        from dockci.models.job import JobStageTmp
+        stage = JobStageTmp(job=self.job, slug=self.slug)
 
         self.job.job_output_path().ensure_dir()
         with self.data_file_path().open('wb') as handle:
+            self.job.db_session.add(stage)
+            self.job.db_session.commit()
             self.returncode = self.runnable(handle)
 
         if expected_rc is None:
@@ -97,7 +99,9 @@ class CommandJobStage(JobStageBase):  # pylint:disable=abstract-method
 
     # pylint:disable=arguments-differ
     def __init__(self, job, workdir, cmd_args):
-        assert len(cmd_args) > 0, "cmd_args are given"
+        if cmd_args is not None:
+            assert len(cmd_args) > 0, "cmd_args are given"
+
         super(CommandJobStage, self).__init__(job)
         self.workdir = workdir
         self.cmd_args = cmd_args

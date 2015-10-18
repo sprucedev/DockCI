@@ -1,0 +1,24 @@
+<div class="form-group"><div class="form-inline">
+    <div class="btn-group" data-toggle="buttons" data-bind="radio: currentAccount">
+        <!-- ko foreach: accounts -->
+        <label class="btn btn-default form-control">
+            <input type="radio" name="currentAccount" data-bind="value: $data" />
+            <span data-bind="text: $data"></span>
+        </label>
+        <!-- /ko -->
+        <!-- ko if: loading -->
+        <label class="btn btn-default form-control" disabled>
+            <i class="glyphicon glyphicon-refresh spin"></i>
+        </label>
+        <!-- /ko -->
+    </div>
+</div></div>
+<div data-bind="foreach:repos">
+    <div data-bind="css:$parent.columnClass, visible: fullId().startsWith($parent.currentAccount() + '/')">
+        <a data-bind="
+            text: fullId,
+            tooltip:{ title: cloneUrl },
+            click: $parent.clickHandler
+        "></a>
+    </div>
+</div>
