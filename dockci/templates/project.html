@@ -39,9 +39,25 @@
   }
 </style>
 <span class="pull-right">{{ project_shield(project) }}</span>
-<div class="checkbox col-sm-5" style="margin-top: 0px"><label>
-  <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
-</label></div>
+<form class="form-inline" style="margin-top: 0px; margin-bottom: 16px">
+  <label class="checkbox">
+    <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}> Only stable releases
+  </label>
+  <div class="btn-group" style="margin-left: 16px">
+    <button class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+      {{ 'Showing only %s' % branch if branch is not none else 'Branch filter' }}
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+      {% if branch is not none %}
+        <li><a href="" data-bind="click: clearBranchFilter"><i class="glyphicon glyphicon-remove-circle">&nbsp;</i>Clear</a></li>
+      {% endif %}
+      {% for branch_name in distinct_branches %}
+        <li><a href="" data-bind="click: setBranchFilter">{{ branch_name }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</form>
 <table id="jobs-list" class="table table-striped">
   <tr>
     <th class="jobs-list-create-ts">Created</th>
@@ -143,6 +159,19 @@
         this.saving(true)
         this.project().save().always(function() { thisPage.saving(false) })
       }.bind(this)
+
+      this.clearBranchFilter = function () {
+        document.location = URI(document.location)
+          .removeSearch('branch')
+          .removeSearch('page_offset')
+          .toString();
+      }
+      this.setBranchFilter = function(self, ev) {
+        document.location = URI(document.location)
+          .addSearch('branch', ev.target.text)
+          .removeSearch('page_offset')
+          .toString();
+      }
 
       this.project().reload()
     }

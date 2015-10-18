@@ -47,14 +47,30 @@ def project_view(slug):
 
     page_size = int(request.args.get('page_size', 20))
     page = int(request.args.get('page', 1))
+
     versioned = 'versioned' in request.args
+    branch = request.args.get('branch', None)
 
     jobs = project.jobs
+    distinct_branches = [
+        job.git_branch
+        for job
+        in (
+            jobs.distinct(Job.git_branch)
+            .order_by(sqlalchemy.asc(Job.git_branch))
+        )
+        if job.git_branch is not None
+    ]
 
     if versioned:
         jobs = jobs.filter(
             Job.result == 'success',
             Job.tag is not None,
+        )
+
+    if branch:
+        jobs = jobs.filter(
+            Job.git_branch == branch,
         )
 
     jobs = jobs.order_by(sqlalchemy.desc(Job.create_ts))
@@ -65,4 +81,6 @@ def project_view(slug):
         project=project,
         jobs=jobs,
         versioned=versioned,
+        branch=branch,
+        distinct_branches=distinct_branches,
     )
