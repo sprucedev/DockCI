@@ -168,6 +168,7 @@
       }
       this.setBranchFilter = function(self, ev) {
         document.location = URI(document.location)
+          .removeSearch('branch')
           .addSearch('branch', ev.target.text)
           .removeSearch('page_offset')
           .toString();
