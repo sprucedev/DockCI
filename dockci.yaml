@@ -6,7 +6,7 @@ utilities:
       - test-requirements.txt /work/test-requirements.txt
     command: |-
       sh -c '
-        apk add --update postgresql-dev;
+        apk add --update libffi-dev postgresql-dev;
         pip wheel -r requirements.txt;
         pip wheel -r test-requirements.txt
       '
