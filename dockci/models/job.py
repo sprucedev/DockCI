@@ -189,6 +189,19 @@ class Job(DB.Model):
         else:
             return 'queued'  # TODO check if queued or queue fail
 
+
+    @property
+    def changed_result(self):
+        """
+        Check if this job changed the result from it's ancestor. None if
+        there's no result yet
+        """
+        if self.result is None:
+            return None
+
+        return self.ancestor_job.result != self.result
+
+
     _docker_client = None
 
     @property
