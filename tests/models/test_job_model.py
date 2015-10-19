@@ -69,6 +69,20 @@ class TestChangedResult(object):
         )
 
 
+    def test_ancestor_incomplete_no_workdir(self, mocker):
+        job_current = Job()
+        job_ancestor_incomplete = Job()
+
+        mocker.patch.object(job_ancestor_incomplete, 'result', new=None)
+        mocker.patch.object(
+            job_current, 'ancestor_job', new=job_ancestor_incomplete,
+        )
+
+        mocker.patch.object(job_current, 'result', new=JobResult.success)
+
+        assert job_current.changed_result() == True
+
+
     @pytest.mark.parametrize('new_result,changed', [
         (JobResult.success, True),
         (JobResult.fail, True),

@@ -207,6 +207,9 @@ class Job(DB.Model):
             return True
 
         if ancestor_job.result is None:
+            if workdir is None:  # Can't get a better ancestor
+                return True
+
             ancestor_job = self.project.latest_job_ancestor(
                 workdir, self.commit, complete=True,
             )
