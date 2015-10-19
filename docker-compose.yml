@@ -7,6 +7,7 @@ web:
    - postgres
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
+   - ./data:/code/data
    - ./dockci:/code/dockci
    - ./alembic:/code/alembic
 postgres:
