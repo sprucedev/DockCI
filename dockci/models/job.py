@@ -17,7 +17,6 @@ import sqlalchemy
 
 from docker.utils import kwargs_from_env
 from flask import url_for
-from sqlalchemy.sql import func as sql_func
 
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job_meta.config import JobConfig
@@ -71,7 +70,7 @@ class Job(DB.Model):
 
     id = DB.Column(DB.Integer(), primary_key=True)
     create_ts = DB.Column(
-        DB.DateTime(), nullable=False, default=sql_func.now(),
+        DB.DateTime(), nullable=False, default=datetime.now,
     )
     start_ts = DB.Column(DB.DateTime())
     complete_ts = DB.Column(DB.DateTime())
