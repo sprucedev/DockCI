@@ -195,8 +195,7 @@ class Job(DB.Model):
             return 'queued'  # TODO check if queued or queue fail
 
 
-    @property
-    def changed_result(self):
+    def changed_result(self, workdir=None):
         """
         Check if this job changed the result from it's ancestor. None if
         there's no result yet
@@ -205,6 +204,14 @@ class Job(DB.Model):
             return None
 
         ancestor_job = self.ancestor_job
+        if not ancestor_job:
+            return True
+
+        if ancestor_job.result is None:
+            ancestor_job = self.project.latest_job_ancestor(
+                workdir, self.commit, complete=True,
+            )
+
         if not ancestor_job:
             return True
 
