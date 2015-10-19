@@ -14,3 +14,4 @@ tests/.cache/
 
 *.pyc
 *.swp
+*.old
