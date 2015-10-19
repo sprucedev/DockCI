@@ -52,9 +52,9 @@
       {% if branch is not none %}
         <li><a href="" data-bind="click: clearBranchFilter"><i class="glyphicon glyphicon-remove-circle">&nbsp;</i>Clear</a></li>
       {% endif %}
-      {% for branch_name in distinct_branches %}
-        <li><a href="" data-bind="click: setBranchFilter">{{ branch_name }}</a></li>
-      {% endfor %}
+      <!-- ko foreach: project().branches -->
+        <li><a href="" data-bind="click: $parent.setBranchFilter, text: name"></a></li>
+      <!-- /ko -->
     </ul>
   </div>
 </form>
@@ -134,6 +134,7 @@
 
     function ThisPage () {
       this.project = ko.observable(new ProjectModel({'slug': '{{ project.slug }}'}))
+
       this.editVisible = ko.observable(false)
       this.editTitle = ko.computed(function() {
         return "Edit " + this.project().name()

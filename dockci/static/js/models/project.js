@@ -1,4 +1,4 @@
-define(['jquery', 'knockout'], function ($, ko) {
+define(['jquery', 'knockout', '../util'], function ($, ko, util) {
     function ProjectModel(params) {
         this.slug = ko.observable()
         this.name = ko.observable()
@@ -9,6 +9,16 @@ define(['jquery', 'knockout'], function ($, ko) {
 
         this.hipchat_room = ko.observable()
         this.hipchat_api_token = ko.observable()
+
+        this._branchesLoaded = ko.observable()
+        this._branches = ko.observableArray()
+        this.branches = util.pauseableComputed({
+            'read': function() {
+              if(!this._branchesLoaded()) { this.reloadBranches() }
+              return this._branches()
+            }.bind(this)
+          , 'deferEvaluation': true
+        })
 
         this.link = ko.computed(function() {
             return '/projects/' + this.slug()
@@ -56,6 +66,16 @@ define(['jquery', 'knockout'], function ($, ko) {
                   'dataType': 'json'
             }).done(function(data) {
                 this.reload_from(data)
+            }.bind(this))
+        }.bind(this)
+        this.reloadBranches = function () {
+            return $.ajax("/api/v1/projects/" + this.slug() + "/branches", {
+                'dataType': 'json'
+            }).done(function(data) {
+                this.branches.pause()
+                this._branchesLoaded(true)
+                this._branches(data)
+                this.branches.resume()
             }.bind(this))
         }.bind(this)
 

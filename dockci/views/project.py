@@ -52,15 +52,6 @@ def project_view(slug):
     branch = request.args.get('branch', None)
 
     jobs = project.jobs
-    distinct_branches = [
-        job.git_branch
-        for job
-        in (
-            jobs.distinct(Job.git_branch)
-            .order_by(sqlalchemy.asc(Job.git_branch))
-        )
-        if job.git_branch is not None
-    ]
 
     if versioned:
         jobs = jobs.filter(
@@ -82,5 +73,4 @@ def project_view(slug):
         jobs=jobs,
         versioned=versioned,
         branch=branch,
-        distinct_branches=distinct_branches,
     )
