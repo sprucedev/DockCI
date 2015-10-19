@@ -1,5 +1,5 @@
 """ API relating to Job model objects """
-from flask import abort
+from flask import abort, request
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
@@ -9,6 +9,7 @@ from .util import DT_FORMATTER
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API
+from dockci.util import str2bool
 
 
 BASIC_FIELDS = {
@@ -75,6 +76,28 @@ def get_validate_job(project_slug, job_slug):
     return job
 
 
+def filter_jobs_by_request(project):
+    """ Get all jobs for a project, filtered by some request parameters """
+    filter_args = {}
+    for filter_name in ('passed', 'versioned', 'completed'):
+        try:
+            value = request.values[filter_name]
+            if value == '':  # Acting as a switch
+                filter_args[filter_name] = True
+            else:
+                filter_args[filter_name] = str2bool(value)
+
+        except KeyError:
+            pass
+
+    try:
+        filter_args['branch'] = request.values['branch']
+    except KeyError:
+        pass
+
+    return project.filtered_jobs(**filter_args)
+
+
 # pylint:disable=no-self-use
 
 class JobList(BaseDetailResource):
@@ -83,7 +106,7 @@ class JobList(BaseDetailResource):
     def get(self, project_slug):
         """ List all jobs for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
-        return project.jobs.all()
+        return filter_jobs_by_request(project).all()
 
     @login_required
     @marshal_with(CREATE_FIELDS)

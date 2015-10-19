@@ -92,7 +92,12 @@ class Project(DB.Model):  # pylint:disable=no-init
 
         DB.session.commit()
 
-    def latest_job(self, passed=None, versioned=None, completed=None):
+    def latest_job(self,
+                   passed=None,
+                   versioned=None,
+                   completed=None,
+                   branch=None,
+                   ):
         """
         Find the latest job matching the criteria
         """
@@ -100,9 +105,15 @@ class Project(DB.Model):  # pylint:disable=no-init
             passed=passed,
             versioned=versioned,
             completed=completed,
+            branch=branch,
         ).first()
 
-    def filtered_jobs(self, passed=None, versioned=None, completed=True):
+    def filtered_jobs(self,
+                      passed=None,
+                      versioned=None,
+                      completed=True,
+                      branch=None,
+                      ):
         """
         Generator, filtering jobs matching the criteria
         """
@@ -129,6 +140,9 @@ class Project(DB.Model):  # pylint:disable=no-init
         if completed is not None:
             query = query.filter(Job.result.in_(('success', 'fail', 'broken')))
 
+        if branch is not None:
+            query = query.filter_by(git_branch=branch)
+
         return query
 
     def latest_job_ancestor(self,
@@ -136,7 +150,9 @@ class Project(DB.Model):  # pylint:disable=no-init
                             commit,
                             passed=None,
                             versioned=None,
-                            completed=None):
+                            completed=None,
+                            branch=None,
+                            ):
         """
         Find the latest job, matching the criteria, who's a git ancestor of
         the given commit
@@ -146,6 +162,7 @@ class Project(DB.Model):  # pylint:disable=no-init
             passed=passed,
             versioned=versioned,
             completed=completed,
+            branch=branch,
         )
         for job in jobs_query:
             if is_git_ancestor(workdir, job.commit, commit):

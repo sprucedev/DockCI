@@ -6,9 +6,11 @@ import sqlalchemy
 
 from flask import redirect, render_template, request
 
+from dockci.api.job import filter_jobs_by_request
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import APP
+from dockci.util import str2bool
 
 
 def shields_io_sanitize(text):
@@ -48,29 +50,23 @@ def project_view(slug):
     page_size = int(request.args.get('page_size', 20))
     page = int(request.args.get('page', 1))
 
-    versioned = 'versioned' in request.args
-    branch = request.args.get('branch', None)
+    jobs = filter_jobs_by_request(project).paginate(page, page_size)
 
-    jobs = project.jobs
+    # Copied from filter_jobs_by_request :(
+    try:
+        versioned = request.values['versioned']
+        if versioned == '':  # Acting as a switch
+            versioned = True
+        else:
+            versioned = str2bool(versioned)
 
-    if versioned:
-        jobs = jobs.filter(
-            Job.result == 'success',
-            Job.tag is not None,
-        )
-
-    if branch:
-        jobs = jobs.filter(
-            Job.git_branch == branch,
-        )
-
-    jobs = jobs.order_by(sqlalchemy.desc(Job.create_ts))
-    jobs = jobs.paginate(page, page_size)
+    except KeyError:
+        versioned = False
 
     return render_template(
         'project.html',
         project=project,
         jobs=jobs,
         versioned=versioned,
-        branch=branch,
+        branch=request.values.get('branch', None),
     )
