@@ -194,7 +194,6 @@ class Job(DB.Model):
         else:
             return 'queued'  # TODO check if queued or queue fail
 
-
     def changed_result(self, workdir=None):
         """
         Check if this job changed the result from it's ancestor. None if
@@ -216,7 +215,6 @@ class Job(DB.Model):
             return True
 
         return ancestor_job.result != self.result
-
 
     _docker_client = None
 
