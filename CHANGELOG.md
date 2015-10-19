@@ -13,6 +13,7 @@
 - Move requirements to `pip-compile` syntax of new `pip-tools` #268
 - Docker 1.8.3 (Server 1.20) #271
 - New jobs will determine, store, and display branch name #276
+- Job status notifications sent on "change in result" #279
 
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
