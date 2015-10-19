@@ -2,12 +2,9 @@
 Views related to project management
 """
 
-import sqlalchemy
-
 from flask import redirect, render_template, request
 
 from dockci.api.job import filter_jobs_by_request
-from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import APP
 from dockci.util import str2bool
