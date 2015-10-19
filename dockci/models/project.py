@@ -111,7 +111,7 @@ class Project(DB.Model):  # pylint:disable=no-init
     def filtered_jobs(self,
                       passed=None,
                       versioned=None,
-                      completed=True,
+                      completed=None,
                       branch=None,
                       ):
         """
