@@ -1,13 +1,14 @@
 dockerfile: dockci.Dockerfile
 utilities:
-  - name: python3-4-wheels
+  - name: python3-4-wheels-debian
     input:
       - requirements.txt /work/requirements.txt
       - test-requirements.txt /work/test-requirements.txt
     command: |-
       sh -c '
-        apk add --update libffi-dev postgresql-dev;
-        pip wheel -r requirements.txt;
+        apt-get update &&
+        apt-get install -y libffi-dev libpq-dev &&
+        pip wheel -r requirements.txt &&
         pip wheel -r test-requirements.txt
       '
     output:
