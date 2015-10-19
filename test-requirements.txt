@@ -9,7 +9,7 @@ logilab-common==1.1.0     # via astroid, pylint
 pep8==1.6.2
 py==1.4.30                # via pytest
 pylint==1.4.4
-pytest==2.7.2
+pytest==2.8.2
 six==1.10.0               # via astroid, logilab-common, pylint
 
 # The following packages are commented out because they are
