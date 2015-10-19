@@ -35,5 +35,39 @@ define([
     util._paramDef = function(def) {
         return typeof(def) === 'function' ? def() : def
     }
+
+    // MODIFIED FROM http://www.knockmeout.net/2011/04/pausing-notifications-in-knockoutjs.html
+    //wrapper for a computed observable that can pause its subscriptions
+    util.pauseableComputed = function(options) {
+        var _cachedValue = "";
+        var _isPaused = ko.observable(false);
+        var _readFunc = options['read'];
+
+        options['read'] = function() {
+            if (!_isPaused()) {
+                //call the actual function that was passed in
+                return _readFunc.call(this);
+            }
+            return _cachedValue;
+        }
+
+        //the computed observable that we will return
+        var result = ko.computed(options)
+
+        //keep track of our current value and set the pause flag to release our actual subscriptions
+        result.pause = function() {
+            _cachedValue = this();
+            _isPaused(true);
+        }.bind(result);
+
+        //clear the cached value and allow our computed observable to be re-evaluated
+        result.resume = function() {
+            _cachedValue = "";
+            _isPaused(false);
+        }
+
+        return result;
+    };
+
     return util
 })

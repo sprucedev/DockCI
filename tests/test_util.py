@@ -3,7 +3,10 @@ import subprocess
 import docker
 import pytest
 
-from dockci.util import client_kwargs_from_config, is_git_ancestor
+from dockci.util import (client_kwargs_from_config,
+                         git_ref_name_of,
+                         is_git_ancestor,
+                         )
 
 
 class TestClientKwargsFromConfig(object):
@@ -127,33 +130,97 @@ class TestClientKwargsFromConfig(object):
         assert out['tls'].verify == None
 
 
+class TestGitRefNameOf(object):
+    """ Test ``the git_ref_name_of`` function """
+    def test_master(self, tmpgitdir):
+        """ Test getting ref name when single commit on master """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+
+        assert git_ref_name_of(tmpgitdir, 'HEAD') == 'master'
+
+    def test_new_branch(self, tmpgitdir):
+        """ Test when branch is not master """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+
+        subprocess.check_call(['git', 'checkout', '-b', 'testbranch'])
+
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+
+        assert git_ref_name_of(tmpgitdir, 'HEAD') == 'testbranch'
+
+    def test_different_branch(self, tmpgitdir):
+        """ Test when ref is not HEAD """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+        first_hash = subprocess.check_output(
+            ['git', 'show', '-s', '--format=format:%H']).decode()
+
+        subprocess.check_call(['git', 'checkout', '-b', 'testbranch'])
+
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+
+        assert git_ref_name_of(tmpgitdir, first_hash) == 'master'
+
+    def test_not_branch_tip(self, tmpgitdir):
+        """ Test when a commit is not on a branch tip """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+        first_hash = subprocess.check_output(
+            ['git', 'show', '-s', '--format=format:%H']).decode()
+
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+
+        assert git_ref_name_of(tmpgitdir, first_hash) == 'master'
+
+
 class TestGitAncestor(object):
     """ Tests the is_git_ancestor utility """
-    def test_two_commits(self, tmpdir):
+    def test_two_commits(self, tmpgitdir):
         """
         Ensure that a commit directly before another is correctly identified as
         an ancestor, and that the child is identified as not an ancestor
         """
-        with tmpdir.as_cwd():
-            subprocess.check_call(['git', 'init'])
-            subprocess.check_call(['git', 'config', 'user.name', 'DockCI Test'])
-            subprocess.check_call(['git', 'config', 'user.email', 'test@example.com'])
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
 
-            with tmpdir.join('file_a.txt').open('w') as handle:
-                handle.write('first file')
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+        first_hash = subprocess.check_output(
+            ['git', 'show', '-s', '--format=format:%H']).decode()
 
-            subprocess.check_call(['git', 'add', '.'])
-            subprocess.check_call(['git', 'commit', '-m', 'first'])
-            first_hash = subprocess.check_output(
-                ['git', 'show', '-s', '--format=format:%H']).decode()
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
 
-            with tmpdir.join('file_b.txt').open('w') as handle:
-                handle.write('second file')
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+        second_hash = subprocess.check_output(
+            ['git', 'show', '-s', '--format=format:%H']).decode()
 
-            subprocess.check_call(['git', 'add', '.'])
-            subprocess.check_call(['git', 'commit', '-m', 'second'])
-            second_hash = subprocess.check_output(
-                ['git', 'show', '-s', '--format=format:%H']).decode()
-
-            assert is_git_ancestor(tmpdir, first_hash, second_hash)
-            assert not is_git_ancestor(tmpdir, second_hash, first_hash)
+        assert is_git_ancestor(tmpgitdir, first_hash, second_hash)
+        assert not is_git_ancestor(tmpgitdir, second_hash, first_hash)

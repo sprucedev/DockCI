@@ -33,15 +33,44 @@
   {% endif %}
 {% endblock %}
 {% block content %}
+<style type="text/css">
+  .jobs-list-git-branch {
+    overflow: hidden;
+  }
+</style>
 <span class="pull-right">{{ project_shield(project) }}</span>
-<div class="checkbox col-sm-5" style="margin-top: 0px"><label>
-  <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}>Only stable releases
-</label></div>
+<form class="form-inline" style="margin-top: 0px; margin-bottom: 16px">
+  <label class="checkbox">
+    <input id="filterStable" type="checkbox" {{ 'checked' if versioned else '' }}> Only stable releases
+  </label>
+  <div class="btn-group" style="margin-left: 16px">
+    <button class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+      {{ 'Showing only %s' % branch if branch is not none else 'Branch filter' }}
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+      {% if branch is not none %}
+        <li><a href="" data-bind="click: clearBranchFilter"><i class="glyphicon glyphicon-remove-circle">&nbsp;</i>Clear</a></li>
+      {% endif %}
+      <!-- ko foreach: project().branches -->
+        <li><a href="" data-bind="click: $parent.setBranchFilter, text: name"></a></li>
+      <!-- /ko -->
+    </ul>
+  </div>
+</form>
 <table id="jobs-list" class="table table-striped">
-  <tr><th>Created</th><th>Tag</th><th>Commit ref</th><th>Author</th><th>State</th></tr>
+  <tr>
+    <th>Created</th>
+    <th>Branch</th>
+    <th>Tag</th>
+    <th>Commit ref</th>
+    <th>Author</th>
+    <th>State</th>
+  </tr>
   {% for job in jobs.items -%}
     <tr class="job-detail">
       <td><a href="/projects/{{ project.slug }}/jobs/{{ job.slug }}">{{ job.create_ts }}</a></td>
+      <td>{{ job.git_branch if job.git_branch else '' }}</td>
       <td>{{ job.tag if job.tag else '' }}</td>
       <td>{{ job.commit }}</td>
       <td>{{ git_user(job.git_author_name, job.git_author_email) if job.git_author_name or job.git_author_email else ''}}</td>
@@ -50,11 +79,12 @@
   {%- endfor %}
 </table>
 {% set versioned_str = '&versioned' if versioned else '' %}
+{% set branch_str = '&branch=%s' % branch if branch else '' %}
 {% if jobs.has_prev -%}
-    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.prev_num, jobs.per_page, versioned_str) }}" class="btn btn-default btn-lg">Previous</a>
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s%s' % (project.slug, jobs.prev_num, jobs.per_page, versioned_str, branch_str) }}" class="btn btn-default btn-lg">Previous</a>
 {% endif -%}
 {% if jobs.has_next -%}
-    <a href="{{ '/projects/%s?page=%d&page_size=%d%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str) }}" class="btn btn-default btn-lg pull-right">Next</a>
+    <a href="{{ '/projects/%s?page=%d&page_size=%d%s%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str, branch_str) }}" class="btn btn-default btn-lg pull-right">Next</a>
 {% endif -%}
 <project-edit-dialog params="
     visible: editVisible,
@@ -104,6 +134,7 @@
 
     function ThisPage () {
       this.project = ko.observable(new ProjectModel({'slug': '{{ project.slug }}'}))
+
       this.editVisible = ko.observable(false)
       this.editTitle = ko.computed(function() {
         return "Edit " + this.project().name()
@@ -130,6 +161,20 @@
         this.saving(true)
         this.project().save().always(function() { thisPage.saving(false) })
       }.bind(this)
+
+      this.clearBranchFilter = function () {
+        document.location = URI(document.location)
+          .removeSearch('branch')
+          .removeSearch('page_offset')
+          .toString();
+      }
+      this.setBranchFilter = function(self, ev) {
+        document.location = URI(document.location)
+          .removeSearch('branch')
+          .addSearch('branch', ev.target.text)
+          .removeSearch('page_offset')
+          .toString();
+      }
 
       this.project().reload()
     }

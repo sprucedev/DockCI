@@ -20,6 +20,7 @@ from dockci.models.project import Project
 from dockci.server import APP, DB
 from dockci.util import (DateTimeEncoder,
                          is_valid_github,
+                         parse_branch_from_ref,
                          path_contained
                          )
 
@@ -57,6 +58,7 @@ def job_new_view(project_slug):
     if request.headers['X-Github-Event'] == 'push':
         push_data = request.json
         job.commit = push_data['head_commit']['id']
+        job.git_branch = parse_branch_from_ref(push_data['ref'])
 
     else:
         logging.debug("Unknown GitHub hook '%s'",

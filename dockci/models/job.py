@@ -69,11 +69,13 @@ class Job(DB.Model):
     """ An individual project job, and result """
 
     id = DB.Column(DB.Integer(), primary_key=True)
+
     create_ts = DB.Column(
         DB.DateTime(), nullable=False, default=datetime.now,
     )
     start_ts = DB.Column(DB.DateTime())
     complete_ts = DB.Column(DB.DateTime())
+
     result = DB.Column(DB.Enum(
         *JobResult.__members__,
         name='job_results'
@@ -85,6 +87,7 @@ class Job(DB.Model):
     container_id = DB.Column(DB.String(65))
     exit_code = DB.Column(DB.Integer())
     docker_client_host = DB.Column(DB.Text())
+    git_branch = DB.Column(DB.Text())
     git_author_name = DB.Column(DB.Text())
     git_author_email = DB.Column(DB.Text())
     git_committer_name = DB.Column(DB.Text())
