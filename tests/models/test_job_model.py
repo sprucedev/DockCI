@@ -22,3 +22,22 @@ class TestChangedResult(object):
         mocker.patch.object(job_ancestor, 'result', new=prev_result)
 
         assert job_current.changed_result == changed
+
+
+    @pytest.mark.parametrize('new_result,changed', [
+        (JobResult.success, True),
+        (JobResult.fail, True),
+        (JobResult.broken, True),
+        (None, None),
+    ])
+    def test_no_ancestors(self,
+                          mocker,
+                          new_result,
+                          changed):
+        """ Test when ancestor job has a result """
+        job_current = Job()
+
+        mocker.patch.object(job_current, 'ancestor_job', new=None)
+        mocker.patch.object(job_current, 'result', new=new_result)
+
+        assert job_current.changed_result == changed

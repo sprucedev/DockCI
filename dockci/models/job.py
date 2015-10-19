@@ -204,7 +204,11 @@ class Job(DB.Model):
         if self.result is None:
             return None
 
-        return self.ancestor_job.result != self.result
+        ancestor_job = self.ancestor_job
+        if not ancestor_job:
+            return True
+
+        return ancestor_job.result != self.result
 
 
     _docker_client = None
