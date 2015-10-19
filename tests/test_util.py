@@ -180,6 +180,24 @@ class TestGitRefNameOf(object):
 
         assert git_ref_name_of(tmpgitdir, first_hash) == 'master'
 
+    def test_not_branch_tip(self, tmpgitdir):
+        """ Test when a commit is not on a branch tip """
+        with tmpgitdir.join('file_a.txt').open('w') as handle:
+            handle.write('first file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'first'])
+        first_hash = subprocess.check_output(
+            ['git', 'show', '-s', '--format=format:%H']).decode()
+
+        with tmpgitdir.join('file_b.txt').open('w') as handle:
+            handle.write('second file')
+
+        subprocess.check_call(['git', 'add', '.'])
+        subprocess.check_call(['git', 'commit', '-m', 'second'])
+
+        assert git_ref_name_of(tmpgitdir, first_hash) == 'master'
+
 
 class TestGitAncestor(object):
     """ Tests the is_git_ancestor utility """

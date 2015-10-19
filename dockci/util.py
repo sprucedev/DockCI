@@ -540,7 +540,7 @@ def client_kwargs_from_config(host_str):
     return docker_client_args
 
 
-GIT_NAME_REV_BRANCH = re.compile(r'^(remotes/origin/|refs/heads/)([^~]+)')
+GIT_NAME_REV_BRANCH = re.compile(r'^(remotes/origin/|refs/heads/)?([^~]+)')
 
 
 def parse_branch_from_ref(ref):
