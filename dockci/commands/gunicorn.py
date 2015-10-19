@@ -35,7 +35,7 @@ class GunicornWrapper(BaseApplication):  # pylint:disable=abstract-method
 
 @MANAGER.option("-w", "--workers",
                 help="Number of gunicorn workers to start",
-                default=20)
+                default=10)
 @MANAGER.option("--bind",
                 help="Interface, and port to listen on",
                 default="127.0.0.1:5000")
