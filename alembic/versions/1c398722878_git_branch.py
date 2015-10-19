@@ -1,14 +1,14 @@
 """git_branch
 
 Revision ID: 1c398722878
-Revises: f8d315a31e
+Revises: 224302e491d
 Create Date: 2015-10-18 00:38:22.737519
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '1c398722878'
-down_revision = 'f8d315a31e'
+down_revision = '224302e491d'
 branch_labels = None
 depends_on = None
 
