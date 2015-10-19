@@ -1,6 +1,8 @@
 """ API relating to Project model objects """
 import re
 
+import sqlalchemy
+
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import login_required
 
@@ -8,6 +10,7 @@ from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import WrappedValueError
 from .fields import NonBlankInput, RewriteUrl
 from .util import filter_query_args, new_edit_parsers
+from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API
 
@@ -47,6 +50,10 @@ DETAIL_FIELDS = {
     'shield_color': fields.String(),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
+
+BASIC_BRANCH_FIELDS = {
+    'name': fields.String(),
+}
 
 
 SHARED_PARSER_ARGS = {
@@ -127,9 +134,29 @@ class ProjectDetail(BaseDetailResource):
         return {'message': '%s deleted' % project_name}
 
 
+class ProjectBranchList(Resource):
+    """ API resource that handles listing branches for a project """
+    @marshal_with(BASIC_BRANCH_FIELDS)
+    def get(self, project_slug):
+        """ List of all branches in a project """
+        project = Project.query.filter_by(slug=project_slug).first_or_404()
+        return [
+            dict(name=job.git_branch)
+            for job
+            in (
+                project.jobs.distinct(Job.git_branch)
+                .order_by(sqlalchemy.asc(Job.git_branch))
+            )
+            if job.git_branch is not None
+        ]
+
+
 API.add_resource(ProjectList,
                  '/projects',
                  endpoint='project_list')
 API.add_resource(ProjectDetail,
                  '/projects/<string:project_slug>',
                  endpoint='project_detail')
+API.add_resource(ProjectBranchList,
+                 '/projects/<string:project_slug>/branches',
+                 endpoint='project_branch_list')
