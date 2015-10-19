@@ -13,7 +13,7 @@ import sqlalchemy
 from flask import url_for
 
 from dockci.server import DB, OAUTH_APPS
-from dockci.util import is_git_ancestor
+from dockci.util import is_git_ancestor, is_git_hash
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
@@ -165,6 +165,9 @@ class Project(DB.Model):  # pylint:disable=no-init
             branch=branch,
         )
         for job in jobs_query:
+            if not is_git_hash(job.commit):  # Skip things like 'HEAD'
+                continue
+
             if is_git_ancestor(workdir, job.commit, commit):
                 return job
 
