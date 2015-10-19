@@ -6,8 +6,9 @@ utilities:
       - test-requirements.txt /work/test-requirements.txt
     command: |-
       sh -c '
-        apk add --update postgresql-dev;
-        pip wheel -r requirements.txt -r test-requirements.txt
+        apk add --update libffi-dev postgresql-dev;
+        pip wheel -r requirements.txt;
+        pip wheel -r test-requirements.txt
       '
     output:
       - from: /work/wheelhouse

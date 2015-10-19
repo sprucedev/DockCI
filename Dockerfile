@@ -2,7 +2,7 @@ FROM debian:jessie
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
-        git nodejs npm libpq-dev locales \
+        git nodejs npm libffi-dev libpq-dev locales \
         python3 python3-setuptools
 RUN easy_install3 pip wheel virtualenv
 RUN ln -s $(which nodejs) /usr/bin/node

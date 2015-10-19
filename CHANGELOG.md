@@ -1,13 +1,17 @@
 # Changelog
 
-### v0.0.8
-- Replace data store with PostgreSQL/SQLAlchemy
-- Implement a RESTful API
-- Overhaul front end with new API-driven JS
-- Revert to stock bootstap for ease of development
-- Compose file for quickly starting a dev environment
-- Use Flask-Script for better command integration
-- Early job worker loop to handle dirty DB from the UI workers
+### v0.0.8 (Breaking)
+- **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
+  - No migration from yaml_model to PostgreSQL
+- Implement a RESTful API #260
+- Overhaul front end with new API-driven JS #260
+- Revert to stock bootstap for ease of development #260
+- Compose file for quickly starting a dev environment #260
+- Use Flask-Script for better command integration #260
+- Early job worker loop to handle dirty DB from the UI workers #260
+- Handle mail failures in Flask-Security gracefully #266
+- Move requirements to `pip-compile` syntax of new `pip-tools` #268
+- Docker 1.8.3 (Server 1.20) #271
 - New jobs will determine, store, and display branch name
 
 ### v0.0.7

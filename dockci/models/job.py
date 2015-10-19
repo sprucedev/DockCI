@@ -17,7 +17,6 @@ import sqlalchemy
 
 from docker.utils import kwargs_from_env
 from flask import url_for
-from sqlalchemy.sql import func as sql_func
 
 from dockci.exceptions import AlreadyRunError
 from dockci.models.job_meta.config import JobConfig
@@ -71,7 +70,7 @@ class Job(DB.Model):
 
     id = DB.Column(DB.Integer(), primary_key=True)
     create_ts = DB.Column(
-        DB.DateTime(), nullable=False, default=sql_func.now(),
+        DB.DateTime(), nullable=False, default=datetime.now,
     )
 
     start_ts = DB.Column(DB.DateTime())
@@ -95,9 +94,11 @@ class Job(DB.Model):
     git_changes = DB.Column(DB.Text())
 
     ancestor_job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'))
-    ancestor_job = DB.relationship('Job',
-                                   uselist=False,
-                                   foreign_keys="Job.ancestor_job_id")
+    child_jobs = DB.relationship(
+        'Job',
+        foreign_keys="Job.ancestor_job_id",
+        backref=DB.backref('ancestor_job', remote_side=[id]),
+    )
     project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
 
     _provisioned_containers = []
