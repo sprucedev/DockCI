@@ -10,6 +10,7 @@ web:
    - ./data:/code/data
    - ./dockci:/code/dockci
    - ./alembic:/code/alembic
+   - /Users:/Users
 postgres:
   image: postgres
   environment:

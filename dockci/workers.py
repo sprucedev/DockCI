@@ -3,6 +3,9 @@ Functions and constants relating to background workers
 """
 import logging
 import os
+import tempfile
+
+import py.path  # pylint:disable=import-error
 
 from flask_mail import Message
 
@@ -46,11 +49,16 @@ def run_job_async(job_id):
     try:
         with APP.app_context():
             job = Job.query.get(job_id)
-            job_okay = job._run_now()  # pylint:disable=protected-access
+            with tempfile.TemporaryDirectory() as workdir:
+                # pylint:disable=protected-access
+                workdir = py.path.local(workdir)
+                job._run_now(workdir)
+                changed_result = job.changed_result(workdir)
+
             project = job.project
 
             # Send the failure message
-            if not job_okay:
+            if changed_result:
                 recipients = []
                 if job.git_author_email:
                     recipients.append('%s <%s>' % (
@@ -76,15 +84,20 @@ def run_job_async(job_id):
                     )
                     send_mail(email)
 
-            # Send a HipChat notification
-            if project.hipchat_api_token != '' and project.hipchat_room != '':
-                hipchat = HipChat(apitoken=project.hipchat_api_token,
-                                  room=project.hipchat_room)
-                hipchat.message("DockCI - {name} Job {id}: {result}".format(
-                    name=project.name,
-                    id=job.create_ts,
-                    result=job.result,
-                ))
+                # Send a HipChat notification
+                if (
+                    project.hipchat_api_token != '' and
+                    project.hipchat_room != ''
+                ):
+                    hipchat = HipChat(apitoken=project.hipchat_api_token,
+                                      room=project.hipchat_room)
+                    hipchat.message(
+                        "DockCI - {name} Job {id}: {result}".format(
+                            name=project.name,
+                            id=job.create_ts,
+                            result=job.result,
+                        )
+                    )
 
     except Exception:  # pylint:disable=broad-except
         logger.exception("Something went wrong in the job worker")
