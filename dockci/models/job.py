@@ -349,78 +349,79 @@ class Job(DB.Model):
         from dockci.server import APP
         APP.worker_queue.put(self.id)
 
-    def _run_now(self):
+    def _run_now(self, workdir=None):
         """
         Worker func that performs the job
         """
+        if workdir is None:
+            with tempfile.TemporaryDirectory() as workdir:
+                return self._run_now(py.path.local(workdir))
+
         self.start_ts = datetime.now()
         self.db_session.add(self)
         self.db_session.commit()
 
         try:
-            with tempfile.TemporaryDirectory() as workdir:
-                workdir = py.path.local(workdir)
+            git_info = (stage() for stage in (
+                lambda: WorkdirStage(self, workdir).run(0),
+                lambda: GitInfoStage(self, workdir).run(0),
+            ))
 
-                git_info = (stage() for stage in (
-                    lambda: WorkdirStage(self, workdir).run(0),
-                    lambda: GitInfoStage(self, workdir).run(0),
-                ))
+            if not all(git_info):
+                self.result = 'broken'
+                return False
 
-                if not all(git_info):
-                    self.result = 'broken'
-                    return False
+            def create_util_stage(suffix, config):
+                """ Create a UtilStage wrapped in lambda for running """
+                return lambda: UtilStage(
+                    self, workdir, suffix, config,
+                ).run(0)
 
-                def create_util_stage(suffix, config):
-                    """ Create a UtilStage wrapped in lambda for running """
-                    return lambda: UtilStage(
-                        self, workdir, suffix, config,
-                    ).run(0)
+            prepare = (stage() for stage in chain(
+                (
+                    lambda: GitChangesStage(self, workdir).run(0),
+                    lambda: GitMtimeStage(self, workdir).run(None),
+                    lambda: TagVersionStage(self, workdir).run(None),
+                ), (
+                    create_util_stage(suffix_outer, config_outer)
+                    for suffix_outer, config_outer
+                    in self.utilities.items()
+                ), (
+                    lambda: ProvisionStage(self).run(0),
+                    lambda: BuildStage(self, workdir).run(0),
+                )
+            ))
 
-                prepare = (stage() for stage in chain(
-                    (
-                        lambda: GitChangesStage(self, workdir).run(0),
-                        lambda: GitMtimeStage(self, workdir).run(None),
-                        lambda: TagVersionStage(self, workdir).run(None),
-                    ), (
-                        create_util_stage(suffix_outer, config_outer)
-                        for suffix_outer, config_outer
-                        in self.utilities.items()
-                    ), (
-                        lambda: ProvisionStage(self).run(0),
-                        lambda: BuildStage(self, workdir).run(0),
-                    )
-                ))
+            if self.project.github_repo_id:
+                ExternalStatusStage(self, 'start').run(0)
 
-                if self.project.github_repo_id:
-                    ExternalStatusStage(self, 'start').run(0)
-
-                if not all(prepare):
-                    self.result = 'broken'
-                    self.db_session.add(self)
-                    self.db_session.commit()
-                    return False
-
-                if not TestStage(self).run(0):
-                    self.result = 'fail'
-                    self.db_session.add(self)
-                    self.db_session.commit()
-                    return False
-
-                # We should fail the job here because if this is a tagged
-                # job, we can't rebuild it
-                if not PushStage(self).run(0):
-                    self.result = 'broken'
-                    self.db_session.add(self)
-                    self.db_session.commit()
-                    return False
-
-                self.result = 'success'
+            if not all(prepare):
+                self.result = 'broken'
                 self.db_session.add(self)
                 self.db_session.commit()
+                return False
 
-                # Failing this doesn't indicate job failure
-                # TODO what kind of a failure would this not working be?
-                FetchStage(self).run(None)
+            if not TestStage(self).run(0):
+                self.result = 'fail'
+                self.db_session.add(self)
+                self.db_session.commit()
+                return False
+
+            # We should fail the job here because if this is a tagged
+            # job, we can't rebuild it
+            if not PushStage(self).run(0):
+                self.result = 'broken'
+                self.db_session.add(self)
+                self.db_session.commit()
+                return False
+
+            self.result = 'success'
+            self.db_session.add(self)
+            self.db_session.commit()
+
+            # Failing this doesn't indicate job failure
+            # TODO what kind of a failure would this not working be?
+            FetchStage(self).run(None)
 
             return True
         except Exception:  # pylint:disable=broad-except
