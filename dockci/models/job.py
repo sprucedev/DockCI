@@ -108,10 +108,15 @@ class Job(DB.Model):
     _db_session = None
 
     def __str__(self):
+        try:
+            slug = self.slug
+        except TypeError:
+            slug = self.id
+
         return '<{klass}: {project_slug}/{job_slug}>'.format(
             klass=self.__class__.__name__,
             project_slug=self.project.slug,
-            job_slug=self.slug,
+            job_slug=slug,
         )
 
     @property
