@@ -5,6 +5,7 @@ import pytest
 
 @pytest.yield_fixture
 def tmpgitdir(tmpdir):
+    """ Get a new ``tmpdir``, make it the cwd, and set git config """
     with tmpdir.as_cwd():
         subprocess.check_call(['git', 'init'])
         for name, val in (
