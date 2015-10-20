@@ -224,12 +224,13 @@ def is_git_ancestor(workdir, parent_check, child_check):
     return proc.returncode == 0
 
 
-def git_ref_name_of(workdir, ref, stderr=None):
-    """ Gets the full git ref name of a ref (eg a commit hash) """
+def git_head_ref_name(workdir, stderr=None):
+    """ Gets the full git ref name of the HEAD ref """
     proc = subprocess.Popen([
             'git', 'name-rev',
             '--name-only', '--no-undefined',
-            ref,
+            '--ref', 'refs/heads/*',
+            'HEAD',
         ],
         stdout=subprocess.PIPE,
         stderr=stderr,
