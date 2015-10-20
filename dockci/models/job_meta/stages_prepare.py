@@ -24,7 +24,7 @@ from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
-                         git_ref_name_of,
+                         git_head_ref_name,
                          path_contained,
                          write_all,
                          )
@@ -125,8 +125,8 @@ class GitInfoStage(JobStageBase):
             self.job.ancestor_job_id = ancestor_job.id
 
         if self.job.git_branch is None:
-            self.job.git_branch = git_ref_name_of(
-                self.workdir, 'HEAD', stderr=handle,
+            self.job.git_branch = git_head_ref_name(
+                self.workdir, stderr=handle,
             )
             if self.job.git_branch is not None:
                 properties_empty = False
