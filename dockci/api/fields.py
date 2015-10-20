@@ -49,3 +49,15 @@ class NonBlankInput(object):
             pass
 
         return value
+
+
+def strip(field_type):
+    def inner(value, name):
+        try:
+            value = value.strip()
+        except AttributeError:
+            pass
+
+        return field_type(value, name)
+
+    return inner
