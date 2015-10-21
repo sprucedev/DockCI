@@ -3,6 +3,8 @@ Flask RESTful fields, and WTForms input validators for validation and
 marshaling
 """
 
+from functools import wraps
+
 from flask_restful import fields
 
 
@@ -52,7 +54,10 @@ class NonBlankInput(object):
 
 
 def strip(field_type):
+    """ Decorator to strip whitespace on input values before parsing """
+    @wraps(field_type)
     def inner(value, name):
+        """ Strip whitespace, pass to input field type """
         try:
             value = value.strip()
         except AttributeError:
