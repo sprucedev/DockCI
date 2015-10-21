@@ -3,6 +3,7 @@ from flask import abort, request
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
+from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
@@ -62,7 +63,8 @@ DETAIL_FIELDS.update(CREATE_FIELDS)
 
 JOB_NEW_PARSER = BaseRequestParser()
 JOB_NEW_PARSER.add_argument('commit',
-                            required=True, type=NonBlankInput(),
+                            required=True,
+                            type=fields_.strip(NonBlankInput()),
                             help="Git ref to check out")
 
 
