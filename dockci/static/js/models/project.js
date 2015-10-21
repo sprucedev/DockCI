@@ -5,6 +5,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.repo = ko.observable()
         this.utility = ko.observable()
 
+        this.github_secret = ko.observable()
         this.github_repo_id = ko.observable()
 
         this.hipchat_room = ko.observable()
@@ -30,6 +31,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             var baseParams = {
                 'name': this.name() || '',
                 'repo': this.repo() || '',
+                'github_secret': this.github_secret() || undefined,
                 'hipchat_room': this.hipchat_room() || undefined,
                 'hipchat_api_token': this.hipchat_api_token() || undefined,
             }

@@ -65,6 +65,7 @@ SHARED_PARSER_ARGS = {
         help="Git repository for the project code",
         required=None, type=NonBlankInput(),
     ),
+    'github_secret': dict(help="Shared secret to validate GitHub hooks"),
     'hipchat_room': dict(help="Room to post HipChat notifications to"),
     'hipchat_api_token': dict(help="HipChat API token for authentication"),
 }
