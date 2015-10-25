@@ -34,6 +34,7 @@ define([
         }.bind(this))
 
         this.trigGithubReload = ko.observable()
+        this.redirect = ko.observable()
 
         this.githubAction = function(repo) {
             this.project().github_repo_id(repo.fullId())
@@ -48,6 +49,10 @@ define([
             if(val === 'github') {
                 this.reloadGithub()
             }
+        }.bind(this))
+
+        this.redirect.subscribe(function() {
+            window.location.href = this.redirect()
         }.bind(this))
 
         if(finalParams['reload']) {

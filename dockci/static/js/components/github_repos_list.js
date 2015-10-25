@@ -13,6 +13,7 @@ define([
             , 'reload': false
             , 'trigReload': undefined
             , 'ready': (function(){})
+            , 'redirect': ko.observable()
         }, params)
 
         this.pageSize = finalParams['pageSize']
@@ -43,6 +44,7 @@ define([
         }.bind(this))
 
         this.action = finalParams['action']
+        this.redirect = finalParams['redirect']
 
         loadFrom = function(page) {
             this.loading(true)
@@ -53,6 +55,11 @@ define([
                     , 'page': page
                 }
             }).done(function(reposData) {
+                if(typeof(reposData) == 'object' && 'redirect' in reposData) {
+                    this.redirect(reposData['redirect'])
+                    return
+                }
+
                 $(reposData['repos']).each(function(idx, repoData) {
                     this.repos.push(new GithubRepoModel({
                           'fullId': repoData['full_name']
@@ -79,7 +86,7 @@ define([
             loadFrom(1)
         }.bind(this)
 
-        if(finalParams['reload']) {
+        if(finalParams['reload']()) {
             this.reload()
         }
 
