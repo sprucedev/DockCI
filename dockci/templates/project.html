@@ -10,23 +10,23 @@
       <!-- ko component: {
         name: 'header-button',
         params: {
-          icon: 'trash',
-          click: deleteHandler,
-          buttonType: 'danger'
+            icon: 'trash'
+          , click: deleteHandler
+          , buttonType: 'danger'
         }
       } --><!-- /ko -->
       <!-- ko component: {
-        name: 'header-button',
-        params: {
-          icon: 'edit',
-          click: editHandler
+          name: 'header-button'
+        , params: {
+            icon: 'edit'
+          , click: editHandler
         }
       } --><!-- /ko -->
       <!-- ko component: {
-        name: 'header-button',
-        params: {
-          icon: 'play-circle',
-          click: runHandler
+          name: 'header-button'
+        , params: {
+            icon: 'play-circle'
+          , click: runHandler
         }
       } --><!-- /ko -->
     </span>
@@ -87,12 +87,12 @@
     <a href="{{ '/projects/%s?page=%d&page_size=%d%s%s' % (project.slug, jobs.next_num, jobs.per_page, versioned_str, branch_str) }}" class="btn btn-default btn-lg pull-right">Next</a>
 {% endif -%}
 <project-edit-dialog params="
-    visible: editVisible,
-    title: editTitle,
-    github: true,
-    project: project,
-    isNew: false,
-    saveLabel: 'Update'
+      visible: editVisible
+    , title: editTitle
+    , github: true
+    , project: project
+    , isNew: false
+    , saveLabel: 'Update'
 "></project-edit-dialog>
 <job-run-dialog params="
       visible: runVisible
