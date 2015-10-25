@@ -41,7 +41,7 @@ class Project(DB.Model):  # pylint:disable=no-init
     github_auth_token_id = DB.Column(
         DB.Integer, DB.ForeignKey('o_auth_token.id'),
     )
-    github_auth_token = DB.relationship(
+    github_auth_token = DB.relationship(  # TODO generic oauth assoc
         'OAuthToken',
         foreign_keys="Project.github_auth_token_id",
         backref=DB.backref('projects', lazy='dynamic'),
