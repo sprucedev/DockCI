@@ -37,6 +37,7 @@ define([
         this.redirect = ko.observable()
 
         this.githubAction = function(repo) {
+            this.project().repo(repo.cloneUrl())
             this.project().github_repo_id(repo.fullId())
             this.project().slug(repo.shortName())
             this.project().name(repo.shortName())
