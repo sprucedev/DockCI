@@ -14,14 +14,12 @@ define([
             , 'trigReload': undefined
             , 'ready': (function(){})
         }, params)
-        debugger
 
         this.pageSize = finalParams['pageSize']
 
         this.messages = ko.observableArray()
         this.repos = ko.observableArray()
         this.loading = ko.observable(false)
-        this.redirect = ko.observable()
 
         this.currentAccount = ko.observable()
         this.accounts = ko.computed(function() {
@@ -55,11 +53,6 @@ define([
                     , 'page': page
                 }
             }).done(function(reposData) {
-                if(typeof(reposData) == 'object' && 'redirect' in reposData) {
-                    this.redirect(reposData['redirect'])
-                    return
-                }
-
                 $(reposData['repos']).each(function(idx, repoData) {
                     this.repos.push(new GithubRepoModel({
                           'fullId': repoData['full_name']
