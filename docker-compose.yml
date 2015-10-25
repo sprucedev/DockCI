@@ -1,6 +1,6 @@
 web:
   build: .
-  command: run --debug --db-migrate --db-timeout 10 --bind 0.0.0.0:5000
+  command: run --debug --collect-static --db-migrate --db-timeout 10 --bind 0.0.0.0:5000
   ports:
    - "5001:5000"
   links:

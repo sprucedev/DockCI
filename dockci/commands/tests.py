@@ -1,20 +1,8 @@
 """ Flask-Script commands for running unit/style/static tests """
 import os
-import sys
-
-from py.path import local  # pylint:disable=import-error
 
 from dockci.server import MANAGER
-
-
-def project_root():
-    """ Get the DockCI project root """
-    return local(__file__).dirpath().join('../..')
-
-
-def bin_root():
-    """ Get the bin directory of the execution env """
-    return local(sys.prefix).join('bin')
+from dockci.util import bin_root, project_root
 
 
 def call_seq(*commands):

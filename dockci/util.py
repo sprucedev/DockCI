@@ -11,6 +11,7 @@ import socket
 import ssl
 import struct
 import subprocess
+import sys
 import json
 import datetime
 
@@ -25,6 +26,7 @@ import yaml_model
 
 from flask import flash, request
 from flask_security import current_user, login_required
+from py.path import local  # pylint:disable=import-error
 from yaml_model import ValidationError
 
 
@@ -552,3 +554,13 @@ def parse_branch_from_ref(ref):
         return branch_match.groups()[1]
     else:
         return ref
+
+
+def project_root():
+    """ Get the DockCI project root """
+    return local(__file__).dirpath().join('..')
+
+
+def bin_root():
+    """ Get the bin directory of the execution env """
+    return local(sys.prefix).join('bin')
