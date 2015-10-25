@@ -79,7 +79,7 @@ define([
             loadFrom(1)
         }.bind(this)
 
-        if(finalParams['reload']) {
+        if(finalParams['reload']()) {
             this.reload()
         }
 
