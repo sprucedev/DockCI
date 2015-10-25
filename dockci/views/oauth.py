@@ -7,7 +7,7 @@ import json
 from functools import wraps
 from urllib.parse import urlencode
 
-from flask import abort, flash, redirect, request, url_for
+from flask import abort, flash, redirect, request, Response, url_for
 from flask_security import current_user, login_required
 
 from dockci.models.auth import OAuthToken
@@ -98,7 +98,8 @@ def oauth_required(acceptable=None, force_name=None):
                     callback_uri = base_url
 
                 resp = oauth_app.authorize(callback=callback_uri)
-                return json.dumps({'redirect': resp.location})
+                return Response(json.dumps({'redirect': resp.location}),
+                                mimetype='application/json')
 
             else:
                 if force_name is not None:
