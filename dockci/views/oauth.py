@@ -51,7 +51,7 @@ def oauth_authorized(name):
         return redirect(request.args['return_to'])
 
     except KeyError:
-        return redirect(url_for('index'))
+        return redirect(url_for('index_view'))
 
 
 def oauth_required(acceptable=None, force_name=None):
