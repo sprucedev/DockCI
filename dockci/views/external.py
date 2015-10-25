@@ -34,6 +34,5 @@ def oauth_debug_view(name, uri):
     """
     Debugger for arbitrary OAuth GET requests
     """
-    from flask import Response
     return Response(json.dumps(OAUTH_APPS[name].get(uri).data),
                     mimetype='application/json')
