@@ -1,4 +1,5 @@
 """ Flask-Script commands for starting/managing Gunicorn """
+import subprocess
 import time
 
 from sys import stderr
@@ -10,6 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
 from dockci.server import APP, app_init, get_db_uri, MANAGER
+from dockci.util import project_root
 
 
 class GunicornWrapper(BaseApplication):  # pylint:disable=abstract-method
@@ -49,11 +51,18 @@ class GunicornWrapper(BaseApplication):  # pylint:disable=abstract-method
 @MANAGER.option("--db-timeout",
                 default=0, type=int,
                 help="Time to wait for the database to be available")
+@MANAGER.option("--collect-static",
+                default=False, action='store_true',
+                help="Collect static dependencies before start")
 def run(**kwargs):
     """ Run the Gunicorn worker """
     kwargs['reload'] = kwargs['debug']
     kwargs['preload'] = not kwargs['debug']
     APP.debug = kwargs['debug']
+
+    if kwargs['collect_static']:
+        subprocess.check_call('./_deps_collectstatic.sh',
+                              cwd=project_root().strpath)
 
     if kwargs['db_timeout'] != 0:
         start_time = time.time()
