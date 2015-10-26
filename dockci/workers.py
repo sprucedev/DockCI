@@ -12,7 +12,6 @@ from flask_mail import Message
 
 from dockci.models.job import Job
 from dockci.server import APP, MAIL
-from dockci.notifications import HipChat
 
 
 def start_workers():
@@ -84,18 +83,3 @@ def run_job_async(job_id):
                     subject=subject,
                 )
                 send_mail(email)
-
-            # Send a HipChat notification
-            if (
-                project.hipchat_api_token != '' and
-                project.hipchat_room != ''
-            ):
-                hipchat = HipChat(apitoken=project.hipchat_api_token,
-                                  room=project.hipchat_room)
-                hipchat.message(
-                    "DockCI - {name} Job {id}: {result}".format(
-                        name=project.name,
-                        id=job.create_ts,
-                        result=job.result,
-                    )
-                )

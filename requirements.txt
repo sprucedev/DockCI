@@ -22,7 +22,6 @@ flask-sqlalchemy==2.0
 flask-wtf==0.12           # via flask-security
 flask==0.10.1
 gunicorn==19.3.0
-hypchat==0.20
 itsdangerous==0.24        # via flask, flask-security
 jinja2==2.8               # via flask
 mako==1.0.2               # via alembic
@@ -33,14 +32,14 @@ psycopg2==2.6.1
 py==1.4.30
 pycparser==2.14           # via cffi
 PyJWT==1.4.0
-python-dateutil==2.4.2    # via aniso8601, hypchat
+python-dateutil==2.4.2    # via aniso8601
 python-editor==0.4        # via alembic
 pytz==2015.7              # via flask-restful
 pyyaml==3.11
 requests-oauthlib==0.5.0  # via flask-oauthlib
-requests==2.8.1           # via docker-py, hypchat, requests-oauthlib, rollbar
+requests==2.8.1           # via docker-py, requests-oauthlib, rollbar
 rollbar==0.11.0
-six==1.10.0               # via bcrypt, docker-py, flask-restful, hypchat, python-dateutil, rollbar, websocket-client
+six==1.10.0               # via bcrypt, docker-py, flask-restful, python-dateutil, rollbar, websocket-client
 sqlalchemy==1.0.8
 websocket-client==0.32.0  # via docker-py
 werkzeug==0.10.4          # via flask, flask-wtf

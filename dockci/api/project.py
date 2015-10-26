@@ -44,7 +44,6 @@ LIST_FIELDS.update(BASIC_FIELDS)
 DETAIL_FIELDS = {
     'repo': fields.String(),
     'utility': fields.Boolean(),
-    'hipchat_room': fields.String(),
     'github_repo_id': fields.String(),
     'github_hook_id': fields.String(),
     'shield_text': fields.String(),
@@ -67,8 +66,6 @@ SHARED_PARSER_ARGS = {
         required=None, type=NonBlankInput(),
     ),
     'github_secret': dict(help="Shared secret to validate GitHub hooks"),
-    'hipchat_room': dict(help="Room to post HipChat notifications to"),
-    'hipchat_api_token': dict(help="HipChat API token for authentication"),
 }
 
 UTILITY_ARG = dict(

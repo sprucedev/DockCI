@@ -12,7 +12,6 @@ Flask-Security==1.7.4
 Flask-SQLAlchemy==2.0
 Flask==0.10.1
 gunicorn==19.3.0
-hypchat==0.20
 psycopg2==2.6.1
 py==1.4.30
 PyJWT==1.4.0

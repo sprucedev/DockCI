@@ -30,10 +30,6 @@ class Project(DB.Model):  # pylint:disable=no-init
     name = DB.Column(DB.String(255), nullable=False)
     utility = DB.Column(DB.Boolean(), nullable=False, index=True)
 
-    # TODO encrypt decrypt sensitive data etc..
-    hipchat_api_token = DB.Column(DB.String(255))
-    hipchat_room = DB.Column(DB.String(255))
-
     # TODO repo ID from repo
     github_repo_id = DB.Column(DB.String(255))
     github_hook_id = DB.Column(DB.Integer())
