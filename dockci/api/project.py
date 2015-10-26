@@ -82,6 +82,10 @@ new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
 PROJECT_NEW_UTILITY_ARG = UTILITY_ARG.copy()
 PROJECT_NEW_UTILITY_ARG['required'] = True
 PROJECT_NEW_PARSER.add_argument('utility', **PROJECT_NEW_UTILITY_ARG)
+PROJECT_NEW_PARSER.add_argument(
+    'github_repo_id',
+    help="Full repository ID in GitHub",
+)
 
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)

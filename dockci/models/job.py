@@ -478,7 +478,7 @@ class Job(DB.Model):
         if state_msg is not None:
             extra_dict = dict(description="The DockCI job %s" % state_msg)
 
-        token_data = self.project.github_auth_user.oauth_tokens['github']
+        token_data = self.project.github_auth_token
         return OAUTH_APPS['github'].post(
             self.github_api_status_endpoint,
             dict(state=state,

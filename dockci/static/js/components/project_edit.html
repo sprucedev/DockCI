@@ -24,16 +24,20 @@
   <div data-bind="visible: currentTab() === 'github'">
     <div class="form-group">
       <label for="inputName" class="col-sm-2 control-label">Settings from</label>
-      <p class="col-sm-10 form-control-static" data-bind="visible: !isNew(), text: project().github_repo_id"></p>
-      <div class="col-sm-10" data-bind="visible: isNew">
-        <github-repos-list params="
-            trigReload: trigGithubReload
-          , action: githubAction
-          , columnSize: 5
-          , reload: githubDefault
-          , redirect: redirect
-        "></github-repos-list>
-      </div>
+      <!-- ko if: !isNew() -->
+        <p class="col-sm-10 form-control-static" data-bind="text: project().github_repo_id"></p>
+      <!-- /ko -->
+      <!-- ko if: isNew() -->
+        <div class="col-sm-10">
+          <github-repos-list params="
+              trigReload: trigGithubReload
+            , action: githubAction
+            , columnSize: 5
+            , reload: githubDefault
+            , redirect: redirect
+          "></github-repos-list>
+        </div>
+      <!-- /ko -->
     </div>
   </div>
   <!-- /ko -->
@@ -67,6 +71,7 @@
     <label for="inputGithubSecret" class="col-sm-2 control-label">GitHub Webhook Secret</label>
     <div class="col-sm-10">
       <input class="form-control" id="inputGithubSecret" name="github_secret" data-bind="value:project().github_secret, attr: { placeholder: secretsPlaceholder }">
+      <span class="help-block" data-bind="visible: currentTab() === 'github' && !isNew()">Changing this value will not update GitHub</span>
     </div>
   </div>
   <div class="form-group">
