@@ -40,6 +40,7 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
 from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (bytes_human_readable,
                          client_kwargs_from_config,
+                         ext_url_for,
                          )
 
 
@@ -169,10 +170,9 @@ class Job(DB.Model):
     @property
     def url_ext(self):
         """ URL for this project """
-        return url_for('job_view',
-                       project_slug=self.project.slug,
-                       job_slug=self.slug,
-                       _external=True)
+        return ext_url_for('job_view',
+                           project_slug=self.project.slug,
+                           job_slug=self.slug)
 
     @property
     def github_api_status_endpoint(self):

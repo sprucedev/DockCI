@@ -13,7 +13,7 @@ import sqlalchemy
 from flask import url_for
 
 from dockci.server import DB, OAUTH_APPS
-from dockci.util import is_git_ancestor, is_git_hash
+from dockci.util import ext_url_for, is_git_ancestor, is_git_hash
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
@@ -281,6 +281,5 @@ class Project(DB.Model):  # pylint:disable=no-init
     @property
     def job_new_url_ext(self):
         """ URL for this project """
-        return url_for('job_new_view',
-                       project_slug=self.slug,
-                       _external=True)
+        return ext_url_for('job_new_view',
+                           project_slug=self.slug)
