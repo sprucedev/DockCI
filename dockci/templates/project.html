@@ -89,7 +89,8 @@
 <project-edit-dialog params="
       visible: editVisible
     , title: editTitle
-    , github: true
+    , githubEnabled: dockci.githubEnabled && project().isType('github')
+    , githubDefault: dockci.githubDefault && project().isType('github')
     , project: project
     , isNew: false
     , saveLabel: 'Update'

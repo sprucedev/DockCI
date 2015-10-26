@@ -45,6 +45,15 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             }
         }.bind(this)
 
+        this.isType = function(typeString) {
+            if (typeString === 'github') {
+                return this.github_repo_id() != null
+            } else if (typeString === 'manual') {
+                return this.github_repo_id() == null
+            }
+            return false
+        }.bind(this)
+
         this.reload_from = function (data) {
             if(typeof(data) === 'undefined') { return }
             finalData = $.extend({
