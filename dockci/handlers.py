@@ -1,17 +1,18 @@
 """ Handlers for Flask, and Flask plugins """
 import json
+import logging
 import re
 
 import jwt
 
-from flask import abort, flash, redirect, Response, request
+from flask import abort, flash, redirect, request, request_finished, Response
 from flask_login import login_url
 from flask_security.utils import verify_and_update_password
 
 from dockci.api.base import BaseRequestParser
 from dockci.api.util import clean_attrs
 from dockci.models.auth import User
-from dockci.server import APP, CONFIG, MAIL
+from dockci.server import APP, CONFIG, DB, MAIL
 
 
 SECURITY_STATE = APP.extensions['security']
@@ -157,3 +158,14 @@ def try_basic_auth():
         auth.password,
         auth.username,
     )
+
+
+@request_finished.connect
+def db_rollback(*args, **kwargs):  # pylint:disable=unused-argument
+    """ Rollback the DB transaction when the request completes """
+    dirty = DB.session.dirty
+    if dirty:
+        logging.error("Dirty session had to be rolled back. Objects were: %s",
+                      dirty)
+
+        DB.session.rollback()
