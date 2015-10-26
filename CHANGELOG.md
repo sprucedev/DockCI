@@ -17,7 +17,7 @@
 - Fix several issues with GitHub statuses #307, #309
 - Update Docker image name regex #311
 - Roll back transactions when Flask requests are done #316
-- Add Rollbar support so that we can track issues with the DB #316
+- Rollbar reporting #316
 - Remove HipChat integration #316
 - Move worker exception handling further up the stack #316
 
