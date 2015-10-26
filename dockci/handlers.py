@@ -4,6 +4,7 @@ import logging
 import re
 
 import jwt
+import rollbar
 
 from flask import abort, flash, redirect, request, request_finished, Response
 from flask_login import login_url
