@@ -12,7 +12,7 @@ from flask_security import current_user, login_required
 
 from dockci.models.auth import OAuthToken
 from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
-from dockci.util import get_token_for
+from dockci.util import ext_url_for, get_token_for
 
 
 @APP.route('/oauth-authorized/<name>')
@@ -85,8 +85,8 @@ def oauth_required(acceptable=None, force_name=None):
             oauth_app = OAUTH_APPS[name]
             if not get_token_for(oauth_app):
                 return_to = request.args.get('return_to', None)
-                base_url = url_for(
-                    'oauth_authorized', name=name, _external=True,
+                base_url = ext_url_for(
+                    'oauth_authorized', name=name,
                 )
                 if return_to is not None:
                     callback_uri = '{base_url}?{query}'.format(
