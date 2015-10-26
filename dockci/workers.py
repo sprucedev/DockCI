@@ -46,7 +46,6 @@ def run_job_async(job_id):
     if os.fork():
         return  # parent process
 
-    logger = logging.getLogger('dockci.job')
     with APP.app_context():
         job = Job.query.get(job_id)
         with tempfile.TemporaryDirectory() as workdir:
