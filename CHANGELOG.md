@@ -15,6 +15,7 @@
 - New jobs will determine, store, and display branch name #276
 - Job status notifications sent on "change in result" #279
 - Fix several issues with GitHub statuses #307, #309
+- Update Docker image name regex #311
 
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
