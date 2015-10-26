@@ -88,6 +88,7 @@ def default_server_name():
 
     return None
 
+
 class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     """
     Global application configuration
