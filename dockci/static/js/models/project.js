@@ -8,9 +8,6 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.github_secret = ko.observable()
         this.github_repo_id = ko.observable()
 
-        this.hipchat_room = ko.observable()
-        this.hipchat_api_token = ko.observable()
-
         this._branchesLoaded = ko.observable()
         this._branches = ko.observableArray()
         this.branches = util.pauseableComputed({
@@ -32,8 +29,6 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                 'name': this.name() || '',
                 'repo': this.repo() || '',
                 'github_secret': this.github_secret() || undefined,
-                'hipchat_room': this.hipchat_room() || undefined,
-                'hipchat_api_token': this.hipchat_api_token() || undefined,
             }
             if(isNew) {
                 return $.extend(baseParams, {
@@ -62,14 +57,12 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                 , 'repo': ''
                 , 'utility': false
                 , 'github_repo_id': ''
-                , 'hipchat_room': ''
             }, data)
             this.slug(data['slug'])
             this.name(data['name'])
             this.repo(data['repo'])
             this.utility(data['utility'])
             this.github_repo_id(data['github_repo_id'])
-            this.hipchat_room(data['hipchat_room'])
         }.bind(this)
 
         this.reload = function () {

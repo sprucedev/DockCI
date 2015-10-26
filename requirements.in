@@ -1,5 +1,6 @@
 alembic==0.8.3
 bcrypt==2.0.0
+blinker==1.4
 docker-py==1.5.0
 Flask-Login==0.2.11  # Only required until https://github.com/mattupstate/flask-security/pull/429
 Flask-Mail==0.9.1
@@ -11,10 +12,10 @@ Flask-Security==1.7.4
 Flask-SQLAlchemy==2.0
 Flask==0.10.1
 gunicorn==19.3.0
-hypchat==0.20
 psycopg2==2.6.1
 py==1.4.30
 PyJWT==1.4.0
 PyYAML==3.11
+rollbar==0.11.0
 SQLAlchemy==1.0.8
 yaml-model==0.1.5

@@ -16,6 +16,10 @@
 - Job status notifications sent on "change in result" #279
 - Fix several issues with GitHub statuses #307, #309
 - Update Docker image name regex #311
+- Roll back transactions when Flask requests are done #316
+- Add Rollbar support so that we can track issues with the DB #316
+- Remove HipChat integration #316
+- Move worker exception handling further up the stack #316
 
 ### v0.0.7
 - Fix 500 error when new project is saved with validation issue #220
