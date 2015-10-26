@@ -11,6 +11,7 @@ from uuid import uuid4
 import py.path  # pylint:disable=import-error
 import requests.exceptions
 
+from flask import has_request_context, request
 from yaml_model import LoadOnAccess, SingletonModel, ValidationError
 
 from dockci.exceptions import DockerUnreachableError
@@ -80,6 +81,13 @@ def default_use_registry():
             'REGISTRY_PORT_5000_TCP_PORT' in os.environ)
 
 
+def default_server_name():
+    """ Try to get a server name from the request """
+    if has_request_context():
+        return request.host
+
+    return None
+
 class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     """
     Global application configuration
@@ -109,6 +117,8 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     mail_password = LoadOnAccess(default=lambda _: None)
     mail_default_sender = LoadOnAccess(default=lambda _:
                                        "dockci@%s" % socket.gethostname())
+
+    server_name = LoadOnAccess(generate=lambda _: default_server_name())
 
     github_key = LoadOnAccess(default=lambda _: None)
     github_secret = LoadOnAccess(default=lambda _: None)
