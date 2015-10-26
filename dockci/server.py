@@ -149,7 +149,12 @@ def app_init_workers():
     """
     from .workers import start_workers
     APP.worker_queue = multiprocessing.Queue()
-    start_workers()
+
+    try:
+        start_workers()
+    except Exception:
+        rollbar.report_exc_info()
+        raise
 
 
 def app_init_oauth():

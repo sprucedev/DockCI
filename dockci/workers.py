@@ -6,6 +6,7 @@ import os
 import tempfile
 
 import py.path  # pylint:disable=import-error
+import rollbar
 
 from flask_mail import Message
 
@@ -32,6 +33,7 @@ def send_mail(message):
             MAIL.send(message)
 
         except Exception:  # pylint:disable=broad-except
+            rollbar.report_exc_info()
             logging.getLogger('dockci.mail').exception(
                 "Couldn't send email message"
             )
@@ -46,58 +48,54 @@ def run_job_async(job_id):
         return  # parent process
 
     logger = logging.getLogger('dockci.job')
-    try:
-        with APP.app_context():
-            job = Job.query.get(job_id)
-            with tempfile.TemporaryDirectory() as workdir:
-                # pylint:disable=protected-access
-                workdir = py.path.local(workdir)
-                job._run_now(workdir)
-                changed_result = job.changed_result(workdir)
+    with APP.app_context():
+        job = Job.query.get(job_id)
+        with tempfile.TemporaryDirectory() as workdir:
+            # pylint:disable=protected-access
+            workdir = py.path.local(workdir)
+            job._run_now(workdir)
+            changed_result = job.changed_result(workdir)
 
-            project = job.project
+        project = job.project
 
-            # Send the failure message
-            if changed_result:
-                recipients = []
-                if job.git_author_email:
-                    recipients.append('%s <%s>' % (
-                        job.git_author_name,
-                        job.git_author_email
-                    ))
-                if job.git_committer_email:
-                    recipients.append('%s <%s>' % (
-                        job.git_committer_name,
-                        job.git_committer_email
-                    ))
+        # Send the failure message
+        if changed_result:
+            recipients = []
+            if job.git_author_email:
+                recipients.append('%s <%s>' % (
+                    job.git_author_name,
+                    job.git_author_email
+                ))
+            if job.git_committer_email:
+                recipients.append('%s <%s>' % (
+                    job.git_committer_name,
+                    job.git_committer_email
+                ))
 
-                if recipients:
-                    subject = (
-                        "DockCI - {project_name} {job_result}ed".format(
-                            project_name=project.name,
-                            job_result=job.result,
-                        )
+            if recipients:
+                subject = (
+                    "DockCI - {project_name} {job_result}ed".format(
+                        project_name=project.name,
+                        job_result=job.result,
                     )
-                    email = Message(
-                        recipients=recipients,
-                        subject=subject,
-                    )
-                    send_mail(email)
+                )
+                email = Message(
+                    recipients=recipients,
+                    subject=subject,
+                )
+                send_mail(email)
 
-                # Send a HipChat notification
-                if (
-                    project.hipchat_api_token != '' and
-                    project.hipchat_room != ''
-                ):
-                    hipchat = HipChat(apitoken=project.hipchat_api_token,
-                                      room=project.hipchat_room)
-                    hipchat.message(
-                        "DockCI - {name} Job {id}: {result}".format(
-                            name=project.name,
-                            id=job.create_ts,
-                            result=job.result,
-                        )
+            # Send a HipChat notification
+            if (
+                project.hipchat_api_token != '' and
+                project.hipchat_room != ''
+            ):
+                hipchat = HipChat(apitoken=project.hipchat_api_token,
+                                  room=project.hipchat_room)
+                hipchat.message(
+                    "DockCI - {name} Job {id}: {result}".format(
+                        name=project.name,
+                        id=job.create_ts,
+                        result=job.result,
                     )
-
-    except Exception:  # pylint:disable=broad-except
-        logger.exception("Something went wrong in the job worker")
+                )
