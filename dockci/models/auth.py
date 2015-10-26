@@ -2,6 +2,8 @@
 Users and permissions models
 """
 
+import sqlalchemy
+
 from flask_security import UserMixin, RoleMixin
 
 from dockci.server import DB
@@ -63,3 +65,9 @@ class User(DB.Model, UserMixin):  # pylint:disable=no-init
             email=self.email,
             active='active' if self.active else 'inactive'
         )
+
+    def oauth_token_for(self, service_name):
+        """ Get an OAuth token for a service """
+        return self.oauth_tokens.filter_by(
+            service=service_name,
+        ).order_by(sqlalchemy.desc(OAuthToken.id)).first()
