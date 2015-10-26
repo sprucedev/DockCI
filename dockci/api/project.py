@@ -4,12 +4,12 @@ import re
 import sqlalchemy
 
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
-from flask_security import login_required
+from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import WrappedValueError
 from .fields import NonBlankInput, RewriteUrl
-from .util import filter_query_args, new_edit_parsers
+from .util import clean_attrs, filter_query_args, new_edit_parsers
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API
@@ -120,8 +120,14 @@ class ProjectDetail(BaseDetailResource):
         except ValueError as ex:
             raise WrappedValueError(ex)
 
+        args = PROJECT_NEW_PARSER.parse_args(strict=True)
+        args = clean_attrs(args)
+
+        if 'github_repo_id' in args:
+            args['github_auth_token'] = current_user.oauth_token_for('github')
+
         project = Project(slug=project_slug)
-        return self.handle_write(project, PROJECT_NEW_PARSER)
+        return self.handle_write(project, data=args)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
