@@ -10,10 +10,18 @@ AUTH_FORM_LOCATIONS = ('form', 'headers', 'json')
 
 class BaseDetailResource(Resource):
     """ Base resource for details API endpoints """
-    def handle_write(self, model, parser):  # pylint:disable=no-self-use
+    # pylint:disable=no-self-use
+    def handle_write(self, model, parser=None, data=None):
         """ Parse request args, set attrs on the model, and commit """
-        args = parser.parse_args(strict=True)
-        args = clean_attrs(args)
+        assert parser is not None or data is not None, (
+            "Must give either parser, or data")
+
+        if data is None:
+            args = parser.parse_args(strict=True)
+            args = clean_attrs(args)
+        else:
+            args = data
+
         set_attrs(model, args)
         DB.session.add(model)
         DB.session.commit()
