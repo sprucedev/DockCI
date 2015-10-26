@@ -150,7 +150,7 @@ class TestParseRef(object):
 
 
 class TestGitRefNameOf(object):
-    """ Test ``the git_head_ref_name`` function """
+    """ Test the ``git_head_ref_name`` function """
     @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
     def test_master(self, tmpgitdir, branch):
         """ Test getting ref name when single commit on master """
