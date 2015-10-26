@@ -165,7 +165,10 @@ def db_rollback(*args, **kwargs):  # pylint:disable=unused-argument
     """ Rollback the DB transaction when the request completes """
     dirty = DB.session.dirty
     if dirty:
-        logging.error("Dirty session had to be rolled back. Objects were: %s",
-                      dirty)
+        message = (
+            "Dirty session had to be rolled back. Objects were: %s" % dirty
+        )
+        rollbar.report_message(message, 'warning')
+        logging.error(message)
 
         DB.session.rollback()
