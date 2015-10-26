@@ -460,9 +460,9 @@ class Job(DB.Model):
             elif self.state == 'fail':
                 state = 'failure'
             elif self.state == 'broken':
-                state = 'broken'
+                state = 'error'
             else:
-                state = 'broken'
+                state = 'error'
                 state_msg = "is in an unknown state: '%s'" % state
 
         if state_msg is None:
@@ -472,7 +472,7 @@ class Job(DB.Model):
                 state_msg = "completed successfully"
             elif state == 'fail':
                 state_msg = "completed with failing tests"
-            elif state == 'broken':
+            elif state == 'error':
                 state_msg = "failed to complete due to an error"
 
         if state_msg is not None:
