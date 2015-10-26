@@ -15,14 +15,15 @@ from dockci.models.project import Project
 from dockci.server import API
 
 
-DOCKER_REPO_RE = re.compile(r'^[a-z0-9-_.]+$')
+DOCKER_REPO_RE = re.compile(r'^[a-z0-9]+(?:[._-][a-z0-9]+)*$')
 
 
 def docker_repo_field(value, name):
     """ User input validation that a value is a valid Docker image name """
     if not DOCKER_REPO_RE.match(value):
-        raise ValueError(("Invalid %s. Must only contain lower case, 0-9, "
-                          "and the characters '-', '_' and '.'") % name)
+        raise ValueError(("Invalid %s. Must start with a lower case, "
+                          "alphanumeric character, and contain only the "
+                          "additional characters '-', '_' and '.'") % name)
     return value
 
 
