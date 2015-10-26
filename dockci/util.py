@@ -242,7 +242,7 @@ def git_head_ref_name(workdir, stderr=None):
     proc.wait()
     if proc.returncode == 0:
         return parse_branch_from_ref(
-            proc.stdout.read().decode().strip(),
+            proc.stdout.read().decode().strip(), strict=False,
         )
 
     return None
@@ -544,17 +544,58 @@ def client_kwargs_from_config(host_str):
     return docker_client_args
 
 
-GIT_NAME_REV_BRANCH = re.compile(r'^(remotes/origin/|refs/heads/)?([^~]+)')
+GIT_NAME_REV_BRANCH = re.compile(r'^(remotes/origin/|refs/heads/)([^~]+)')
+GIT_NAME_REV_TAG = re.compile(r'^(refs/tags/)([^~]+)')
 
 
-def parse_branch_from_ref(ref):
+def parse_ref(ref):
+    """
+    Discover what type of ref is passed in, and convert to a short ref name. It
+    is assumed that a ref with no full name is a branch.
+
+    Returns:
+      tuple(str, str): Ref type, and ref short name
+      tuple(None, str): Ref type was unknown. Ref name is the full ref
+    """
+    for ref_type, func in (
+        ('branch', parse_branch_from_ref),
+        ('tag', parse_tag_from_ref),
+        ('branch', lambda ref: parse_branch_from_ref(ref, relax=True))
+    ):
+        parsed = func(ref)
+        if parsed is not None:
+            return ref_type, parsed
+
+    return None, ref
+
+
+def parse_branch_from_ref(ref, strict=True, relax=False):
     """ Get a branch name from a git symbolic name """
-    branch_match = GIT_NAME_REV_BRANCH.search(ref)
-
-    if branch_match:
-        return branch_match.groups()[1]
-    else:
+    parsed = _parse_from_ref(ref, GIT_NAME_REV_BRANCH, strict)
+    if parsed is not None:
+        return parsed
+    elif relax and '/' not in ref:
         return ref
+
+    return None
+
+
+def parse_tag_from_ref(ref, strict=True):
+    """ Get a tag name from a git symbolic name """
+    return _parse_from_ref(ref, GIT_NAME_REV_TAG, strict)
+
+
+def _parse_from_ref(ref, regex, strict):
+    """ Logic for the tag/branch ref parsers """
+    ref_match = regex.search(ref)
+    print(ref_match)
+
+    if ref_match:
+        return ref_match.groups()[1]
+    elif not strict:
+        return ref
+
+    return None
 
 
 def project_root():

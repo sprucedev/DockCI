@@ -378,11 +378,18 @@ class Job(DB.Model):
                     self, workdir, suffix, config,
                 ).run(0)
 
+            if self.tag:  # NoOp if tag is already given
+                def tag_stage():
+                    return True
+            else:
+                def tag_stage():
+                    return TagVersionStage(self, workdir).run(None)
+
             prepare = (stage() for stage in chain(
                 (
                     lambda: GitChangesStage(self, workdir).run(0),
                     lambda: GitMtimeStage(self, workdir).run(None),
-                    lambda: TagVersionStage(self, workdir).run(None),
+                    tag_stage,
                 ), (
                     create_util_stage(suffix_outer, config_outer)
                     for suffix_outer, config_outer
