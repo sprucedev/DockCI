@@ -380,9 +380,11 @@ class Job(DB.Model):
 
             if self.tag:  # NoOp if tag is already given
                 def tag_stage():
+                    """ NoOp tag stage """
                     return True
             else:
                 def tag_stage():
+                    """ Runner for ``TagVersionStage`` """
                     return TagVersionStage(self, workdir).run(None)
 
             prepare = (stage() for stage in chain(
