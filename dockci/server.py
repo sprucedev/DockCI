@@ -97,9 +97,6 @@ def app_init():
 
     APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 
-    if CONFIG.server_name:
-        APP.config['SERVER_NAME'] = CONFIG.server_name
-
     mimetypes.add_type('application/x-yaml', 'yaml')
 
     from dockci.models.auth import User, Role

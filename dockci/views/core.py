@@ -31,7 +31,7 @@ def config_edit_view():
         'mail_host_string', 'mail_use_tls', 'mail_use_ssl',
         'mail_username', 'mail_password', 'mail_default_sender',
         'security_registerable', 'security_recoverable',
-        'server_name',
+        'external_url',
         'github_key', 'github_secret',
     )
     all_fields = restart_fields + (

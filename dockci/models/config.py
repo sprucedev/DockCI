@@ -81,10 +81,10 @@ def default_use_registry():
             'REGISTRY_PORT_5000_TCP_PORT' in os.environ)
 
 
-def default_server_name():
+def default_external_url():
     """ Try to get a server name from the request """
     if has_request_context():
-        return request.host
+        return request.host_url
 
     return None
 
@@ -119,7 +119,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     mail_default_sender = LoadOnAccess(default=lambda _:
                                        "dockci@%s" % socket.gethostname())
 
-    server_name = LoadOnAccess(generate=lambda _: default_server_name())
+    external_url = LoadOnAccess(generate=lambda _: default_external_url())
 
     github_key = LoadOnAccess(default=lambda _: None)
     github_secret = LoadOnAccess(default=lambda _: None)
@@ -202,6 +202,22 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             if any(invalid_url_parts):
                 errors.append("Registry URL can only include scheme, host, "
                               "and port")
+
+            if self.external_url:
+                external_url = urlparse(self.external_url)
+                if external_url.scheme.lower() not in ('http', 'https'):
+                    errors.append("External URL must be HTTP, or HTTPS")
+                if not external_url.netloc:
+                    errors.append("External URL must contain a host name")
+
+                invalid_url_parts = (
+                    bool(getattr(registry_url, url_part))
+                    for url_part
+                    in ('params', 'query', 'fragment')
+                )
+                if any(invalid_url_parts):
+                    errors.append("External URL can only include scheme, "
+                                  "host, port, and path")
 
             if errors:
                 raise ValidationError(errors)

@@ -19,12 +19,13 @@ from base64 import b64encode
 from contextlib import contextmanager
 from functools import wraps
 from ipaddress import ip_address
+from urllib.parse import urlparse
 
 import docker.errors
 import py.error  # pylint:disable=import-error
 import yaml_model
 
-from flask import flash, request
+from flask import current_app, flash, request
 from flask_security import current_user, login_required
 from py.path import local  # pylint:disable=import-error
 from yaml_model import ValidationError
@@ -564,3 +565,24 @@ def project_root():
 def bin_root():
     """ Get the bin directory of the execution env """
     return local(sys.prefix).join('bin')
+
+
+def ext_url_for(endpoint, **values):
+    """ Use ``external_url`` from config to build a full URL """
+    from dockci.server import CONFIG
+
+    if not CONFIG.external_url:
+        return None
+
+    ext_url = urlparse(CONFIG.external_url)
+    method = values.pop('_method', None)
+    return current_app.url_map.bind(
+        ext_url.netloc,
+        script_name=ext_url.path,
+        url_scheme=values.pop('_scheme', ext_url.scheme),
+    ).build(
+        endpoint,
+        values,
+        method=method,
+        force_external=True,
+    )
