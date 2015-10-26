@@ -6,6 +6,7 @@ import pytest
 from dockci.util import (client_kwargs_from_config,
                          git_head_ref_name,
                          is_git_ancestor,
+                         parse_ref,
                          )
 
 
@@ -128,6 +129,24 @@ class TestClientKwargsFromConfig(object):
             tmpdir.join('key.pem').strpath,
         )
         assert out['tls'].verify == None
+
+
+class TestParseRef(object):
+    """ Test the ``parse_ref`` function """
+    @pytest.mark.parametrize('ref,exp_type,exp_name', [
+        ('refs/heads/testbranch', 'branch', 'testbranch'),
+        ('remotes/origin/remotebranch', 'branch', 'remotebranch'),
+        ('refs/tags/testtag', 'tag', 'testtag'),
+        ('some_k1nd-0f_BR@NCH', 'branch', 'some_k1nd-0f_BR@NCH'),
+        ('refs/unknown/thing', None, 'refs/unknown/thing'),
+        ('things/heads/thing', None, 'things/heads/thing'),
+        ('things/tags/thing', None, 'things/tags/thing'),
+    ])
+    def test_all(self, ref, exp_type, exp_name):
+        """ Ensure that outputs are expected for given inputs """
+        actual_type, actual_name = parse_ref(ref)
+        assert actual_type == exp_type
+        assert actual_name == exp_name
 
 
 class TestGitRefNameOf(object):
