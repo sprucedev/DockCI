@@ -7,6 +7,10 @@ import mimetypes
 import multiprocessing
 import os
 
+import flask
+import rollbar
+import rollbar.contrib.flask
+
 from flask import Flask
 from flask_oauthlib.client import OAuth
 from flask_security import Security, SQLAlchemyUserDatastore
@@ -18,7 +22,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.pool import NullPool
 
 from dockci.models.config import Config
-from dockci.util import setup_templates, tokengetter_for
+from dockci.util import project_root, setup_templates, tokengetter_for
 
 
 class WrappedSQLAlchemy(SQLAlchemy):
@@ -72,6 +76,8 @@ def app_init():
     """
     Pre-run app setup
     """
+    app_init_rollbar()
+
     logger = logging.getLogger('dockci.init')
 
     logger.info("Loading app config")
@@ -114,6 +120,27 @@ def app_init():
     app_init_api()
     app_init_views()
     app_init_workers()
+
+
+def app_init_rollbar():
+    """ Initialize Rollbar for error/exception reporting """
+    try:
+        api_key = os.environ['ROLLBAR_API_KEY']
+        environment = os.environ['ROLLBAR_ENVIRONMENT']
+    except KeyError:
+        logging.error('No Rollbar settings found')
+        return
+
+    rollbar.init(
+        api_key,
+        environment,
+        root=project_root().strpath,
+        allow_logging_basic_config=False,
+    )
+
+    flask.got_request_exception.connect(
+        rollbar.contrib.flask.report_exception, APP,
+    )
 
 
 def app_init_workers():
