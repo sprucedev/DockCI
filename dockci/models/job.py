@@ -486,7 +486,7 @@ class Job(DB.Model):
                  context='continuous-integration/dockci/%s' % context,
                  **extra_dict),
             format='json',
-            token=(token_data['key'], token_data['secret']),
+            token=(token_data.key, token_data.secret),
         )
 
     def _error_stage(self, stage_slug):
