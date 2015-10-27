@@ -122,6 +122,14 @@ def app_init():
     app_init_workers()
 
 
+def wrapped_report_exception(app, exception):
+    """ Wrapper for ``report_exception`` to ignore some exceptions """
+    if getattr(exception, 'no_rollbar', False):
+        return
+
+    return rollbar.contrib.flask.report_exception(app, exception)
+
+
 def app_init_rollbar():
     """ Initialize Rollbar for error/exception reporting """
     try:
@@ -138,9 +146,7 @@ def app_init_rollbar():
         allow_logging_basic_config=False,
     )
 
-    flask.got_request_exception.connect(
-        rollbar.contrib.flask.report_exception, APP,
-    )
+    flask.got_request_exception.connect(wrapped_report_exception, APP)
 
 
 def app_init_workers():

@@ -5,6 +5,7 @@ from werkzeug.exceptions import HTTPException
 class BaseActionExceptionMixin(HTTPException):
     """ An HTTP exception for when an action can't be performed """
     response = None
+    no_rollbar = True
 
     def __init__(self, action=None):
         super(BaseActionExceptionMixin, self).__init__()
@@ -39,6 +40,7 @@ class WrappedException(HTTPException):
     Wraps an exception in HTTPException so that it can have a status code
     """
     response = None
+    no_rollbar = True
 
     def __init__(self, ex):
         super(WrappedException, self).__init__()
