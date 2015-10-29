@@ -6,7 +6,14 @@ import re
 import jwt
 import rollbar
 
-from flask import abort, flash, redirect, request, request_finished, Response
+from flask import (abort,
+                   flash,
+                   got_request_exception,
+                   redirect,
+                   request,
+                   request_finished,
+                   Response,
+                   )
 from flask_login import login_url
 from flask_security.utils import verify_and_update_password
 
@@ -161,6 +168,7 @@ def try_basic_auth():
     )
 
 
+@got_request_exception.connect
 @request_finished.connect
 def db_rollback(*args, **kwargs):  # pylint:disable=unused-argument
     """ Rollback the DB transaction when the request completes """
