@@ -1,5 +1,7 @@
 # Changelog
 
+### v0.0.9
+
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
   - No migration from yaml_model to PostgreSQL
