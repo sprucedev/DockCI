@@ -57,6 +57,11 @@ def job_new_view(project_slug):
 
     if request.headers['X-Github-Event'] == 'push':
         push_data = request.json
+
+        # Ref deletion
+        if push_data['head_commit'] is None:
+            abort(200)
+
         job.commit = push_data['head_commit']['id']
 
         ref_type, ref_name = parse_ref(push_data['ref'])
