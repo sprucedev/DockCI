@@ -5,6 +5,7 @@ Views related to job management
 import json
 import logging
 import mimetypes
+import rollbar
 import select
 
 from flask import (abort,
@@ -13,6 +14,7 @@ from flask import (abort,
                    Response,
                    url_for,
                    )
+from flask_security import current_user
 from yaml_model import ValidationError
 
 from dockci.models.job import Job
@@ -20,8 +22,10 @@ from dockci.models.project import Project
 from dockci.server import APP, DB
 from dockci.util import (DateTimeEncoder,
                          is_valid_github,
+                         parse_branch_from_ref,
                          parse_ref,
-                         path_contained
+                         parse_tag_from_ref,
+                         path_contained,
                          )
 
 
@@ -41,39 +45,24 @@ def job_new_view(project_slug):
     """
     View to create a new job
     """
-    if 'X-Github-Event' not in request.headers:
+
+    has_event_header = any((
+        header in request.headers
+        for header in (
+            'X-Github-Event',
+            'X-Gitlab-Event',
+        )
+    ))
+    if not has_event_header:
         abort(400)
 
     project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job(project=project, repo=project.repo)
 
-    if not project.github_secret:
-        logging.warn("GitHub webhook secret not setup")
-        abort(403)
-
-    if not is_valid_github(project.github_secret):
-        logging.warn("Invalid GitHub payload")
-        abort(403)
-
-    if request.headers['X-Github-Event'] == 'push':
-        push_data = request.json
-
-        # Ref deletion
-        if push_data['head_commit'] is None:
-            abort(200)
-
-        job.commit = push_data['head_commit']['id']
-
-        ref_type, ref_name = parse_ref(push_data['ref'])
-        if ref_type == 'branch':
-            job.git_branch = ref_name
-        elif ref_type == 'tag':
-            job.tag = ref_name
-
-    else:
-        logging.debug("Unknown GitHub hook '%s'",
-                      request.headers['X-Github-Event'])
-        abort(501)
+    if 'X-Github-Event' in request.headers:
+        job_new_github(project, job)
+    elif 'X-Gitlab-Event' in request.headers:
+        job_new_gitlab(project, job)
 
     try:
         DB.session.add(job)
@@ -86,15 +75,79 @@ def job_new_view(project_slug):
         return job_url, 201
 
     except ValidationError as ex:
-        logging.exception("GitHub hook error")
+        rollbar.report_exc_info()
+        logging.exception("Event hook error")
         return json.dumps({
             'errors': ex.messages,
         }), 400
 
-    return render_template('job_new.html', job=Job(
-        project=project,
-        repo=project.repo,
-    ))
+
+def job_new_abort(job, status, message=None):
+    """ Log, expunge job, and HTTP error """
+    if message is not None:
+        logging.warn(message)
+    DB.session.expunge(job)
+    abort(status)
+
+
+def job_new_gitlab(_, job):
+    """
+    Fill in the new ``job`` model from the request, which is a GitLab push
+    event
+    """
+    if not current_user.is_authenticated():
+        job_new_abort(job, 403, "No login information for GitLab hook")
+
+    if request.headers['X-Gitlab-Event'] in ('Push Hook', 'Tag Push Hook'):
+        push_data = request.json
+
+        job.commit = push_data['after']
+
+        if request.headers['X-Gitlab-Event'] == 'Push Hook':
+            job.git_branch = parse_branch_from_ref(push_data['ref'])
+        elif request.headers['X-Gitlab-Event'] == 'Tag Push Hook':
+            job.tag = parse_tag_from_ref(push_data['ref'])
+
+    else:
+        job_new_abort(
+            job,
+            501,
+            "Unknown GitLab hook '%s'" % request.headers['X-Gitlab-Event'],
+        )
+
+
+def job_new_github(project, job):
+    """
+    Fill in the new ``job`` model from the request, which is a GitHub push
+    event
+    """
+    if not project.github_secret:
+        job_new_abort(job, 403, "GitHub webhook secret not setup")
+
+    if not is_valid_github(project.github_secret):
+        job_new_abort(job, 403, "Invalid GitHub payload")
+
+    if request.headers['X-Github-Event'] == 'push':
+        push_data = request.json
+
+        # GitHub pushes an empty head_commit when refs are deleted
+        if push_data['head_commit'] is None:
+            job_new_abort(job, 204)
+
+        job.commit = push_data['head_commit']['id']
+
+        ref_type, ref_name = parse_ref(push_data['ref'])
+        if ref_type == 'branch':
+            job.git_branch = ref_name
+        elif ref_type == 'tag':
+            job.tag = ref_name
+
+    else:
+        job_new_abort(
+            job,
+            501,
+            "Unknown GitHub hook '%s'" % request.headers['X-Github-Event'],
+        )
 
 
 @APP.route('/projects/<project_slug>/jobs/<job_slug>.json',
