@@ -130,9 +130,9 @@ def job_new_github(project, job):
     if request.headers['X-Github-Event'] == 'push':
         push_data = request.json
 
-        # Ref deletion
+        # GitHub pushes an empty head_commit when refs are deleted
         if push_data['head_commit'] is None:
-            job_new_abort(job, 200)
+            job_new_abort(job, 204)
 
         job.commit = push_data['head_commit']['id']
 
