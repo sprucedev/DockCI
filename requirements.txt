@@ -29,6 +29,7 @@ markupsafe==0.23          # via jinja2, mako
 oauthlib==1.0.3           # via flask-oauthlib, requests-oauthlib
 passlib==1.6.5            # via flask-security
 psycopg2==2.6.1
+purl==1.1
 py==1.4.30
 pycparser==2.14           # via cffi
 PyJWT==1.4.0
@@ -39,7 +40,7 @@ pyyaml==3.11
 requests-oauthlib==0.5.0  # via flask-oauthlib
 requests==2.8.1           # via docker-py, requests-oauthlib, rollbar
 rollbar==0.11.0
-six==1.10.0               # via bcrypt, docker-py, flask-restful, python-dateutil, rollbar, websocket-client
+six==1.10.0               # via bcrypt, docker-py, flask-restful, purl, python-dateutil, rollbar, websocket-client
 sqlalchemy==1.0.8
 websocket-client==0.32.0  # via docker-py
 werkzeug==0.10.4          # via flask, flask-wtf

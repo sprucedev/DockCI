@@ -22,8 +22,6 @@ class ExternalStatusStage(JobStageBase):
     # TODO state, state_msg, context config via OO means
     def _send_github_status_stage(self,
                                   handle,
-                                  state=None,
-                                  state_msg=None,
                                   context='push'):
         """
         Update the GitHub status for the project, handling feedback by writing
@@ -33,7 +31,7 @@ class ExternalStatusStage(JobStageBase):
 
         handle.write("Submitting status to GitHub... ".encode())
         handle.flush()
-        response = self.job.send_github_status(state, state_msg, context)
+        response = self.job.send_github_status(context=context)
 
         if response.status == 201:
             handle.write("DONE!\n".encode())

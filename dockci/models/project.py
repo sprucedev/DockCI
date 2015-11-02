@@ -6,11 +6,13 @@ import logging
 import re
 
 from uuid import uuid4
+from urllib.parse import quote_plus
 
 import py.error  # pylint:disable=import-error
 import sqlalchemy
 
 from flask import url_for
+from purl import URL
 
 from dockci.server import DB, OAUTH_APPS
 from dockci.util import ext_url_for, is_git_ancestor, is_git_hash
@@ -42,6 +44,10 @@ class Project(DB.Model):  # pylint:disable=no-init
         foreign_keys="Project.github_auth_token_id",
         backref=DB.backref('projects', lazy='dynamic'),
     )
+
+    gitlab_base_uri = DB.Column(DB.String(255))
+    gitlab_repo_id = DB.Column(DB.String(255))
+    gitlab_private_token = DB.Column(DB.String(255))
 
     jobs = DB.relationship(
         'Job',
@@ -246,6 +252,16 @@ class Project(DB.Model):  # pylint:disable=no-init
             return 'red'
         else:
             return 'lightgrey'
+
+    @property
+    def gitlab_api_repo_endpoint(self):
+        """ Repo endpoint for GitLab API """
+        if self.gitlab_repo_id is None:
+            raise ValueError("Not a GitLab repository")
+
+        return URL(self.gitlab_base_uri).add_path_segment(
+            '/projects/%s' % quote_plus(self.gitlab_repo_id)
+        ).as_string()
 
     @property
     def github_api_repo_endpoint(self):
