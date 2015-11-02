@@ -82,7 +82,7 @@ def job_new_view(project_slug):
         }), 400
 
 
-def job_new_gitlab(project, job):
+def job_new_gitlab(_, job):
     """
     Fill in the new ``job`` model from the request, which is a GitLab push
     event
