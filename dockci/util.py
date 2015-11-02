@@ -588,7 +588,6 @@ def parse_tag_from_ref(ref, strict=True):
 def _parse_from_ref(ref, regex, strict):
     """ Logic for the tag/branch ref parsers """
     ref_match = regex.search(ref)
-    print(ref_match)
 
     if ref_match:
         return ref_match.groups()[1]
