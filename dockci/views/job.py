@@ -5,6 +5,7 @@ Views related to job management
 import json
 import logging
 import mimetypes
+import rollbar
 import select
 
 from flask import (abort,
@@ -41,12 +42,56 @@ def job_new_view(project_slug):
     """
     View to create a new job
     """
-    if 'X-Github-Event' not in request.headers:
+
+    has_event_header = any((
+        header in request.headers
+        for header in (
+            'X-Github-Event',
+            'X-Gitlab-Event',
+        )
+    ))
+    if not has_event_header:
         abort(400)
 
     project = Project.query.filter_by(slug=project_slug).first_or_404()
     job = Job(project=project, repo=project.repo)
 
+    if 'X-Github-Event' in request.headers:
+        job_new_github(project, job)
+    elif 'X-Gitlab-Event' in request.headers:
+        job_new_gitlab(project, job)
+
+    try:
+        DB.session.add(job)
+        DB.session.commit()
+        job.queue()
+
+        job_url = url_for('job_view',
+                          project_slug=project_slug,
+                          job_slug=job.slug)
+        return job_url, 201
+
+    except ValidationError as ex:
+        rollbar.report_exc_info()
+        logging.exception("Event hook error")
+        return json.dumps({
+            'errors': ex.messages,
+        }), 400
+
+
+def job_new_gitlab(project, job):
+    """
+    Fill in the new ``job`` model from the request, which is a GitLab push
+    event
+    """
+    raise NotImplementedError("GitLab hooks are not yet implemented")
+
+
+def job_new_github(project, job):
+    """
+    Fill in the new ``job`` model from the request, which is a GitHub push
+    event
+    """
     if not project.github_secret:
         logging.warn("GitHub webhook secret not setup")
         abort(403)
@@ -74,27 +119,6 @@ def job_new_view(project_slug):
         logging.debug("Unknown GitHub hook '%s'",
                       request.headers['X-Github-Event'])
         abort(501)
-
-    try:
-        DB.session.add(job)
-        DB.session.commit()
-        job.queue()
-
-        job_url = url_for('job_view',
-                          project_slug=project_slug,
-                          job_slug=job.slug)
-        return job_url, 201
-
-    except ValidationError as ex:
-        logging.exception("GitHub hook error")
-        return json.dumps({
-            'errors': ex.messages,
-        }), 400
-
-    return render_template('job_new.html', job=Job(
-        project=project,
-        repo=project.repo,
-    ))
 
 
 @APP.route('/projects/<project_slug>/jobs/<job_slug>.json',

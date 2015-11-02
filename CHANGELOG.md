@@ -1,6 +1,7 @@
 # Changelog
 
 ### v0.0.9
+- Exception reported to Rollbar on git push hook `ValidationError`
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
