@@ -1,7 +1,8 @@
 # Changelog
 
 ### v0.0.9
-- Exception reported to Rollbar on git push hook `ValidationError`
+- Exception reported to Rollbar on git push hook `ValidationError` #322
+- Support GitLab push/tag hooks #322
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
