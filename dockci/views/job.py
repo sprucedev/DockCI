@@ -82,14 +82,21 @@ def job_new_view(project_slug):
         }), 400
 
 
+def job_new_abort(job, status, message=None):
+    """ Log, expunge job, and HTTP error """
+    if message is not None:
+        logging.warn(message)
+    DB.session.expunge(job)
+    abort(status)
+
+
 def job_new_gitlab(_, job):
     """
     Fill in the new ``job`` model from the request, which is a GitLab push
     event
     """
     if not current_user.is_authenticated():
-        logging.warn("No login information for GitLab hook")
-        abort(403)
+        job_new_abort(job, 403, "No login information for GitLab hook")
 
     if request.headers['X-Gitlab-Event'] in ('Push Hook', 'Tag Push Hook'):
         push_data = request.json
@@ -102,9 +109,11 @@ def job_new_gitlab(_, job):
             job.tag = parse_tag_from_ref(push_data['ref'])
 
     else:
-        logging.warn("Unknown GitLab hook '%s'",
-                     request.headers['X-Gitlab-Event'])
-        abort(501)
+        job_new_abort(
+            job,
+            501,
+            "Unknown GitLab hook '%s'" % request.headers['X-Gitlab-Event'],
+        )
 
 
 def job_new_github(project, job):
@@ -113,19 +122,17 @@ def job_new_github(project, job):
     event
     """
     if not project.github_secret:
-        logging.warn("GitHub webhook secret not setup")
-        abort(403)
+        job_new_abort(job, 403, "GitHub webhook secret not setup")
 
     if not is_valid_github(project.github_secret):
-        logging.warn("Invalid GitHub payload")
-        abort(403)
+        job_new_abort(job, 403, "Invalid GitHub payload")
 
     if request.headers['X-Github-Event'] == 'push':
         push_data = request.json
 
         # Ref deletion
         if push_data['head_commit'] is None:
-            abort(200)
+            job_new_abort(job, 200)
 
         job.commit = push_data['head_commit']['id']
 
@@ -136,9 +143,11 @@ def job_new_github(project, job):
             job.tag = ref_name
 
     else:
-        logging.warn("Unknown GitHub hook '%s'",
-                     request.headers['X-Github-Event'])
-        abort(501)
+        job_new_abort(
+            job,
+            501,
+            "Unknown GitHub hook '%s'" % request.headers['X-Github-Event'],
+        )
 
 
 @APP.route('/projects/<project_slug>/jobs/<job_slug>.json',
