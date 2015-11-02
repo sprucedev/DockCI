@@ -14,6 +14,7 @@ from flask import (abort,
                    Response,
                    url_for,
                    )
+from flask_security import current_user
 from yaml_model import ValidationError
 
 from dockci.models.job import Job
@@ -21,8 +22,10 @@ from dockci.models.project import Project
 from dockci.server import APP, DB
 from dockci.util import (DateTimeEncoder,
                          is_valid_github,
+                         parse_branch_from_ref,
                          parse_ref,
-                         path_contained
+                         parse_tag_from_ref,
+                         path_contained,
                          )
 
 
@@ -84,7 +87,24 @@ def job_new_gitlab(project, job):
     Fill in the new ``job`` model from the request, which is a GitLab push
     event
     """
-    raise NotImplementedError("GitLab hooks are not yet implemented")
+    if not current_user.is_authenticated():
+        logging.warn("No login information for GitLab hook")
+        abort(403)
+
+    if request.headers['X-Gitlab-Event'] in ('Push Hook', 'Tag Push Hook'):
+        push_data = request.json
+
+        job.commit = push_data['after']
+
+        if request.headers['X-Gitlab-Event'] == 'Push Hook':
+            job.git_branch = parse_branch_from_ref(push_data['ref'])
+        elif request.headers['X-Gitlab-Event'] == 'Tag Push Hook':
+            job.tag = parse_tag_from_ref(push_data['ref'])
+
+    else:
+        logging.warn("Unknown GitLab hook '%s'",
+                     request.headers['X-Gitlab-Event'])
+        abort(501)
 
 
 def job_new_github(project, job):
@@ -116,8 +136,8 @@ def job_new_github(project, job):
             job.tag = ref_name
 
     else:
-        logging.debug("Unknown GitHub hook '%s'",
-                      request.headers['X-Github-Event'])
+        logging.warn("Unknown GitHub hook '%s'",
+                     request.headers['X-Github-Event'])
         abort(501)
 
 
