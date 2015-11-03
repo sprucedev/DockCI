@@ -308,7 +308,7 @@ class FauxDockerLog(object):
     """
     A contextual logger to output JSON lines to a handle
     """
-    def __init__(self, handle):
+    def __init__(self, handle=None):
         self.handle = handle
         self.defaults = {}
 
@@ -332,9 +332,12 @@ class FauxDockerLog(object):
         Write a JSON line with kwargs, and defaults combined
         """
         with self.more_defaults(**kwargs):
-            self.handle.write(json.dumps(self.defaults).encode())
-            self.handle.write('\n'.encode())
-            self.handle.flush()
+            line = ('%s\n' % json.dumps(self.defaults)).encode()
+            if self.handle is None:
+                yield line
+            else:
+                self.handle.write(line)
+                self.handle.flush()
 
 
 def tokengetter_for(oauth_app):
