@@ -20,18 +20,22 @@ class ExternalStatusStage(JobStageBase):
         self.slug = 'external_status_%s' % suffix
 
     # TODO state, state_msg, context config via OO means
-    def _send_github_status_stage(self,
-                                  handle,
-                                  context='push'):
+    # pylint:disable=no-self-use
+    def _send_gitserv_status_stage(self,
+                                   handle,
+                                   service_name,
+                                   service_method,
+                                   context='push'):
         """
-        Update the GitHub status for the project, handling feedback by writing
-        to a log handle. Expected to be run from inside a stage in order to
-        write to the job log
+        Update the GitHub/GitLab status for the project, handling feedback by
+        writing to a log handle. Expected to be run from inside a stage in
+        order to write to the job log
         """
-
-        handle.write("Submitting status to GitHub... ".encode())
+        handle.write((
+            "Submitting status to %s... " % service_name
+        ).encode())
         handle.flush()
-        response = self.job.send_github_status(context=context)
+        response = service_method(context=context)
 
         if response.status == 201:
             handle.write("DONE!\n".encode())
@@ -42,7 +46,8 @@ class ExternalStatusStage(JobStageBase):
             handle.write("FAILED!\n".encode())
             handle.write(("%s\n" % response.data.get(
                 'message',
-                "Unexpected response from GitHub. HTTP status %d" % (
+                "Unexpected response from %s. HTTP status %d" % (
+                    service_name,
                     response.status,
                 )
             )).encode())
@@ -50,9 +55,19 @@ class ExternalStatusStage(JobStageBase):
             return False
 
     def runnable(self, handle):
+        externals = filter(lambda pair: pair[1][0] is not None, {
+            'GitHub': (self.job.project.github_repo_id,
+                       self.job.send_github_status),
+            'GitLab': (self.job.project.gitlab_repo_id,
+                       self.job.send_gitlab_status),
+        }.items())
+
         success = None
-        if self.job.project.github_repo_id:
-            success = self._send_github_status_stage(handle)
+        for service_name, (_, service_method) in externals:
+            success = True if success is None else success
+            success &= self._send_gitserv_status_stage(
+                handle, service_name, service_method,
+            )
 
         if success is None:
             handle.write("No external providers with status updates "
