@@ -73,6 +73,8 @@ class ExternalStatusStage(JobStageBase):
             return False
 
     def runnable(self, handle):
+        # Externals to update is any set that doesn't have a None value for
+        # it's repo id
         externals = filter(lambda pair: pair[1][0] is not None, {
             'GitHub': (self.job.project.github_repo_id,
                        self.job.send_github_status,
