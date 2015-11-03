@@ -12,6 +12,7 @@ from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import built_docker_image_id, is_semantic
 
 
+# TODO should be a post stage, not main
 class ExternalStatusStage(JobStageBase):
     """ Send the job status to external providers """
 
