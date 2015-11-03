@@ -19,7 +19,7 @@ from base64 import b64encode
 from contextlib import contextmanager
 from functools import wraps
 from ipaddress import ip_address
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import docker.errors
 import py.error  # pylint:disable=import-error
@@ -626,3 +626,10 @@ def ext_url_for(endpoint, **values):
         method=method,
         force_external=True,
     )
+
+
+def add_to_url_path(url, more_path):
+    """ Appends ``more_path`` to ``url`` path, and normalizes the output """
+    url = list(urlparse(url))
+    url[2] = re.sub('//+', '/', ('%s/%s' % (url[2], more_path)))
+    return urlunparse(url)

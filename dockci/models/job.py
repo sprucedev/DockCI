@@ -39,7 +39,8 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    WorkdirStage,
                                                    )
 from dockci.server import CONFIG, DB, OAUTH_APPS
-from dockci.util import (bytes_human_readable,
+from dockci.util import (add_to_url_path,
+                         bytes_human_readable,
                          client_kwargs_from_config,
                          ext_url_for,
                          )
@@ -206,9 +207,9 @@ class Job(DB.Model):
     @property
     def gitlab_api_status_endpoint(self):
         """ Status endpoint for GitLab API """
-        return '%s/statuses/%s' % (
+        return add_to_url_path(
             self.project.gitlab_api_repo_endpoint,
-            self.commit,
+            '/statuses/%s' % self.commit,
         )
 
     @property
