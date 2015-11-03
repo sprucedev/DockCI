@@ -46,6 +46,8 @@ DETAIL_FIELDS = {
     'utility': fields.Boolean(),
     'github_repo_id': fields.String(),
     'github_hook_id': fields.String(),
+    'gitlab_base_uri': fields.String(),
+    'gitlab_repo_id': fields.String(),
     'shield_text': fields.String(),
     'shield_color': fields.String(),
 }
@@ -65,6 +67,7 @@ SHARED_PARSER_ARGS = {
         help="Git repository for the project code",
         required=None, type=NonBlankInput(),
     ),
+    'gitlab_private_token': dict(help="API token for the GitLab server"),
     'github_secret': dict(help="Shared secret to validate GitHub hooks"),
 }
 
@@ -80,6 +83,14 @@ new_edit_parsers(PROJECT_NEW_PARSER, PROJECT_EDIT_PARSER, SHARED_PARSER_ARGS)
 PROJECT_NEW_UTILITY_ARG = UTILITY_ARG.copy()
 PROJECT_NEW_UTILITY_ARG['required'] = True
 PROJECT_NEW_PARSER.add_argument('utility', **PROJECT_NEW_UTILITY_ARG)
+PROJECT_NEW_PARSER.add_argument(
+    'gitlab_base_uri',
+    help="URI of the GitLab instance",
+)
+PROJECT_NEW_PARSER.add_argument(
+    'gitlab_repo_id',
+    help="ID of the project repository",
+)
 PROJECT_NEW_PARSER.add_argument(
     'github_repo_id',
     help="Full repository ID in GitHub",
