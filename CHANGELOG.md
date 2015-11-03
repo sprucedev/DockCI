@@ -4,6 +4,8 @@
 - Exception reported to Rollbar on git push hook `ValidationError` #322
 - Support GitLab push/tag hooks #322
 - Send HTTP 204 to GitHub ref deletions #322
+- Add GitLab project type #323
+- Push job status for GitLab projects #323
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
