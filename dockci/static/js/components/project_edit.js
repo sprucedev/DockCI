@@ -11,6 +11,7 @@ define([
     function ProjectEditModel(params) {
         finalParams = $.extend({
               'reload': false
+            , 'gitlabDefault': false
             , 'githubEnabled': false
             , 'githubDefault': false
             , 'isNew': true
@@ -24,10 +25,15 @@ define([
 
         this.messages      = util.paramArray(finalParams['messages'])
         this.project       = util.param(finalParams['project'])
+        this.gitlabDefault = util.param(finalParams['gitlabDefault'])
         this.githubEnabled = util.param(finalParams['githubEnabled'])
         this.githubDefault = util.param(finalParams['githubDefault'])
         this.isNew         = util.param(finalParams['isNew'])
-        this.currentTab    = util.param(finalParams['currentTab'], this.githubDefault() ? 'github' : 'manual')
+        this.currentTab    = util.param(finalParams['currentTab'], function() {
+            if (this.gitlabDefault()) { return 'gitlab' }
+            if (this.githubDefault()) { return 'github' }
+            return 'manual'
+        }.bind(this)())
 
         this.secretsPlaceholder = ko.computed(function(){
             return this.isNew() ? '' : '*****'
@@ -51,6 +57,32 @@ define([
                 this.reloadGithub()
             }
         }.bind(this))
+
+        function attachGitlabUpdates(project) {
+            function updateFromGitlab() {
+                baseUri = project.gitlab_base_uri()
+                repoId = project.gitlab_repo_id()
+                baseUriFilled = typeof(baseUri) != 'undefined' && baseUri != ''
+                repoIdFilled = typeof(repoId) != 'undefined' && repoId != ''
+
+                if (baseUriFilled && repoIdFilled) {
+                    project.repo(
+                        URI(baseUri + '/' + repoId + '.git')
+                            .normalize()
+                            .valueOf()
+                    )
+                }
+
+                if (repoIdFilled && repoId.indexOf('/') != -1) {
+                    project.slug(repoId.substr(repoId.indexOf('/') + 1))
+                }
+            }
+
+            project.gitlab_base_uri.subscribe(updateFromGitlab)
+            project.gitlab_repo_id.subscribe(updateFromGitlab)
+        }
+        this.project.subscribe(attachGitlabUpdates)
+        attachGitlabUpdates(this.project())
 
         this.redirect.subscribe(function() {
             window.location.href = this.redirect()

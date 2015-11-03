@@ -3,7 +3,8 @@ import subprocess
 import docker
 import pytest
 
-from dockci.util import (client_kwargs_from_config,
+from dockci.util import (add_to_url_path,
+                         client_kwargs_from_config,
                          git_head_ref_name,
                          is_git_ancestor,
                          parse_ref,
@@ -261,3 +262,18 @@ class TestGitAncestor(object):
 
         assert is_git_ancestor(tmpgitdir, first_hash, second_hash)
         assert not is_git_ancestor(tmpgitdir, second_hash, first_hash)
+
+
+class TestAddToUrlPath(object):
+    """ Tests the ``add_to_url_path`` utility """
+    @pytest.mark.parametrize('in_url,in_path,exp_url', [
+        ('http://example.com', '/a/thing', 'http://example.com/a/thing'),
+        ('http://example.com/a', 'thing', 'http://example.com/a/thing'),
+        ('http://example.com/', '/a/thing', 'http://example.com/a/thing'),
+        ('http://example.com/a/', '/thing', 'http://example.com/a/thing'),
+        ('http://example.com//', '/a//thing', 'http://example.com/a/thing'),
+        ('http://example.com////', '/a///thing', 'http://example.com/a/thing'),
+    ])
+    def test_basic(self, in_url, in_path, exp_url):
+        """ Test that some basic combinations produce expected outputs """
+        assert add_to_url_path(in_url, in_path) == exp_url

@@ -5,6 +5,7 @@ DockCI - CI, but with that all important Docker twist
 import logging
 import re
 
+from urllib.parse import quote_plus
 from uuid import uuid4
 
 import py.error  # pylint:disable=import-error
@@ -13,7 +14,11 @@ import sqlalchemy
 from flask import url_for
 
 from dockci.server import DB, OAUTH_APPS
-from dockci.util import ext_url_for, is_git_ancestor, is_git_hash
+from dockci.util import (add_to_url_path,
+                         ext_url_for,
+                         is_git_ancestor,
+                         is_git_hash,
+                         )
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
@@ -42,6 +47,10 @@ class Project(DB.Model):  # pylint:disable=no-init
         foreign_keys="Project.github_auth_token_id",
         backref=DB.backref('projects', lazy='dynamic'),
     )
+
+    gitlab_base_uri = DB.Column(DB.String(255))
+    gitlab_repo_id = DB.Column(DB.String(255))
+    gitlab_private_token = DB.Column(DB.String(255))
 
     jobs = DB.relationship(
         'Job',
@@ -246,6 +255,22 @@ class Project(DB.Model):  # pylint:disable=no-init
             return 'red'
         else:
             return 'lightgrey'
+
+    @property
+    def gitlab_api_endpoint(self):
+        """ Base endpoint for GitLab API """
+        if self.gitlab_repo_id is None:
+            raise ValueError("Not a GitLab repository")
+
+        return add_to_url_path(self.gitlab_base_uri, '/api/v3')
+
+    @property
+    def gitlab_api_repo_endpoint(self):
+        """ Repo endpoint for GitLab API """
+        return add_to_url_path(
+            self.gitlab_api_endpoint,
+            '/projects/%s' % quote_plus(self.gitlab_repo_id),
+        )
 
     @property
     def github_api_repo_endpoint(self):

@@ -1,5 +1,8 @@
 {% extends "_base.html" %}
 {% block title %}Projects{% endblock %}
+{# URI.js is loading differently through require; has to be loaded before
+   require is so that it loads into the root #}
+{% block prescript %}<script src="/static/lib/js/URI.js"></script>{% endblock %}
 {% block header %}
     Projects
     {% if current_user.is_authenticated() %}

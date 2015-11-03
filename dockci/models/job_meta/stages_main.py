@@ -12,6 +12,21 @@ from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import built_docker_image_id, is_semantic
 
 
+def parse_oauth_response(response):
+    """ Parse a response from Flask-OAuthlib """
+    return response.status, response.data
+
+
+def parse_requests_response(response):
+    """ Parse a response from requests """
+    try:
+        return response.status_code, response.json()
+
+    except ValueError:
+        return response.status_code, {}
+
+
+# TODO should be a post stage, not main
 class ExternalStatusStage(JobStageBase):
     """ Send the job status to external providers """
 
@@ -20,41 +35,63 @@ class ExternalStatusStage(JobStageBase):
         self.slug = 'external_status_%s' % suffix
 
     # TODO state, state_msg, context config via OO means
-    def _send_github_status_stage(self,
-                                  handle,
-                                  state=None,
-                                  state_msg=None,
-                                  context='push'):
+    # pylint:disable=no-self-use
+    def _send_gitserv_status_stage(self,
+                                   handle,
+                                   service_name,
+                                   service_method,
+                                   response_parse,
+                                   context='push'):
         """
-        Update the GitHub status for the project, handling feedback by writing
-        to a log handle. Expected to be run from inside a stage in order to
-        write to the job log
+        Update the GitHub/GitLab status for the project, handling feedback by
+        writing to a log handle. Expected to be run from inside a stage in
+        order to write to the job log
         """
-
-        handle.write("Submitting status to GitHub... ".encode())
+        handle.write((
+            "Submitting status to %s... " % service_name
+        ).encode())
         handle.flush()
-        response = self.job.send_github_status(state, state_msg, context)
+        response = service_method(context=context)
 
-        if response.status == 201:
+        status, data = response_parse(response)
+
+        if status == 201:
             handle.write("DONE!\n".encode())
             handle.flush()
             return True
 
         else:
             handle.write("FAILED!\n".encode())
-            handle.write(("%s\n" % response.data.get(
+            handle.write(("%s\n" % data.get(
                 'message',
-                "Unexpected response from GitHub. HTTP status %d" % (
-                    response.status,
+                "Unexpected response from %s. HTTP status %d" % (
+                    service_name,
+                    status,
                 )
             )).encode())
             handle.flush()
             return False
 
     def runnable(self, handle):
+        # Externals to update is any set that doesn't have a None value for
+        # it's repo id
+        externals = filter(lambda pair: pair[1][0] is not None, {
+            'GitHub': (self.job.project.github_repo_id,
+                       self.job.send_github_status,
+                       parse_oauth_response,
+                       ),
+            'GitLab': (self.job.project.gitlab_repo_id,
+                       self.job.send_gitlab_status,
+                       parse_requests_response,
+                       ),
+        }.items())
+
         success = None
-        if self.job.project.github_repo_id:
-            success = self._send_github_status_stage(handle)
+        for service_name, (_, service_method, response_parse) in externals:
+            success = True if success is None else success
+            success &= self._send_gitserv_status_stage(
+                handle, service_name, service_method, response_parse,
+            )
 
         if success is None:
             handle.write("No external providers with status updates "

@@ -5,6 +5,10 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.repo = ko.observable()
         this.utility = ko.observable()
 
+        this.gitlab_base_uri = ko.observable()
+        this.gitlab_repo_id = ko.observable()
+        this.gitlab_private_token = ko.observable()
+
         this.github_secret = ko.observable()
         this.github_repo_id = ko.observable()
 
@@ -29,10 +33,13 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                 'name': this.name() || '',
                 'repo': this.repo() || '',
                 'github_secret': this.github_secret() || undefined,
+                'gitlab_private_token': this.gitlab_private_token() || undefined,
             }
             if(isNew) {
                 return $.extend(baseParams, {
                     'utility': this.utility(),
+                    'gitlab_base_uri': this.gitlab_base_uri() || undefined,
+                    'gitlab_repo_id': this.gitlab_repo_id() || undefined,
                     'github_repo_id': this.github_repo_id() || undefined,
                 })
             } else {
@@ -43,8 +50,10 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.isType = function(typeString) {
             if (typeString === 'github') {
                 return this.github_repo_id() != null
+            } else if (typeString === 'gitlab') {
+                return this.gitlab_repo_id() != null
             } else if (typeString === 'manual') {
-                return this.github_repo_id() == null
+                return this.github_repo_id() == null && this.gitlab_repo_id == null
             }
             return false
         }.bind(this)
@@ -56,12 +65,16 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                 , 'name': ''
                 , 'repo': ''
                 , 'utility': false
+                , 'gitlab_base_uri': ''
+                , 'gitlab_repo_id': ''
                 , 'github_repo_id': ''
             }, data)
             this.slug(data['slug'])
             this.name(data['name'])
             this.repo(data['repo'])
             this.utility(data['utility'])
+            this.gitlab_base_uri(data['gitlab_base_uri'])
+            this.gitlab_repo_id(data['gitlab_repo_id'])
             this.github_repo_id(data['github_repo_id'])
         }.bind(this)
 

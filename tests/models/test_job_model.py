@@ -1,3 +1,5 @@
+from unittest.mock import PropertyMock
+
 import pytest
 
 from dockci.models.job import Job, JobResult
@@ -100,3 +102,54 @@ class TestChangedResult(object):
         mocker.patch.object(job_current, 'result', new=new_result)
 
         assert job_current.changed_result() == changed
+
+
+class TestStateDataFor(object):
+    """ Test ``Job.state_data_for`` """
+    @pytest.mark.parametrize(
+        'model_state,in_service,in_state,in_msg,exp_state,exp_msg', [
+        (
+            None, 'github', 'running', None, 'pending',
+            'The DockCI job is in progress',
+        ),
+        (
+            None, 'github', 'broken', None, 'error',
+            'The DockCI job failed to complete due to an error',
+        ),
+        (
+            'running', 'github', None, None, 'pending',
+            'The DockCI job is in progress',
+        ),
+        (
+            None, 'github', 'running', 'is testing things', 'pending',
+            'The DockCI job is testing things',
+        ),
+        (
+            'running', 'github', None, 'is testing things', 'pending',
+            'The DockCI job is testing things',
+        ),
+        (
+            None, 'gitlab', 'fail', None, 'failed',
+            'The DockCI job completed with failing tests',
+        ),
+        (
+            'fail', 'gitlab', None, None, 'failed',
+            'The DockCI job completed with failing tests',
+        ),
+    ])
+    def test_basic_sets(self,
+                        mocker,
+                        model_state,
+                        in_service,
+                        in_state,
+                        in_msg,
+                        exp_state,
+                        exp_msg,
+                        ):
+        """ Test some basic input/output combinations """
+        job = Job()
+        mocker.patch('dockci.models.job.Job.state', new_callable=PropertyMock(return_value=model_state))
+        out_state, out_msg = job.state_data_for(in_service, in_state, in_msg)
+
+        assert out_state == exp_state
+        assert out_msg == exp_msg

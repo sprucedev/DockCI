@@ -13,6 +13,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import requests
 import sqlalchemy
 
 from docker.utils import kwargs_from_env
@@ -38,10 +39,31 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    WorkdirStage,
                                                    )
 from dockci.server import CONFIG, DB, OAUTH_APPS
-from dockci.util import (bytes_human_readable,
+from dockci.util import (add_to_url_path,
+                         bytes_human_readable,
                          client_kwargs_from_config,
                          ext_url_for,
                          )
+
+
+STATE_MAP = {
+    'github': {
+        'queued': 'pending',
+        'running': 'pending',
+        'success': 'success',
+        'fail': 'failure',
+        'broken': 'error',
+        None: 'error',
+    },
+    'gitlab': {
+        'queued': 'pending',
+        'running': 'running',
+        'success': 'success',
+        'fail': 'failed',
+        'broken': 'canceled',
+        None: 'canceled',
+    },
+}
 
 
 class JobResult(Enum):
@@ -180,6 +202,14 @@ class Job(DB.Model):
         return '%s/commits/%s/statuses' % (
             self.project.github_api_repo_endpoint,
             self.commit,
+        )
+
+    @property
+    def gitlab_api_status_endpoint(self):
+        """ Status endpoint for GitLab API """
+        return add_to_url_path(
+            self.project.gitlab_api_repo_endpoint,
+            '/statuses/%s' % self.commit,
         )
 
     @property
@@ -454,38 +484,79 @@ class Job(DB.Model):
             self.db_session.add(self)
             self.db_session.commit()
 
+    def state_data_for(self, service, state=None, state_msg=None):
+        """
+        Get the mapped state, and associated message for a service.
+
+        To look up state label, first the dict ``STATE_MAP`` is queried for the
+        service name. If no value is found, state is kept as is. If the service
+        key is found, looks up the state value. If no value is found, the
+        ``None`` key is looked up.
+
+        The state message is simply a switch on the original state.
+        """
+        state = state or self.state
+        service_state = state
+
+        try:
+            service_state_map = STATE_MAP[service]
+
+        except KeyError:
+            pass
+
+        else:
+            try:
+                service_state = service_state_map[state]
+
+            except KeyError:
+                service_state = service_state_map[None]
+                state_msg = "is in an unknown state: '%s'" % state
+
+        if state_msg is None:
+            if state == 'running':
+                state_msg = "is in progress"
+            elif state == 'success':
+                state_msg = "completed successfully"
+            elif state == 'fail':
+                state_msg = "completed with failing tests"
+            elif state == 'broken':
+                state_msg = "failed to complete due to an error"
+
+        if state_msg is not None:
+            state_msg = "The DockCI job %s" % state_msg
+
+        return service_state, state_msg
+
+    def send_gitlab_status(self, state=None, state_msg=None, context='push'):
+        """
+        Send a state to the GitLab commit represented by this job. If state
+        not set, is defaulted to something that makes sense, given the data in
+        this model
+        """
+        state, state_msg = self.state_data_for('gitlab', state, state_msg)
+
+        if state_msg is not None:
+            extra_dict = dict(description=state_msg)
+
+        return requests.post(
+            self.gitlab_api_status_endpoint,
+            dict(state=state,
+                 target_url=self.url_ext,
+                 context='continuous-integration/dockci/%s' % context,
+                 private_token=self.project.gitlab_private_token,
+                 **extra_dict),
+        )
+
     def send_github_status(self, state=None, state_msg=None, context='push'):
         """
         Send a state to the GitHub commit represented by this job. If state
         not set, is defaulted to something that makes sense, given the data in
         this model
         """
-
-        if state is None:
-            if self.state == 'running':
-                state = 'pending'
-            elif self.state == 'success':
-                state = 'success'
-            elif self.state == 'fail':
-                state = 'failure'
-            elif self.state == 'broken':
-                state = 'error'
-            else:
-                state = 'error'
-                state_msg = "is in an unknown state: '%s'" % state
-
-        if state_msg is None:
-            if state == 'pending':
-                state_msg = "is in progress"
-            elif state == 'success':
-                state_msg = "completed successfully"
-            elif state == 'fail':
-                state_msg = "completed with failing tests"
-            elif state == 'error':
-                state_msg = "failed to complete due to an error"
+        state, state_msg = self.state_data_for('github', state, state_msg)
 
         if state_msg is not None:
-            extra_dict = dict(description="The DockCI job %s" % state_msg)
+            extra_dict = dict(description=state_msg)
 
         token_data = self.project.github_auth_token
         return OAUTH_APPS['github'].post(
