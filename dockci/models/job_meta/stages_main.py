@@ -12,6 +12,20 @@ from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import built_docker_image_id, is_semantic
 
 
+def parse_oauth_response(response):
+    """ Parse a response from Flask-OAuthlib """
+    return response.status, response.data
+
+
+def parse_requests_response(response):
+    """ Parse a response from requests """
+    try:
+        return response.status_code, response.json()
+
+    except ValueError:
+        return response.status_code, {}
+
+
 # TODO should be a post stage, not main
 class ExternalStatusStage(JobStageBase):
     """ Send the job status to external providers """
@@ -26,6 +40,7 @@ class ExternalStatusStage(JobStageBase):
                                    handle,
                                    service_name,
                                    service_method,
+                                   response_parse,
                                    context='push'):
         """
         Update the GitHub/GitLab status for the project, handling feedback by
@@ -38,18 +53,20 @@ class ExternalStatusStage(JobStageBase):
         handle.flush()
         response = service_method(context=context)
 
-        if response.status == 201:
+        status, data = response_parse(response)
+
+        if status == 201:
             handle.write("DONE!\n".encode())
             handle.flush()
             return True
 
         else:
             handle.write("FAILED!\n".encode())
-            handle.write(("%s\n" % response.data.get(
+            handle.write(("%s\n" % data.get(
                 'message',
                 "Unexpected response from %s. HTTP status %d" % (
                     service_name,
-                    response.status,
+                    status,
                 )
             )).encode())
             handle.flush()
@@ -58,16 +75,20 @@ class ExternalStatusStage(JobStageBase):
     def runnable(self, handle):
         externals = filter(lambda pair: pair[1][0] is not None, {
             'GitHub': (self.job.project.github_repo_id,
-                       self.job.send_github_status),
+                       self.job.send_github_status,
+                       parse_oauth_response,
+                       ),
             'GitLab': (self.job.project.gitlab_repo_id,
-                       self.job.send_gitlab_status),
+                       self.job.send_gitlab_status,
+                       parse_requests_response,
+                       ),
         }.items())
 
         success = None
-        for service_name, (_, service_method) in externals:
+        for service_name, (_, service_method, response_parse) in externals:
             success = True if success is None else success
             success &= self._send_gitserv_status_stage(
-                handle, service_name, service_method,
+                handle, service_name, service_method, response_parse,
             )
 
         if success is None:
