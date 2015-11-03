@@ -13,6 +13,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import requests
 import sqlalchemy
 
 from docker.utils import kwargs_from_env
