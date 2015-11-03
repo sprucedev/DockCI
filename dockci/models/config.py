@@ -204,7 +204,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     errors.append("Registry URL can only include scheme, "
                                   "host, and port")
 
-            if self.external_url:
+            if self.external_url is not None and self.external_url != '':
                 external_url = urlparse(self.external_url)
                 if external_url.scheme.lower() not in ('http', 'https'):
                     errors.append("External URL must be HTTP, or HTTPS")
@@ -212,7 +212,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     errors.append("External URL must contain a host name")
 
                 invalid_url_parts = (
-                    bool(getattr(registry_url, url_part))
+                    bool(getattr(external_url, url_part))
                     for url_part
                     in ('params', 'query', 'fragment')
                 )

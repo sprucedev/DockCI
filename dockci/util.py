@@ -34,7 +34,7 @@ from yaml_model import ValidationError
 AUTH_TOKEN_EXPIRY = 36000  # 10 hours
 
 
-def request_fill(model_obj, fill_atts, data=None, save=True):
+def request_fill(model_obj, fill_atts, accept_blank=(), data=None, save=True):
     """
     Fill given model attrs from a POST request (and ignore other requests).
     Will save only if the save flag is True
@@ -44,7 +44,7 @@ def request_fill(model_obj, fill_atts, data=None, save=True):
 
     if request.method == 'POST':
         for att in fill_atts:
-            if att in data and data[att] != '':
+            if att in data and (data[att] != '' or att in accept_blank):
                 setattr(model_obj, att, data[att])
             elif att not in data:  # For check boxes
                 setattr(model_obj, att, None)
