@@ -30,15 +30,14 @@ class PushStage(DockerStage):
         with faux_log.more_defaults(id="Logging in"):
             yield next(faux_log.update())
             try:
-                yield next(faux_log.update(status=str(
-                    self.job.docker_client.login(
-                        username=CONFIG.docker_registry_username,
-                        password=CONFIG.docker_registry_password,
-                        email=CONFIG.docker_registry_email,
-                        registry=CONFIG.docker_registry,
-                        reauth=True,
-                    )
-                )))
+                response = self.job.docker_client.login(
+                    username=CONFIG.docker_registry_username,
+                    password=CONFIG.docker_registry_password,
+                    email=CONFIG.docker_registry_email,
+                    registry=CONFIG.docker_registry,
+                    reauth=True,
+                )
+                yield next(faux_log.update(status=response['Status']))
             except docker.errors.APIError as ex:
                 message = str(DockerAPIError(self.job.docker_client, ex))
                 yield next(faux_log.update(status="FAILED", error=message))
