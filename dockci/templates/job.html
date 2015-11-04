@@ -217,7 +217,9 @@
           panelEl.removeClass('panel-info panel-contracted')
           panelEl.addClass('panel-danger');
 
-        } else if (isObj && 'stream' in obj) {
+        }
+
+        if (isObj && 'stream' in obj) {
 
           lineEl = $('.docker-log-stream:last', logEl);
           if (lineEl.length === 0) {

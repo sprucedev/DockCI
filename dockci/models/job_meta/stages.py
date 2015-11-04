@@ -8,7 +8,10 @@ import subprocess
 
 import requests.exceptions
 
-from dockci.exceptions import AlreadyRunError, DockerUnreachableError
+from dockci.exceptions import (AlreadyRunError,
+                               DockerUnreachableError,
+                               StageFailedError,
+                               )
 
 
 class JobStageBase(object):
@@ -54,7 +57,16 @@ class JobStageBase(object):
         with self.data_file_path().open('wb') as handle:
             self.job.db_session.add(stage)
             self.job.db_session.commit()
-            self.returncode = self.runnable(handle)
+
+            try:
+                self.returncode = self.runnable(handle)
+
+            except StageFailedError as ex:
+                if not ex.handled:
+                    handle.write(("FAILED: %s\n" % ex).encode())
+                    handle.flush()
+
+                return False
 
         if expected_rc is None:
             return True

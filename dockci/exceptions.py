@@ -85,3 +85,48 @@ class DockerUnreachableError(Exception, HumanOutputError):
             return self.root_exception(exception.args[1])
 
         return exception
+
+
+class DockerAPIError(Exception, HumanOutputError):
+    """ Raised in some places when docker-py returns an ``APIError`` """
+    def __init__(self, client, exception, message=None):
+        super(DockerAPIError, self).__init__()
+        self.client = client
+        self.exception = exception
+        self.message = message
+
+    def __str__(self):
+        if self.message is not None:
+            message = self.message
+        else:
+            message = self.exception.response.reason
+            if self.exception.explanation:
+                explanation = (self.exception.explanation.decode()
+                               if hasattr(self.exception.explanation, 'decode')
+                               else self.exception.explanation)
+
+                message = '%s: %s' % (message, explanation)
+
+        host = getattr(self.client, 'base_url', str(self.client))
+
+        return "Error from daemon '{host}': {message}".format(
+            host=host,
+            message=message,
+        )
+
+
+class StageFailedError(Exception, HumanOutputError):
+    """
+    Raised to indicate that the stage has failed for some reason. The
+    ``handled`` flag indicates whether the output to the user has already been
+    handled elsewhere
+    """
+    def __init__(self, handled=False, message=None):
+        super(StageFailedError, self).__init__()
+        self.handled = handled
+        self.message = message
+
+    def __str__(self):
+        return ("Job stage failed for an unknown reason"
+                if self.message is None
+                else self.message)
