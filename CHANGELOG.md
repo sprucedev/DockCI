@@ -6,6 +6,7 @@
 - Send HTTP 204 to GitHub ref deletions #322
 - Add GitLab project type #323
 - Push job status for GitLab projects #323
+- Registry login
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
