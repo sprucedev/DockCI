@@ -35,7 +35,6 @@ class PushStage(DockerStage):
                     password=CONFIG.docker_registry_password,
                     email=CONFIG.docker_registry_email,
                     registry=CONFIG.docker_registry,
-                    reauth=True,
                 )
                 yield next(faux_log.update(status=response['Status']))
             except docker.errors.APIError as ex:
