@@ -3,6 +3,7 @@ Stages in a Job
 """
 
 import logging
+import json
 import shlex
 import subprocess
 
@@ -177,6 +178,22 @@ class DockerStage(JobStageBase):
         """ Method called for each line in the output """
         pass
 
+    def on_line_error(self, data):
+        """
+        Method called for each line with either 'error', or 'errorDetail' in
+        the parsed output
+        """
+        try:
+            message = data['error']
+        except KeyError:
+            try:
+                message = data['errorDetail']['message']
+            except KeyError:
+                message = "Unknown error: %s" % data
+
+        # Always handled because we output the Docker JSON first
+        raise StageFailedError(handled=True, message=message)
+
     def on_done(self, line):
         """
         Method called when the Docker command is complete. Line given is the
@@ -202,16 +219,26 @@ class DockerStage(JobStageBase):
         for line in output:
             if isinstance(line, bytes):
                 handle.write(line)
+                line = line.decode()
             else:
                 handle.write(line.encode())
 
             # Issues with push not having new lines
-            if line[-1] != ord('\n'):
+            if line[-1] != '\n':
                 handle.write(b'\n')
 
             handle.flush()
 
             self.on_line(line)
+
+            # Automatically handle error lines
+            try:
+                line_data = json.loads(line)
+                if 'error' in line_data or 'errorDetail' in line_data:
+                    self.on_line_error(line_data)
+
+            except ValueError:
+                pass
 
         on_done_ret = self.on_done(line)
         if on_done_ret is not None:
