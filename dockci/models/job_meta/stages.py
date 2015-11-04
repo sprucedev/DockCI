@@ -178,7 +178,7 @@ class DockerStage(JobStageBase):
         """ Method called for each line in the output """
         pass
 
-    def on_line_error(self, data):
+    def on_line_error(self, data):  # pylint:disable=no-self-use
         """
         Method called for each line with either 'error', or 'errorDetail' in
         the parsed output
