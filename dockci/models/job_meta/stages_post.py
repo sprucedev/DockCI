@@ -62,6 +62,7 @@ class PushStage(DockerStage):
             for line in self._login_gen():
                 yield line
 
+        # TODO docker giving back a {"error": .., "errorDetail"..} doesn't fail
         for line in self.job.docker_client.push(
             self.job.docker_image_name,
             tag=self.job.tag,
