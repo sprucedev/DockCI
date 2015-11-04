@@ -27,7 +27,6 @@ class PushStage(DockerStage):
         docker JSON log format
         """
         faux_log = FauxDockerLog()
-        # TODO when don't have login
         with faux_log.more_defaults(id="Logging in"):
             yield next(faux_log.update())
             try:
@@ -48,8 +47,20 @@ class PushStage(DockerStage):
 
     def _runnable_docker_gen(self):
         """ Generator to chain ``login_gen`` and push outputs """
-        for line in self._login_gen():
-            yield line
+        if (
+            (
+                CONFIG.docker_registry_username is not None and
+                CONFIG.docker_registry_username != ''
+            ) or (
+                CONFIG.docker_registry_password is not None and
+                CONFIG.docker_registry_password != ''
+            ) or (
+                CONFIG.docker_registry_email is not None and
+                CONFIG.docker_registry_email != ''
+            )
+        ):
+            for line in self._login_gen():
+                yield line
 
         for line in self.job.docker_client.push(
             self.job.docker_image_name,

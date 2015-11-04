@@ -200,10 +200,11 @@
         return lineId;
       }
       function dockerJobLine(panelEl, logEl, obj, lenient) {
-        var idRow, objLine, errorMessage, idHash,
+        var idRow, objLine, errorMessage, idHash, handled=false,
             isObj = typeof(obj) === 'object';
 
         if (isObj && ('errorDetail' in obj || 'error' in obj)) {
+          handled = true
           if ('errorDetail' in obj) {
               errorMessage = obj['errorDetail']['message'];
           } else {
@@ -220,7 +221,7 @@
         }
 
         if (isObj && 'stream' in obj) {
-
+          handled = true
           lineEl = $('.docker-log-stream:last', logEl);
           if (lineEl.length === 0) {
             lineEl = $('<div class="docker-log-stream"></div>');
@@ -234,6 +235,7 @@
           }
 
         } else if (isObj && 'id' in obj) {
+          handled = true
           idHash = md5(obj['id']);
           idRow = $('.docker-log-' + idHash, logEl);
           if (idRow.length < 1) {
@@ -247,12 +249,15 @@
 
           idRow.html(messageComps.join(' | '))
         } else if (isObj && 'status' in obj) {
+          handled = true
           logEl.append(
             '<div class="docker-log-status">' +
             ansi_up.ansi_to_html(obj['status']) +
             '</div>'
           );
-        } else {
+        }
+
+        if (!handled) {
           if (isObj) {
             objLine = JSON.stringify(obj);
           } else {
