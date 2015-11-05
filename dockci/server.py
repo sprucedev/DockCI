@@ -48,6 +48,7 @@ OAUTH_APPS = {}
 OAUTH_APPS_SCOPES = {}
 OAUTH_APPS_SCOPE_SERIALIZERS = {
     'github': lambda scope: ','.join(sorted(scope.split(','))),
+    'gitlab': lambda scope: ','.join(sorted(scope.split(','))),
 }
 
 
@@ -182,6 +183,21 @@ def app_init_oauth():
                 access_token_method='POST',
                 access_token_url='https://github.com/login/oauth/access_token',
                 authorize_url='https://github.com/login/oauth/authorize'
+            )
+    if CONFIG.gitlab_key and CONFIG.gitlab_secret:
+        if 'gitlab' not in OAUTH_APPS:
+            scope = 'api'
+            OAUTH_APPS_SCOPES['gitlab'] = \
+                OAUTH_APPS_SCOPE_SERIALIZERS['gitlab'](scope)
+            OAUTH_APPS['gitlab'] = OAUTH.remote_app(
+                'gitlab',
+                consumer_key=CONFIG.gitlab_key,
+                consumer_secret=CONFIG.gitlab_secret,
+                base_url=CONFIG.gitlab_base_url,
+                request_token_url=None,
+                access_token_method='POST',
+                access_token_url='%s/oauth/token' % CONFIG.gitlab_base_url,
+                authorize_url='%s/oauth/authorize' % CONFIG.gitlab_base_url,
             )
 
     for oauth_app in OAUTH_APPS.values():
