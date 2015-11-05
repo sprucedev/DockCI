@@ -8,6 +8,7 @@
 - Push job status for GitLab projects #323
 - Registry login #328
 - Errors in Docker JSON stream fail stage automatically #328
+- GitLab OAuth2 #329
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
