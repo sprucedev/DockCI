@@ -3,12 +3,16 @@ Stages in a Job
 """
 
 import logging
+import json
 import shlex
 import subprocess
 
 import requests.exceptions
 
-from dockci.exceptions import AlreadyRunError, DockerUnreachableError
+from dockci.exceptions import (AlreadyRunError,
+                               DockerUnreachableError,
+                               StageFailedError,
+                               )
 
 
 class JobStageBase(object):
@@ -54,7 +58,16 @@ class JobStageBase(object):
         with self.data_file_path().open('wb') as handle:
             self.job.db_session.add(stage)
             self.job.db_session.commit()
-            self.returncode = self.runnable(handle)
+
+            try:
+                self.returncode = self.runnable(handle)
+
+            except StageFailedError as ex:
+                if not ex.handled:
+                    handle.write(("FAILED: %s\n" % ex).encode())
+                    handle.flush()
+
+                return False
 
         if expected_rc is None:
             return True
@@ -165,6 +178,22 @@ class DockerStage(JobStageBase):
         """ Method called for each line in the output """
         pass
 
+    def on_line_error(self, data):  # pylint:disable=no-self-use
+        """
+        Method called for each line with either 'error', or 'errorDetail' in
+        the parsed output
+        """
+        try:
+            message = data['error']
+        except KeyError:
+            try:
+                message = data['errorDetail']['message']
+            except KeyError:
+                message = "Unknown error: %s" % data
+
+        # Always handled because we output the Docker JSON first
+        raise StageFailedError(handled=True, message=message)
+
     def on_done(self, line):
         """
         Method called when the Docker command is complete. Line given is the
@@ -190,16 +219,26 @@ class DockerStage(JobStageBase):
         for line in output:
             if isinstance(line, bytes):
                 handle.write(line)
+                line = line.decode()
             else:
                 handle.write(line.encode())
 
             # Issues with push not having new lines
-            if line[-1] != ord('\n'):
+            if line[-1] != '\n':
                 handle.write(b'\n')
 
             handle.flush()
 
             self.on_line(line)
+
+            # Automatically handle error lines
+            try:
+                line_data = json.loads(line)
+                if 'error' in line_data or 'errorDetail' in line_data:
+                    self.on_line_error(line_data)
+
+            except ValueError:
+                pass
 
         on_done_ret = self.on_done(line)
         if on_done_ret is not None:

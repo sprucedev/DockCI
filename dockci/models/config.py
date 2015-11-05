@@ -56,7 +56,7 @@ def default_registry_host():
     except KeyError:
         pass
 
-    return "http://localhost:5000"
+    return ""
 
 
 def default_host(format_string, local_default=None):
@@ -109,6 +109,9 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
         input_transform=bool,
     )
     docker_registry = LoadOnAccess(default=lambda _: default_registry_host())
+    docker_registry_username = LoadOnAccess(default=lambda _: "")
+    docker_registry_password = LoadOnAccess(default=lambda _: "")
+    docker_registry_email = LoadOnAccess(default=lambda _: "")
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")
     mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)
@@ -190,20 +193,21 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                         docker_client_args['base_url'], ex,
                     )))
 
-            registry_url = urlparse(self.docker_registry)
-            if registry_url.scheme.lower() not in ('http', 'https'):
-                errors.append("Registry URL must be HTTP, or HTTPS")
+            if self.docker_registry != '':
+                registry_url = urlparse(self.docker_registry)
+                if registry_url.scheme.lower() not in ('http', 'https'):
+                    errors.append("Registry URL must be HTTP, or HTTPS")
 
-            invalid_url_parts = (
-                bool(getattr(registry_url, url_part))
-                for url_part
-                in ('path', 'params', 'query', 'fragment')
-            )
-            if any(invalid_url_parts):
-                errors.append("Registry URL can only include scheme, host, "
-                              "and port")
+                invalid_url_parts = (
+                    bool(getattr(registry_url, url_part))
+                    for url_part
+                    in ('path', 'params', 'query', 'fragment')
+                )
+                if any(invalid_url_parts):
+                    errors.append("Registry URL can only include scheme, "
+                                  "host, and port")
 
-            if self.external_url:
+            if self.external_url is not None and self.external_url != '':
                 external_url = urlparse(self.external_url)
                 if external_url.scheme.lower() not in ('http', 'https'):
                     errors.append("External URL must be HTTP, or HTTPS")
@@ -211,7 +215,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     errors.append("External URL must contain a host name")
 
                 invalid_url_parts = (
-                    bool(getattr(registry_url, url_part))
+                    bool(getattr(external_url, url_part))
                     for url_part
                     in ('params', 'query', 'fragment')
                 )

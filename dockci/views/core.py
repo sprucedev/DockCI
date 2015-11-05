@@ -36,10 +36,17 @@ def config_edit_view():
     )
     all_fields = restart_fields + (
         'docker_use_registry', 'docker_registry',
+        'docker_registry_username', 'docker_registry_password',
+        'docker_registry_email',
+    )
+    blanks = (
+        'external_url', 'github_key',
+        'mail_host_string', 'mail_default_sender', 'mail_username',
+        'docker_registry', 'docker_registry_email', 'docker_registry_username',
     )
 
     if request.method == 'POST':
-        saved = request_fill(CONFIG, all_fields)
+        saved = request_fill(CONFIG, all_fields, accept_blank=blanks)
     else:
         saved = False
 

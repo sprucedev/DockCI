@@ -310,7 +310,11 @@ class Job(DB.Model):
         """
         Get the docker image name, including repository where necessary
         """
-        if CONFIG.docker_use_registry:
+        if (
+            CONFIG.docker_use_registry and
+            CONFIG.docker_registry_host is not None and
+            CONFIG.docker_registry_host != ''
+        ):
             return '{host}/{name}'.format(host=CONFIG.docker_registry_host,
                                           name=self.project.slug)
 
