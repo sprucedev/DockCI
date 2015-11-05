@@ -10,11 +10,14 @@ from dockci.views.oauth import oauth_required
 
 
 @APP.route('/<name>/projects.json')
-@oauth_required(['github'])
+@oauth_required(['github', 'gitlab'])
 def git_projects_list_view(name):
     """
     API for GitHub projects list
     """
+    if name != 'github':
+        raise NotImplementedError("Not yet!")
+
     data = OAUTH_APPS[name].get('user/repos', {
         'per_page': request.args.get('per_page', 18),
         'page': request.args.get('page', 1),
