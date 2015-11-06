@@ -32,7 +32,7 @@
       <!-- /ko -->
       <!-- ko if: isNew() -->
         <div class="col-sm-10">
-          <github-repos-list params="
+          <external-repos-list params="
               trigReload: trigGitlabReload
             , cancelReload: trigCancelGitlabReload
             , action: gitlabAction
@@ -40,7 +40,7 @@
             , reload: gitlabDefault
             , redirect: redirect
             , repoSource: 'gitlab'
-          "></github-repos-list>
+          "></external-repos-list>
         </div>
       <!-- /ko -->
     </div>
@@ -80,7 +80,7 @@
       <!-- /ko -->
       <!-- ko if: isNew() -->
         <div class="col-sm-10">
-          <github-repos-list params="
+          <external-repos-list params="
               trigReload: trigGithubReload
             , cancelReload: trigCancelGithubReload
             , action: githubAction
@@ -88,7 +88,7 @@
             , reload: githubDefault
             , redirect: redirect
             , repoSource: 'github'
-          "></github-repos-list>
+          "></external-repos-list>
         </div>
       <!-- /ko -->
     </div>

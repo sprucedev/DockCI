@@ -6,7 +6,7 @@ define([
     , 'text!./project_edit.html'
 
     , './loading_bar'
-    , './github_repos_list'
+    , './external_repos_list'
 ], function(ko, util, ProjectModel, template) {
     function ProjectEditModel(params) {
         finalParams = $.extend({

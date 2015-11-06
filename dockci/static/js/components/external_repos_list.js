@@ -3,10 +3,10 @@ define([
     , '../util'
     , '../models/github_repo'
     , '../models/gitlab_repo'
-    , 'text!./github_repos_list.html'
+    , 'text!./external_repos_list.html'
     , './loading_bar'
 ], function(ko, util, GithubRepoModel, GitlabRepoModel, template) {
-    function GithubReposListModel(params) {
+    function ExternalReposListModel(params) {
         finalParams = $.extend({
               'action': (function(){})
             , 'columnSize': 4
@@ -115,9 +115,9 @@ define([
         finalParams['ready'](true)
     }
 
-    ko.components.register('github-repos-list', {
-        viewModel: GithubReposListModel, template: template,
+    ko.components.register('external-repos-list', {
+        viewModel: ExternalReposListModel, template: template,
     })
 
-    return GithubReposListModel
+    return ExternalReposListModel
 })
