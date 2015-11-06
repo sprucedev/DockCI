@@ -107,7 +107,10 @@ define([
         }.bind(this))
         util.param(finalParams['cancelReload']).subscribe(function() {
             loading = this.loading()
-            if(loading) { loading.abort() }
+            if(loading) {
+                loading.abort()
+                this.loading(false)
+            }
         }.bind(this))
         finalParams['ready'](true)
     }
