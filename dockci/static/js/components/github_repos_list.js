@@ -13,6 +13,7 @@ define([
             , 'pageSize': 20
             , 'reload': false
             , 'trigReload': undefined
+            , 'cancelReload': undefined
             , 'ready': (function(){})
             , 'redirect': ko.observable()
             , 'repoSource': 'github'
@@ -51,7 +52,7 @@ define([
 
         this.loadFrom = function(page) {
             this.loading(true)
-            $.ajax("/" + this.repoSource + "/projects.json",  {
+            this.loading($.ajax("/" + this.repoSource + "/projects.json",  {
                   'dataType': 'json'
                 , 'data': {
                       'per_page': this.pageSize
@@ -84,8 +85,8 @@ define([
                 }
             }.bind(this)).fail(function(jqXHR, textStatus, errorThrown) {
                 this.loading(false)
-                util.ajax_fail(self.messages)(jqXHR, textStatus, errorThrown)
-            })
+                util.ajax_fail(this.messages)(jqXHR, textStatus, errorThrown)
+            }.bind(this)))
         }.bind(this)
 
         this.clickHandler = function(repo) {
@@ -103,6 +104,10 @@ define([
         // TRIGGERS
         util.param(finalParams['trigReload']).subscribe(function() {
             this.reload()
+        }.bind(this))
+        util.param(finalParams['cancelReload']).subscribe(function() {
+            loading = this.loading()
+            if(loading) { loading.abort() }
         }.bind(this))
         finalParams['ready'](true)
     }
