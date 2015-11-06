@@ -40,6 +40,7 @@ define([
         }.bind(this))
 
         this.trigGithubReload = ko.observable()
+        this.trigGitlabReload = ko.observable()
         this.redirect = ko.observable()
 
         this.githubAction = function(repo) {
@@ -52,9 +53,21 @@ define([
             this.trigGithubReload.notifySubscribers()
         }.bind(this)
 
+        this.gitlabAction = function(repo) {
+            this.project().repo(repo.cloneUrl())
+            this.project().gitlab_repo_id(repo.fullId())
+            this.project().slug(repo.shortName())
+            this.project().name(repo.shortName())
+        }.bind(this)
+        this.reloadGitlab = function() {
+            this.trigGitlabReload.notifySubscribers()
+        }.bind(this)
+
         this.currentTab.subscribe(function(val) {
             if(val === 'github') {
                 this.reloadGithub()
+            } else if(val === 'gitlab') {
+                this.reloadGitlab()
             }
         }.bind(this))
 

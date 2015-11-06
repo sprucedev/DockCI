@@ -2,9 +2,10 @@ define([
       'knockout'
     , '../util'
     , '../models/github_repo'
+    , '../models/gitlab_repo'
     , 'text!./github_repos_list.html'
     , './loading_bar'
-], function(ko, util, GithubRepoModel, template) {
+], function(ko, util, GithubRepoModel, GitlabRepoModel, template) {
     function GithubReposListModel(params) {
         finalParams = $.extend({
               'action': (function(){})
@@ -14,9 +15,11 @@ define([
             , 'trigReload': undefined
             , 'ready': (function(){})
             , 'redirect': ko.observable()
+            , 'repo_source': 'github'
         }, params)
 
         this.pageSize = finalParams['pageSize']
+        this.repo_source = finalParams['repo_source']
 
         this.messages = ko.observableArray()
         this.repos = ko.observableArray()
@@ -46,9 +49,9 @@ define([
         this.action = finalParams['action']
         this.redirect = finalParams['redirect']
 
-        loadFrom = function(page) {
+        this.loadFrom = function(page) {
             this.loading(true)
-            $.ajax("/github/projects.json",  {
+            $.ajax("/" + this.repo_source + "/projects.json",  {
                   'dataType': 'json'
                 , 'data': {
                       'per_page': this.pageSize
@@ -61,14 +64,21 @@ define([
                 }
 
                 $(reposData['repos']).each(function(idx, repoData) {
-                    this.repos.push(new GithubRepoModel({
-                          'fullId': repoData['full_name']
-                        , 'cloneUrl': repoData['clone_url']
-                    }))
+                    if(this.repo_source === 'github') {
+                        this.repos.push(new GithubRepoModel({
+                              'fullId': repoData['full_name']
+                            , 'cloneUrl': repoData['clone_url']
+                        }))
+                    } else {
+                        this.repos.push(new GitlabRepoModel({
+                              'fullId': repoData['path_with_namespace']
+                            , 'cloneUrl': repoData['http_url_to_repo']
+                        }))
+                    }
                 }.bind(this))
 
                 if(reposData['repos'].length >= this.pageSize) {
-                    loadFrom(page + 1)
+                    this.loadFrom(page + 1)
                 } else {
                     this.loading(false)
                 }
@@ -83,10 +93,10 @@ define([
         }.bind(this)
         this.reload = function() {
             this.repos([])
-            loadFrom(1)
+            this.loadFrom(1)
         }.bind(this)
 
-        if(finalParams['reload']()) {
+        if(finalParams['reload']) {
             this.reload()
         }
 
