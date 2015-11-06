@@ -15,11 +15,11 @@ define([
             , 'trigReload': undefined
             , 'ready': (function(){})
             , 'redirect': ko.observable()
-            , 'repo_source': 'github'
+            , 'repoSource': 'github'
         }, params)
 
         this.pageSize = finalParams['pageSize']
-        this.repo_source = finalParams['repo_source']
+        this.repoSource = finalParams['repoSource']
 
         this.messages = ko.observableArray()
         this.repos = ko.observableArray()
@@ -51,7 +51,7 @@ define([
 
         this.loadFrom = function(page) {
             this.loading(true)
-            $.ajax("/" + this.repo_source + "/projects.json",  {
+            $.ajax("/" + this.repoSource + "/projects.json",  {
                   'dataType': 'json'
                 , 'data': {
                       'per_page': this.pageSize
@@ -64,7 +64,7 @@ define([
                 }
 
                 $(reposData['repos']).each(function(idx, repoData) {
-                    if(this.repo_source === 'github') {
+                    if(this.repoSource === 'github') {
                         this.repos.push(new GithubRepoModel({
                               'fullId': repoData['full_name']
                             , 'cloneUrl': repoData['clone_url']
