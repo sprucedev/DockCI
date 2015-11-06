@@ -193,7 +193,7 @@ def app_init_oauth():
                 'gitlab',
                 consumer_key=CONFIG.gitlab_key,
                 consumer_secret=CONFIG.gitlab_secret,
-                base_url=CONFIG.gitlab_base_url,
+                base_url='%s/api/' % CONFIG.gitlab_base_url,
                 request_token_url=None,
                 access_token_method='POST',
                 access_token_url='%s/oauth/token' % CONFIG.gitlab_base_url,
