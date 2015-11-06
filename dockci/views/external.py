@@ -21,9 +21,10 @@ def git_projects_list_view(name):
     elif name == 'gitlab':
         endpoint = 'v3/projects'
 
-    else: raise NotImplementedError(
-        "Don't know how to list projects for '%s'" % name
-    )
+    else:
+        raise NotImplementedError(
+            "Don't know how to list projects for '%s'" % name
+        )
 
     data = OAUTH_APPS[name].get(endpoint, {
         'per_page': request.args.get('per_page', 18),
