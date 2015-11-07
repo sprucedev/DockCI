@@ -130,3 +130,16 @@ class StageFailedError(Exception, HumanOutputError):
         return ("Job stage failed for an unknown reason"
                 if self.message is None
                 else self.message)
+
+
+class InvalidServiceTypeError(Exception, HumanOutputError):
+    """
+    Raised to indicate a mismatch in service data (eg GitLab project, GitHub
+    OAuth token)
+    """
+    def __init__(self, message=None):
+        super(InvalidServiceTypeError, self).__init__()
+        self.message = message
+
+    def __str__(self):
+        return self.message or 'Invalid service, or service type mismatch'

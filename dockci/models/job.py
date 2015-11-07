@@ -19,7 +19,7 @@ import sqlalchemy
 from docker.utils import kwargs_from_env
 from flask import url_for
 
-from dockci.exceptions import AlreadyRunError
+from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
 from dockci.models.job_meta.stages_main import (BuildStage,
@@ -570,10 +570,11 @@ class Job(DB.Model):
 
         token_data = self.project.external_auth_token
         if token_data.service != service:
-            raise HumanOutputError(
-                "Project has a '%s' OAuth token, rather than '%s'",
-                token_data.service,
-                service,
+            raise InvalidServiceTypeError(
+                "Project has a '%s' OAuth token, rather than '%s'" % (
+                    token_data.service,
+                    service,
+                ),
             )
 
         return OAUTH_APPS[service].post(
