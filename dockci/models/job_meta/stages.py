@@ -130,20 +130,29 @@ class CommandJobStage(JobStageBase):  # pylint:disable=abstract-method
             """
             Run a process
             """
+            if isinstance(cmd_args_single, (tuple, list)):
+                return run_one_cmd({'command': cmd_args_single})
+
+            try:
+                # TODO test display
+                display_args = cmd_args_single['display']
+            except KeyError:
+                display_args = cmd_args_single['command']
+
             quoted_args = ' '.join((
-                shlex.quote(arg) for arg in cmd_args_single
+                shlex.quote(arg) for arg in display_args
             ))
             handle.write(bytes("> %s\n" % quoted_args, 'utf8'))
             handle.flush()
 
-            proc = subprocess.Popen(cmd_args_single,
+            proc = subprocess.Popen(cmd_args_single['command'],
                                     cwd=self.workdir.strpath,
                                     stdout=handle,
                                     stderr=subprocess.STDOUT)
             proc.wait()
             return proc.returncode
 
-        if isinstance(self.cmd_args[0], (tuple, list)):
+        if isinstance(self.cmd_args[0], (tuple, list, dict)):
             first_command = True
             for cmd_args_single in self.cmd_args:
                 if first_command:
