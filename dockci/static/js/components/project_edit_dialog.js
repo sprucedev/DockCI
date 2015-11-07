@@ -13,6 +13,7 @@ define([
       , 'title': 'Edit project'
       , 'saveLabel': 'Save'
       , 'action': (function(){})
+      , 'gitlabEnabled': false
       , 'gitlabDefault': false
       , 'githubEnabled': false
       , 'githubDefault': false
@@ -30,9 +31,10 @@ define([
     this.visible       = util.param(finalParams['visible'])
     this.title         = util.param(finalParams['title'])
     this.saveLabel     = util.param(finalParams['saveLabel'])
-    this.gitlabDefault = util.param(finalParams['gitlabDefault'])
-    this.githubEnabled = util.param(finalParams['githubEnabled'])
-    this.githubDefault = util.param(finalParams['githubDefault'])
+    this.gitlabEnabled = finalParams['gitlabEnabled']
+    this.gitlabDefault = finalParams['gitlabDefault']
+    this.githubEnabled = finalParams['githubEnabled']
+    this.githubDefault = finalParams['githubDefault']
     this.isNew         = util.param(finalParams['isNew'])
 
     this.saveProject = function () {

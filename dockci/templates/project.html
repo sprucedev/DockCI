@@ -89,9 +89,10 @@
 <project-edit-dialog params="
       visible: editVisible
     , title: editTitle
-    , gitlabDefault: project().isType('gitlab')
+    , gitlabEnabled: dockci.gitlabEnabled && project().isType('gitlab')
+    , gitlabDefault: dockci.gitlabEnabled && project().isType('gitlab')
     , githubEnabled: dockci.githubEnabled && project().isType('github')
-    , githubDefault: dockci.githubDefault && project().isType('github')
+    , githubDefault: dockci.githubEnabled && project().isType('github')
     , project: project
     , isNew: false
     , saveLabel: 'Update'

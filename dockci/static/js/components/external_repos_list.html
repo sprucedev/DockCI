@@ -1,3 +1,9 @@
+<!-- ko if: messages().length -->
+<ul class="list-group" data-bind="foreach:messages">
+    <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+</ul>
+<!-- /ko -->
+<!-- ko if: accounts().length || loading -->
 <div class="form-group"><div class="form-inline">
     <div class="btn-group" data-toggle="buttons" data-bind="radio: currentAccount">
         <!-- ko foreach: accounts -->
@@ -22,3 +28,4 @@
         "></a>
     </div>
 </div>
+<!-- /ko -->

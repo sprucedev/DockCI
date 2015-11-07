@@ -2,21 +2,25 @@ define([
       'knockout'
     , '../util'
     , '../models/github_repo'
-    , 'text!./github_repos_list.html'
+    , '../models/gitlab_repo'
+    , 'text!./external_repos_list.html'
     , './loading_bar'
-], function(ko, util, GithubRepoModel, template) {
-    function GithubReposListModel(params) {
+], function(ko, util, GithubRepoModel, GitlabRepoModel, template) {
+    function ExternalReposListModel(params) {
         finalParams = $.extend({
               'action': (function(){})
             , 'columnSize': 4
             , 'pageSize': 20
             , 'reload': false
             , 'trigReload': undefined
+            , 'cancelReload': undefined
             , 'ready': (function(){})
             , 'redirect': ko.observable()
+            , 'repoSource': 'github'
         }, params)
 
         this.pageSize = finalParams['pageSize']
+        this.repoSource = finalParams['repoSource']
 
         this.messages = ko.observableArray()
         this.repos = ko.observableArray()
@@ -46,9 +50,9 @@ define([
         this.action = finalParams['action']
         this.redirect = finalParams['redirect']
 
-        loadFrom = function(page) {
+        this.loadFrom = function(page) {
             this.loading(true)
-            $.ajax("/github/projects.json",  {
+            this.loading($.ajax("/" + this.repoSource + "/projects.json",  {
                   'dataType': 'json'
                 , 'data': {
                       'per_page': this.pageSize
@@ -61,32 +65,48 @@ define([
                 }
 
                 $(reposData['repos']).each(function(idx, repoData) {
-                    this.repos.push(new GithubRepoModel({
-                          'fullId': repoData['full_name']
-                        , 'cloneUrl': repoData['clone_url']
-                    }))
+                    if(this.repoSource === 'github') {
+                        this.repos.push(new GithubRepoModel({
+                              'fullId': repoData['full_name']
+                            , 'cloneUrl': repoData['clone_url']
+                        }))
+                    } else {
+                        this.repos.push(new GitlabRepoModel({
+                              'fullId': repoData['path_with_namespace']
+                            , 'cloneUrl': repoData['http_url_to_repo']
+                        }))
+                    }
                 }.bind(this))
 
                 if(reposData['repos'].length >= this.pageSize) {
-                    loadFrom(page + 1)
+                    this.loadFrom(page + 1)
                 } else {
                     this.loading(false)
                 }
             }.bind(this)).fail(function(jqXHR, textStatus, errorThrown) {
                 this.loading(false)
-                util.ajax_fail(self.messages)(jqXHR, textStatus, errorThrown)
-            })
+                util.ajax_fail(this.messages)(jqXHR, textStatus, errorThrown)
+            }.bind(this)))
         }.bind(this)
 
         this.clickHandler = function(repo) {
             this.action(repo)
         }.bind(this)
         this.reload = function() {
+            this.cancelReload()
             this.repos([])
-            loadFrom(1)
+            this.messages([])
+            this.loadFrom(1)
         }.bind(this)
+        this.cancelReload = function() {
+            loading = this.loading()
+            if(loading) {
+                loading.abort()
+                this.loading(false)
+            }
+        }
 
-        if(finalParams['reload']()) {
+        if(finalParams['reload']) {
             this.reload()
         }
 
@@ -94,12 +114,15 @@ define([
         util.param(finalParams['trigReload']).subscribe(function() {
             this.reload()
         }.bind(this))
+        util.param(finalParams['cancelReload']).subscribe(function() {
+            this.cancelReload()
+        }.bind(this))
         finalParams['ready'](true)
     }
 
-    ko.components.register('github-repos-list', {
-        viewModel: GithubReposListModel, template: template,
+    ko.components.register('external-repos-list', {
+        viewModel: ExternalReposListModel, template: template,
     })
 
-    return GithubReposListModel
+    return ExternalReposListModel
 })

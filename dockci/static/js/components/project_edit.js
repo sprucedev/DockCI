@@ -6,11 +6,12 @@ define([
     , 'text!./project_edit.html'
 
     , './loading_bar'
-    , './github_repos_list'
+    , './external_repos_list'
 ], function(ko, util, ProjectModel, template) {
     function ProjectEditModel(params) {
         finalParams = $.extend({
               'reload': false
+            , 'gitlabEnabled': false
             , 'gitlabDefault': false
             , 'githubEnabled': false
             , 'githubDefault': false
@@ -25,13 +26,14 @@ define([
 
         this.messages      = util.paramArray(finalParams['messages'])
         this.project       = util.param(finalParams['project'])
-        this.gitlabDefault = util.param(finalParams['gitlabDefault'])
-        this.githubEnabled = util.param(finalParams['githubEnabled'])
-        this.githubDefault = util.param(finalParams['githubDefault'])
+        this.gitlabEnabled = finalParams['gitlabEnabled']
+        this.gitlabDefault = finalParams['gitlabDefault']
+        this.githubEnabled = finalParams['githubEnabled']
+        this.githubDefault = finalParams['githubDefault']
         this.isNew         = util.param(finalParams['isNew'])
         this.currentTab    = util.param(finalParams['currentTab'], function() {
-            if (this.gitlabDefault()) { return 'gitlab' }
-            if (this.githubDefault()) { return 'github' }
+            if (this.gitlabDefault) { return 'gitlab' }
+            if (this.githubDefault) { return 'github' }
             return 'manual'
         }.bind(this)())
 
@@ -40,6 +42,9 @@ define([
         }.bind(this))
 
         this.trigGithubReload = ko.observable()
+        this.trigGitlabReload = ko.observable()
+        this.trigCancelGithubReload = ko.observable()
+        this.trigCancelGitlabReload = ko.observable()
         this.redirect = ko.observable()
 
         this.githubAction = function(repo) {
@@ -51,11 +56,34 @@ define([
         this.reloadGithub = function() {
             this.trigGithubReload.notifySubscribers()
         }.bind(this)
+        this.cancelReloadGithub = function() {
+            this.trigCancelGithubReload.notifySubscribers()
+        }.bind(this)
+
+        this.gitlabAction = function(repo) {
+            this.project().repo(repo.cloneUrl())
+            this.project().gitlab_repo_id(repo.fullId())
+            this.project().slug(repo.shortName())
+            this.project().name(repo.shortName())
+        }.bind(this)
+        this.reloadGitlab = function() {
+            this.trigGitlabReload.notifySubscribers()
+        }.bind(this)
+        this.cancelReloadGitlab = function() {
+            this.trigCancelGitlabReload.notifySubscribers()
+        }.bind(this)
 
         this.currentTab.subscribe(function(val) {
             if(val === 'github') {
+                this.cancelReloadGitlab()
                 this.reloadGithub()
+            } else if(val === 'gitlab') {
+                this.cancelReloadGithub()
+                this.reloadGitlab()
             }
+            this.project().forcedType(val)
+            this.project().gitlab_repo_id(undefined)
+            this.project().github_repo_id(undefined)
         }.bind(this))
 
         function attachGitlabUpdates(project) {
