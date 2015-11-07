@@ -535,7 +535,7 @@ class Job(DB.Model):
         """ Send the job state to GitLab (see ``send_external_status`` """
         return self.send_external_status(
             'gitlab',
-            self.gitlab_api_status_endpoint,  # TODO rel URL
+            self.gitlab_api_status_endpoint,
             state=state,
             state_msg=state_msg,
             context=context,
