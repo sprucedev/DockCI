@@ -532,6 +532,7 @@ class Job(DB.Model):
         return service_state, state_msg
 
     def send_gitlab_status(self, state=None, state_msg=None, context='push'):
+        """ Send the job state to GitLab (see ``send_external_status`` """
         return self.send_external_status(
             'gitlab',
             self.gitlab_api_status_endpoint,  # TODO rel URL
@@ -541,6 +542,7 @@ class Job(DB.Model):
         )
 
     def send_github_status(self, state=None, state_msg=None, context='push'):
+        """ Send the job state to GitHub (see ``send_external_status`` """
         return self.send_external_status(
             'github',
             self.github_api_status_endpoint,
@@ -557,9 +559,9 @@ class Job(DB.Model):
                              context='push',
                              ):
         """
-        Send a state to the GitHub commit represented by this job. If state
-        not set, is defaulted to something that makes sense, given the data in
-        this model
+        Send a state to the service for the commit represented by this job. If
+        state not set, is defaulted to something that makes sense, given the
+        data in this model
         """
         state, state_msg = self.state_data_for(service, state, state_msg)
 
