@@ -26,14 +26,14 @@ define([
 
         this.messages      = util.paramArray(finalParams['messages'])
         this.project       = util.param(finalParams['project'])
-        this.gitlabEnabled = util.param(finalParams['gitlabEnabled'])
-        this.gitlabDefault = util.param(finalParams['gitlabDefault'])
-        this.githubEnabled = util.param(finalParams['githubEnabled'])
-        this.githubDefault = util.param(finalParams['githubDefault'])
+        this.gitlabEnabled = finalParams['gitlabEnabled']
+        this.gitlabDefault = finalParams['gitlabDefault']
+        this.githubEnabled = finalParams['githubEnabled']
+        this.githubDefault = finalParams['githubDefault']
         this.isNew         = util.param(finalParams['isNew'])
         this.currentTab    = util.param(finalParams['currentTab'], function() {
-            if (this.gitlabDefault()) { return 'gitlab' }
-            if (this.githubDefault()) { return 'github' }
+            if (this.gitlabDefault) { return 'gitlab' }
+            if (this.githubDefault) { return 'github' }
             return 'manual'
         }.bind(this)())
 
