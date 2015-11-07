@@ -9,6 +9,9 @@
 - Registry login #328
 - Errors in Docker JSON stream fail stage automatically #328
 - GitLab OAuth2 #329
+- GitLab list, and fill projects #331
+- External repos list correctly displays errors #331
+- External repos list resets, aborts load on type change #331
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
