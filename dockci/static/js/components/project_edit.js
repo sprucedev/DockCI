@@ -11,6 +11,7 @@ define([
     function ProjectEditModel(params) {
         finalParams = $.extend({
               'reload': false
+            , 'gitlabEnabled': false
             , 'gitlabDefault': false
             , 'githubEnabled': false
             , 'githubDefault': false
@@ -25,6 +26,7 @@ define([
 
         this.messages      = util.paramArray(finalParams['messages'])
         this.project       = util.param(finalParams['project'])
+        this.gitlabEnabled = util.param(finalParams['gitlabEnabled'])
         this.gitlabDefault = util.param(finalParams['gitlabDefault'])
         this.githubEnabled = util.param(finalParams['githubEnabled'])
         this.githubDefault = util.param(finalParams['githubDefault'])
