@@ -39,18 +39,17 @@ class Project(DB.Model):  # pylint:disable=no-init
     github_repo_id = DB.Column(DB.String(255))
     github_hook_id = DB.Column(DB.Integer())
     github_secret = DB.Column(DB.String(255))
-    github_auth_token_id = DB.Column(
+
+    gitlab_repo_id = DB.Column(DB.String(255))
+
+    external_auth_token_id = DB.Column(
         DB.Integer, DB.ForeignKey('o_auth_token.id'),
     )
-    github_auth_token = DB.relationship(  # TODO generic oauth assoc
+    external_auth_token = DB.relationship(
         'OAuthToken',
-        foreign_keys="Project.github_auth_token_id",
+        foreign_keys="Project.external_auth_token_id",
         backref=DB.backref('projects', lazy='dynamic'),
     )
-
-    gitlab_base_uri = DB.Column(DB.String(255))
-    gitlab_repo_id = DB.Column(DB.String(255))
-    gitlab_private_token = DB.Column(DB.String(255))
 
     jobs = DB.relationship(
         'Job',
@@ -257,20 +256,12 @@ class Project(DB.Model):  # pylint:disable=no-init
             return 'lightgrey'
 
     @property
-    def gitlab_api_endpoint(self):
-        """ Base endpoint for GitLab API """
+    def gitlab_api_repo_endpoint(self):
+        """ Repo endpoint for GitLab API """
         if self.gitlab_repo_id is None:
             raise ValueError("Not a GitLab repository")
 
-        return add_to_url_path(self.gitlab_base_uri, '/api/v3')
-
-    @property
-    def gitlab_api_repo_endpoint(self):
-        """ Repo endpoint for GitLab API """
-        return add_to_url_path(
-            self.gitlab_api_endpoint,
-            '/projects/%s' % quote_plus(self.gitlab_repo_id),
-        )
+        return 'v3/projects/%s' % quote_plus(self.gitlab_repo_id)
 
     @property
     def github_api_repo_endpoint(self):

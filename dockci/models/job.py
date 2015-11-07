@@ -532,39 +532,51 @@ class Job(DB.Model):
         return service_state, state_msg
 
     def send_gitlab_status(self, state=None, state_msg=None, context='push'):
-        """
-        Send a state to the GitLab commit represented by this job. If state
-        not set, is defaulted to something that makes sense, given the data in
-        this model
-        """
-        state, state_msg = self.state_data_for('gitlab', state, state_msg)
-
-        if state_msg is not None:
-            extra_dict = dict(description=state_msg)
-
-        return requests.post(
-            self.gitlab_api_status_endpoint,
-            dict(state=state,
-                 target_url=self.url_ext,
-                 context='continuous-integration/dockci/%s' % context,
-                 private_token=self.project.gitlab_private_token,
-                 **extra_dict),
+        return self.send_external_status(
+            'gitlab',
+            self.gitlab_api_status_endpoint,  # TODO rel URL
+            state=state,
+            state_msg=state_msg,
+            context=context,
         )
 
+
     def send_github_status(self, state=None, state_msg=None, context='push'):
+        return self.send_external_status(
+            'github',
+            self.github_api_status_endpoint,
+            state=state,
+            state_msg=state_msg,
+            context=context,
+        )
+
+    def send_external_status(self,
+                             service,
+                             api_endpoint,
+                             state=None,
+                             state_msg=None,
+                             context='push',
+                             ):
         """
         Send a state to the GitHub commit represented by this job. If state
         not set, is defaulted to something that makes sense, given the data in
         this model
         """
-        state, state_msg = self.state_data_for('github', state, state_msg)
+        state, state_msg = self.state_data_for(service, state, state_msg)
 
         if state_msg is not None:
             extra_dict = dict(description=state_msg)
 
-        token_data = self.project.github_auth_token
-        return OAUTH_APPS['github'].post(
-            self.github_api_status_endpoint,
+        token_data = self.project.external_auth_token
+        if token_data.service != service:
+            raise HumanOutputError(
+                "Project has a '%s' OAuth token, rather than '%s'",
+                token_data.service,
+                service,
+            )
+
+        return OAUTH_APPS[service].post(
+            api_endpoint,
             dict(state=state,
                  target_url=self.url_ext,
                  context='continuous-integration/dockci/%s' % context,
