@@ -126,8 +126,13 @@ class ProjectDetail(BaseDetailResource):
         args = PROJECT_NEW_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
 
-        if 'github_repo_id' in args or 'gitlab_repo_id' in args:
-            args['external_auth_token'] = current_user.oauth_token_for('github')
+        if 'gitlab_repo_id' in args:
+            args['external_auth_token'] = (
+                current_user.oauth_token_for('gitlab'))
+
+        elif 'github_repo_id' in args:
+            args['external_auth_token'] = (
+                current_user.oauth_token_for('github'))
 
         project = Project(slug=project_slug)
         return self.handle_write(project, data=args)
