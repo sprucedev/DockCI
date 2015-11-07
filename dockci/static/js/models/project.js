@@ -5,6 +5,8 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.repo = ko.observable()
         this.utility = ko.observable()
 
+        this.forcedType = ko.observable()
+
         this.gitlab_base_uri = ko.observable()
         this.gitlab_repo_id = ko.observable()
         this.gitlab_private_token = ko.observable()
@@ -48,6 +50,8 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         }.bind(this)
 
         this.isType = function(typeString) {
+            forcedType = this.forcedType()
+            if (forcedType) { return typeString === forcedType }
             if (typeString === 'github') {
                 return this.github_repo_id() != null
             } else if (typeString === 'gitlab') {

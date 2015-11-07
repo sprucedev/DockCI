@@ -81,6 +81,9 @@ define([
                 this.cancelReloadGithub()
                 this.reloadGitlab()
             }
+            this.project().forcedType(val)
+            this.project().gitlab_repo_id(undefined)
+            this.project().github_repo_id(undefined)
         }.bind(this))
 
         function attachGitlabUpdates(project) {
