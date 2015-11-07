@@ -93,9 +93,17 @@ define([
             this.action(repo)
         }.bind(this)
         this.reload = function() {
+            this.cancelReload()
             this.repos([])
             this.loadFrom(1)
         }.bind(this)
+        this.cancelReload = function() {
+            loading = this.loading()
+            if(loading) {
+                loading.abort()
+                this.loading(false)
+            }
+        }
 
         if(finalParams['reload']) {
             this.reload()
@@ -106,11 +114,7 @@ define([
             this.reload()
         }.bind(this))
         util.param(finalParams['cancelReload']).subscribe(function() {
-            loading = this.loading()
-            if(loading) {
-                loading.abort()
-                this.loading(false)
-            }
+            this.cancelReload()
         }.bind(this))
         finalParams['ready'](true)
     }
