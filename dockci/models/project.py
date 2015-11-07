@@ -14,8 +14,7 @@ import sqlalchemy
 from flask import url_for
 
 from dockci.server import DB, OAUTH_APPS
-from dockci.util import (add_to_url_path,
-                         ext_url_for,
+from dockci.util import (ext_url_for,
                          is_git_ancestor,
                          is_git_hash,
                          )
