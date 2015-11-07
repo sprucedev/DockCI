@@ -95,6 +95,7 @@ define([
         this.reload = function() {
             this.cancelReload()
             this.repos([])
+            this.messages([])
             this.loadFrom(1)
         }.bind(this)
         this.cancelReload = function() {
