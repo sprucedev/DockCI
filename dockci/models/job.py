@@ -540,7 +540,6 @@ class Job(DB.Model):
             context=context,
         )
 
-
     def send_github_status(self, state=None, state_msg=None, context='push'):
         return self.send_external_status(
             'github',
