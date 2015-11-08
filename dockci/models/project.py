@@ -221,6 +221,7 @@ class Project(DB.Model):  # pylint:disable=no-init
         return result
 
     def is_type(self, service):
+        """ Check if the project is of a given service type """
         return (
             getattr(self, '%s_repo_id' % service) and
             self.external_auth_token and
