@@ -71,3 +71,20 @@ class User(DB.Model, UserMixin):  # pylint:disable=no-init
         return self.oauth_tokens.filter_by(
             service=service_name,
         ).order_by(sqlalchemy.desc(OAuthToken.id)).first()
+
+
+class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
+    """ Registry that should be authenticated with """
+    id = DB.Column(DB.Integer, primary_key=True)
+    display_name = DB.Column(DB.String(255), unique=True, nullable=False)
+    base_name = DB.Column(DB.String(255),
+                          unique=True,
+                          index=True,
+                          nullable=False,
+                          )
+    username = DB.Column(DB.String(255), nullable=False)
+    password = DB.Column(DB.String(255))
+    email = DB.Column(DB.String(255))
+
+    def __str__(self):
+        return '<{klass}: {base_name} ({username})>'
