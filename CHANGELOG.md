@@ -12,6 +12,7 @@
 - GitLab list, and fill projects #331
 - External repos list correctly displays errors #331
 - External repos list resets, aborts load on type change #331
+- Can clone private GitHub, GitLab repos with OAuth #333
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
