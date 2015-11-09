@@ -11,6 +11,7 @@ import tarfile
 from collections import defaultdict
 from datetime import datetime
 from itertools import chain
+from urllib.parse import urlparse, urlunparse
 
 import docker
 import docker.errors
@@ -36,9 +37,36 @@ class WorkdirStage(CommandJobStage):
     slug = 'git_prepare'
 
     def __init__(self, job, workdir):
+        display_repo = job.repo
+        command_repo = job.repo
+        repo_fs = None
+
+        if job.project.is_type('gitlab'):
+            gitlab_parts = list(urlparse(CONFIG.gitlab_base_url))
+            gitlab_parts[1] = 'oauth2:{token_key}@%s' % gitlab_parts[1]
+            gitlab_parts[2] = '%s.git' % job.project.gitlab_repo_id
+            repo_fs = urlunparse(gitlab_parts)
+
+        elif job.project.is_type('github'):
+            repo_fs = 'https://oauth2:{token_key}@github.com/%s.git' % (
+                job.project.github_repo_id
+            )
+
+        if repo_fs is not None:
+            display_repo = repo_fs.format(token_key='****')
+            command_repo = repo_fs.format(
+                token_key=job.project.external_auth_token.key,
+            )
+            job.repo = display_repo
+            job.db_session.add(job)
+            job.db_session.commit()
+
         super(WorkdirStage, self).__init__(
             job, workdir, (
-                ['git', 'clone', job.repo, workdir.strpath],
+                dict(
+                    command=['git', 'clone', command_repo, workdir.strpath],
+                    display=['git', 'clone', display_repo, workdir.strpath],
+                ),
                 ['git',
                  '-c', 'advice.detachedHead=false',
                  'checkout', job.commit

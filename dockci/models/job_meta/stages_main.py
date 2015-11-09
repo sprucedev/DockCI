@@ -17,6 +17,7 @@ def parse_oauth_response(response):
     return response.status, response.data
 
 
+# UNUSED, but kept for non-oauth integrations
 def parse_requests_response(response):
     """ Parse a response from requests """
     try:
@@ -82,7 +83,7 @@ class ExternalStatusStage(JobStageBase):
                        ),
             'GitLab': (self.job.project.gitlab_repo_id,
                        self.job.send_gitlab_status,
-                       parse_requests_response,
+                       parse_oauth_response,
                        ),
         }.items())
 
