@@ -134,7 +134,6 @@ class CommandJobStage(JobStageBase):  # pylint:disable=abstract-method
                 return run_one_cmd({'command': cmd_args_single})
 
             try:
-                # TODO test display
                 display_args = cmd_args_single['display']
             except KeyError:
                 display_args = cmd_args_single['command']
