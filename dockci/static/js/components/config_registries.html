@@ -11,7 +11,7 @@
   <!-- ko foreach:registries -->
     <!-- ko component: {
         name: "config-registry-row"
-      , params: { registry: $data, editMode: false }
+      , params: { registry: $data, editMode: false, messages: $parent.pageModel.messages }
     } --><!-- /ko -->
   <!-- /ko -->
 
@@ -29,7 +29,7 @@
 
   <!-- ko component: {
       name: "config-registry-row"
-    , params: { registry: newRegistry, editMode: true }
+    , params: { registry: newRegistry, editMode: true, messages: pageModel.messages }
   } --><!-- /ko -->
   </tbody>
 </table>

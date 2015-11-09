@@ -1,10 +1,10 @@
 <!-- ko ifnot:editMode -->
 <tr>
-  <td data-bind="text:registry().display_name" /></td>
-  <td data-bind="text:registry().base_name" /></td>
-  <td data-bind="text:registry().username" /></td>
+  <td data-bind="text:registry().display_name() || ''" /></td>
+  <td data-bind="text:registry().base_name() || ''" /></td>
+  <td data-bind="text:registry().username() || ''" /></td>
   <td class="text-muted">hidden</td>
-  <td data-bind="text:registry().email" /></td>
+  <td data-bind="text:registry().email() || ''" /></td>
   <td><button class="btn btn-sm btn-danger" data-bind="click:remove, disable:saving">
     <span data-bind="visible: !saving()"><i class="glyphicon glyphicon-trash"></i></span>
     <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
@@ -14,12 +14,12 @@
 
 <!-- ko if:editMode -->
 <tr>
-  <td><input placeholder="Display name" data-bind="value:registry().display_name" /></td>
-  <td><input placeholder="Base name" data-bind="value:registry().base_name" /></td>
-  <td><input placeholder="Username" data-bind="value:registry().username" /></td>
-  <td><input placeholder="Password" data-bind="value:registry().password" /></td>
-  <td><input placeholder="Email" data-bind="value:registry().email" /></td>
-  <td><button class="btn btn-sm btn-success" data-bind="click:save, disable:saving">
+  <td><input placeholder="Display name" data-bind="value:registry().display_name, disable:saving" /></td>
+  <td><input placeholder="Base name" data-bind="value:registry().base_name, disable:saving" /></td>
+  <td><input placeholder="Username" data-bind="value:registry().username, disable:saving" /></td>
+  <td><input placeholder="Password" data-bind="value:registry().password, disable:saving" /></td>
+  <td><input placeholder="Email" data-bind="value:registry().email, disable:saving" /></td>
+  <td><button class="btn btn-sm btn-success" data-bind="click:save, disable:saving() || !savable()">
     <span data-bind="visible: !saving()"><i class="glyphicon glyphicon-ok"></i></span>
     <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
   </button></td>
