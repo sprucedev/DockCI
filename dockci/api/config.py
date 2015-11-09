@@ -23,7 +23,10 @@ SHARED_PARSER_ARGS = {
         help="Registry display name",
         required=None, type=NonBlankInput(),
     ),
-    'username': dict(help="Username for logging into the registry"),
+    'username': dict(
+        help="Username for logging into the registry",
+        required=None, type=NonBlankInput(),
+    ),
     'password': dict(help="Password for logging into the registry"),
     'email': dict(help="Email for logging into the registry"),
 }
@@ -58,7 +61,7 @@ class RegistryDetail(BaseDetailResource):
     def put(self, base_name):
         """ Create a new registry """
         registry = AuthenticatedRegistry(base_name=base_name)
-        return self.handle_write(registry, data=args)
+        return self.handle_write(registry, REGISTRY_NEW_PARSER)
 
     @login_required
     @marshal_with(BASIC_FIELDS)
@@ -67,7 +70,7 @@ class RegistryDetail(BaseDetailResource):
         registry = AuthenticatedRegistry.query.filter_by(
             base_name=base_name,
         ).first_or_404()
-        return self.handle_write(registry, PROJECT_EDIT_PARSER)
+        return self.handle_write(registry, REGISTRY_EDIT_PARSER)
 
     @login_required
     def delete(self, base_name):
