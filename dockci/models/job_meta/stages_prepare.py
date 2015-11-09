@@ -21,7 +21,7 @@ import py.path  # pylint:disable=import-error
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
-from dockci.server import CONFIG, DB
+from dockci.server import CONFIG
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
@@ -58,8 +58,8 @@ class WorkdirStage(CommandJobStage):
                 token_key=job.project.external_auth_token.key,
             )
             job.repo = display_repo
-            DB.session.add(job)
-            DB.session.commit()
+            job.db_session.add(job)
+            job.db_session.commit()
 
         super(WorkdirStage, self).__init__(
             job, workdir, (
