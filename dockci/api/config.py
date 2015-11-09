@@ -6,7 +6,7 @@ from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput, RewriteUrl
 from .util import new_edit_parsers
 from dockci.models.auth import AuthenticatedRegistry
-from dockci.server import API
+from dockci.server import API, DB
 
 
 
