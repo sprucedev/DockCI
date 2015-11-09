@@ -69,3 +69,12 @@ def config_edit_view():
             CONFIG.restart_needed = True
 
     return render_template('config_edit.html')
+
+
+@APP.route('/config/<page>', methods=('GET',))
+@login_required
+def config_page_view(page):
+    """ View and edit misc config """
+    if page not in ('registries',):
+        abort(404)
+    return render_template('config_page.html', page=page)
