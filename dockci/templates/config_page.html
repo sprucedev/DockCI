@@ -2,5 +2,23 @@
 {% block title %}{{ page | title }} Configuration{% endblock %}
 {% block header %}{{ page | title }} Configuration{% endblock %}
 {% block content %}
-Nothing yet
+<ul class="list-group" data-bind="foreach:messages">
+    <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+</ul>
+<config-page-{{ page }} params="pageModel:$data"></config-page-{{ page }}>
+<script>
+    require([
+          'jquery'
+        , 'knockout'
+
+        , 'app/components/config_{{ page }}'
+    ], function($, ko) {
+        $(document).ready(function() {
+            function ThisPage() {
+                this.messages = ko.observableArray()
+            }
+            ko.applyBindings(new ThisPage())
+        })
+    })
+</script>
 {% endblock %}

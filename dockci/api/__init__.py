@@ -1,2 +1,2 @@
 """ DockCI API routes """
-from . import job, jwt, project, user
+from . import config, job, jwt, project, user

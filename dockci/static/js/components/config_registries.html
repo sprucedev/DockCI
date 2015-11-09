@@ -1,0 +1,35 @@
+<table class="col-sm-12 table table-striped">
+  <tr>
+    <th>Display name</th>
+    <th>Base name</th>
+    <th>Username</th>
+    <th>Password</th>
+    <th>Email</th>
+    <th>&nbsp;</th>
+  </tr>
+  <tbody>
+  <!-- ko foreach:registries -->
+    <!-- ko component: {
+        name: "config-registry-row"
+      , params: { registry: $data, editMode: false }
+    } --><!-- /ko -->
+  <!-- /ko -->
+
+  <!-- ko if:registries().length < 1 && !loading() -->
+    <tr><td colspan="6" style="text-align: center">
+      No registries
+    </td></tr>
+  <!-- /ko -->
+
+  <!-- ko if:loading -->
+    <tr><td colspan="6">
+      <loading-bar></loading-bar>
+    </td></tr>
+  <!-- /ko -->
+
+  <!-- ko component: {
+      name: "config-registry-row"
+    , params: { registry: newRegistry, editMode: true }
+  } --><!-- /ko -->
+  </tbody>
+</table>
