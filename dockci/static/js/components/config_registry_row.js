@@ -2,16 +2,19 @@ define([
     'knockout'
   , '../util'
   , '../models/message'
+  , '../models/registry'
   , 'text!./config_registry_row.html'
-], function(ko, util, MessageModel, template) {
+], function(ko, util, MessageModel, RegistryModel, template) {
   function ConfigRegistryRowModel(params) {
     finalParams = $.extend({
         'editMode': false
       , 'messages': []
+      , 'regList': []
     }, params)
 
     this.saving = ko.observable(false)
     this.messages = util.paramArray(finalParams['messages'])
+    this.regList = util.paramArray(finalParams['regList'])
 
     this.registry = util.param(finalParams['registry'])
     this.editMode = util.param(finalParams['editMode'])
@@ -33,6 +36,8 @@ define([
             'message': "Registry saved"
           , 'category': 'success'
         })])
+        this.regList.push(this.registry())
+        this.registry(new RegistryModel({}))
       }.bind(this)).always(function() {
         this.saving(false)
       }.bind(this)).fail(util.ajax_fail(this.messages))
@@ -46,6 +51,7 @@ define([
             'message': message
           , 'category': 'success'
         })])
+        this.regList.remove(this.registry())
       }.bind(this)).always(function() {
         this.saving(false)
       }.bind(this)).fail(util.ajax_fail(this.messages))
