@@ -30,7 +30,7 @@ define([
       this.saving(true)
       this.registry().save().success(function() {
         this.messages([new MessageModel({
-            'message': "Saved registry"
+            'message': "Registry saved"
           , 'category': 'success'
         })])
       }.bind(this)).always(function() {
@@ -39,9 +39,11 @@ define([
     }.bind(this)
     this.remove = function() {
       this.saving(true)
-      this.registry().remove().success(function() {
+      this.registry().remove().success(function(data) {
+        var message = "Registry deleted"
+        if (typeof(data['message']) !== 'undefined') { message = data['message'] }
         this.messages([new MessageModel({
-            'message': "Removed registry"
+            'message': message
           , 'category': 'success'
         })])
       }.bind(this)).always(function() {
