@@ -1,12 +1,11 @@
 <table class="col-sm-12 table table-striped">
-  <tr>
-    <th>Display name</th>
-    <th>Base name</th>
-    <th>Username</th>
-    <th>Password</th>
-    <th>Email</th>
-    <th>&nbsp;</th>
-  </tr>
+  <thead><tr class="row"><th>
+    <div class="col-sm-3">Display name</div>
+    <div class="col-sm-2">Base name</div>
+    <div class="col-sm-2">Username</div>
+    <div class="col-sm-2">Password</div>
+    <div class="col-sm-2">Email</div>
+  </th></tr></thead>
   <tbody>
   <!-- ko foreach:registries -->
     <!-- ko component: {
@@ -21,13 +20,13 @@
   <!-- /ko -->
 
   <!-- ko if:registries().length < 1 && !loading() -->
-    <tr><td colspan="6" style="text-align: center">
+    <tr><td style="text-align: center">
       No registries
     </td></tr>
   <!-- /ko -->
 
   <!-- ko if:loading -->
-    <tr><td colspan="6">
+    <tr><td>
       <loading-bar></loading-bar>
     </td></tr>
   <!-- /ko -->
