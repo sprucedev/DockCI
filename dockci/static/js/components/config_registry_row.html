@@ -13,17 +13,17 @@
   <!-- /ko -->
 
   <!-- ko if:editMode -->
-  <form data-bind="submit:save">
-    <div class="col-sm-3"><input placeholder="Display name" data-bind="value:registry().display_name, disable:saving" /></div>
-    <div class="col-sm-2"><input placeholder="Base name" data-bind="value:registry().base_name, disable:saving" /></div>
-    <div class="col-sm-2"><input placeholder="Username" data-bind="value:registry().username, disable:saving" /></div>
-    <div class="col-sm-2"><input placeholder="Password" data-bind="value:registry().password, disable:saving" /></div>
-    <div class="col-sm-2"><input placeholder="Email" data-bind="value:registry().email, disable:saving" /></div>
+  <form data-bind="submit:save"><fieldset data-bind="disable:saving">
+    <div class="col-sm-3"><input placeholder="Display name" data-bind="value:registry().display_name" /></div>
+    <div class="col-sm-2"><input placeholder="Base name" data-bind="value:registry().base_name" /></div>
+    <div class="col-sm-2"><input placeholder="Username" data-bind="value:registry().username" /></div>
+    <div class="col-sm-2"><input placeholder="Password" data-bind="value:registry().password" /></div>
+    <div class="col-sm-2"><input placeholder="Email" data-bind="value:registry().email" /></div>
     <div class="col-sm-1"><button class="btn btn-sm btn-success" data-bind="disable:saving() || !savable()" type="submit">
       <span data-bind="visible: !saving()"><i class="glyphicon glyphicon-ok"></i></span>
       <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
     </button></div>
-  </form>
+  </fieldset></form>
   <!-- /ko -->
 
 </td></tr>
