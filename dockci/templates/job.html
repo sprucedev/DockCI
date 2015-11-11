@@ -119,6 +119,18 @@
 
     , 'knockstrap'
   ], function ($, ko, md5, ansi_up) {
+    function escapeHTML(html) {
+      var fn=function(tag) {
+        var charsToReplace = {
+            '&': '&amp;'
+          , '<': '&lt;'
+          , '>': '&gt;'
+          , '"': '&#34;'
+        }
+        return charsToReplace[tag] || tag
+      }
+      return html.replace(/[&<>"]/g, fn)
+    }
     function dockciJob() {
       var stageAjaxQueue = {},
           importantPanels = ['docker_build', 'docker_test', 'error'],
@@ -212,7 +224,7 @@
           }
           logEl.append(
             '<div class="docker-log-error alert alert-danger">' +
-            ansi_up.ansi_to_html(errorMessage) +
+            ansi_up.ansi_to_html(escapeHTML(errorMessage)) +
             '</div>'
           );
           panelEl.removeClass('panel-info panel-contracted')
@@ -228,7 +240,7 @@
             logEl.append(lineEl);
           }
 
-          lineEl.html(lineEl.html() + ansi_up.ansi_to_html(obj['stream']));
+          lineEl.html(lineEl.html() + ansi_up.ansi_to_html(escapeHTML(obj['stream'])));
 
           if (obj['stream'].endsWith('\n')) {
             logEl.append('<div class="docker-log-stream"></div>');
@@ -244,15 +256,15 @@
           }
 
           messageComps = [dockerIdText(obj['id'])]
-          if ('status' in obj) { messageComps.push(ansi_up.ansi_to_html(obj['status'])) }
-          if ('progress' in obj) { messageComps.push(ansi_up.ansi_to_html(obj['progress'])) }
+          if ('status' in obj) { messageComps.push(ansi_up.ansi_to_html(escapeHTML(obj['status']))) }
+          if ('progress' in obj) { messageComps.push(ansi_up.ansi_to_html(escapeHTML(obj['progress']))) }
 
           idRow.html(messageComps.join(' | '))
         } else if (isObj && 'status' in obj) {
           handled = true
           logEl.append(
             '<div class="docker-log-status">' +
-            ansi_up.ansi_to_html(obj['status']) +
+            ansi_up.ansi_to_html(escapeHTML(obj['status'])) +
             '</div>'
           );
         }
@@ -263,6 +275,7 @@
           } else {
             objLine = obj;
           }
+          objLine = escapeHTML(objLine)
           if (lenient) {
             logEl.append('<div>' + objLine + '</div>');
           } else {
@@ -311,8 +324,8 @@
               totalLength = responseText.length;
               responseText = responseText.substr(processedChars,
                                                  responseText.length);
-              responseLines = responseText.split('\n');
               processedChars = totalLength;
+              responseLines = responseText.split('\n');
 
               if (isDockerStage(stageData['slug'])) {
                 // Combine the first line with the previous incomplete line
@@ -336,7 +349,7 @@
                   lastLine.text(lastLine.text() + lineCompletion);
                 }
                 $.each(responseLines, function(idx, value) {
-                  content = ansi_up.ansi_to_html(value);
+                  content = ansi_up.ansi_to_html(escapeHTML(value));
                   if (content === '') {
                       content = '&nbsp;';
                   }
