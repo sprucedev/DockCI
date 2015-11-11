@@ -18,6 +18,7 @@ import docker.errors
 import py.error  # pylint:disable=import-error
 import py.path  # pylint:disable=import-error
 
+from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
@@ -917,3 +918,52 @@ class UtilStage(InlineProjectStage):
 
             else:
                 yield name
+
+
+class DockerLoginStage(JobStageBase):
+    slug = 'docker_login'
+
+    def __init__(self, job, workdir):
+        super(DockerLoginStage, self).__init__(job)
+        self.workdir = workdir
+
+    def runnable(self, handle):
+        dockerfile = self.workdir.join(self.job.job_config.dockerfile)
+        with dockerfile.open() as dockerfile_handle:
+            for line in dockerfile_handle:
+                line = line.strip()
+                if line.startswith('FROM '):
+                    image = line[5:].strip()
+                    image_parts = image.split('/', 2)
+                    if len(image_parts) != 3:
+                        base_name = None
+
+                    query = self.job.db_session.query(AuthenticatedRegistry)
+                    registry = query.filter_by(base_name=base_name or 'docker.io').first()
+
+                    if registry:
+                        handle.write(("Logging into '%s' registry: " % registry.display_name).encode())
+                        handle.flush()
+                        try:
+                            response = self.job.docker_client.login(
+                                username=registry.username,
+                                password=registry.password,
+                                email=registry.email,
+                                registry=base_name,
+                            )
+                            handle.write(response['Status'].encode())
+                            handle.flush()
+
+                        except docker.errors.APIError as ex:
+                            message = str(DockerAPIError(self.job.docker_client, ex))
+                            handle.write(('FAILED: %s' % message).encode())
+                            handle.flush()
+
+                            raise StageFailedError(message=message, handled=True)
+                    else:
+                        handle.write(("Unauthenticated for '%s' registry" % (base_name or 'docker.io')).encode())
+                        handle.flush()
+
+                    continue
+
+        return 0

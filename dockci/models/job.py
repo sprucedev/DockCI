@@ -29,7 +29,8 @@ from dockci.models.job_meta.stages_post import (PushStage,
                                                 FetchStage,
                                                 CleanupStage,
                                                 )
-from dockci.models.job_meta.stages_prepare import (GitChangesStage,
+from dockci.models.job_meta.stages_prepare import (DockerLoginStage,
+                                                   GitChangesStage,
                                                    GitInfoStage,
                                                    GitMtimeStage,
                                                    ProvisionStage,
@@ -425,6 +426,7 @@ class Job(DB.Model):
                     lambda: GitChangesStage(self, workdir).run(0),
                     lambda: GitMtimeStage(self, workdir).run(None),
                     tag_stage,
+                    lambda: DockerLoginStage(self, workdir).run(0),
                 ), (
                     create_util_stage(suffix_outer, config_outer)
                     for suffix_outer, config_outer
