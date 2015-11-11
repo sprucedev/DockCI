@@ -87,4 +87,8 @@ class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
     email = DB.Column(DB.String(255))
 
     def __str__(self):
-        return '<{klass}: {base_name} ({username})>'
+        return '<{klass}: {base_name} ({username})>'.format(
+            klass=self.__class__.__name__,
+            base_name=self.base_name,
+            username=self.username,
+        )
