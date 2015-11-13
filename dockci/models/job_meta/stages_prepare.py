@@ -982,19 +982,42 @@ class DockerLoginStage(JobStageBase):
             )).encode())
             handle.flush()
 
-    def runnable(self, handle):
-        """ Load the Dockerfile, scan for FROM line, login """
+    def base_name_from_image(self, image):
+        """
+        Given an image name such as ``quay.io/thatpanda/dockci:latest``, gets
+        the registry base name (``quay.io`` in this case). If there isn't a
+        host, namespace, and image part, docker hub is assumed and ``None``
+        returned
+        """
+        image_parts = image.split('/', 2)
+        if len(image_parts) != 3:
+            return None
+
+        return image_parts[0]
+
+    def registries_from_dockerfile(self):
         dockerfile = self.workdir.join(self.job.job_config.dockerfile)
         with dockerfile.open() as dockerfile_handle:
             for line in dockerfile_handle:
                 line = line.strip()
                 if line.startswith('FROM '):
-                    image = line[5:].strip()
-                    image_parts = image.split('/', 2)
-                    if len(image_parts) != 3:
-                        base_name = None
+                    return set(base_name_from_image(line[5:].strip()))
 
-                    self.handle_registry(handle, base_name)
-                    continue
+        return set()
+
+    def registries_from_utilities(self):
+        return set()
+
+    def registries_from_push(self):
+        return set()
+
+    def runnable(self, handle):
+        """ Load the Dockerfile, scan for FROM line, login """
+        for base_name in (
+            registries_from_dockerfile() +
+            registries_from_utilities() +
+            registries_from_push()
+        ):
+            self.handle_registry(handle, base_name)
 
         return 0
