@@ -921,13 +921,62 @@ class UtilStage(InlineProjectStage):
 
 
 class DockerLoginStage(JobStageBase):
+    """ Find, and login to registries that have auth config """
     slug = 'docker_login'
 
     def __init__(self, job, workdir):
         super(DockerLoginStage, self).__init__(job)
         self.workdir = workdir
 
+    def login_registry(self, handle, registry):
+        """ Handle login to the given registry model """
+        handle.write(("Logging into '%s' registry: " % (
+            registry.display_name,
+        )).encode())
+        handle.flush()
+        try:
+            response = self.job.docker_client.login(
+                username=registry.username,
+                password=registry.password,
+                email=registry.email,
+                registry=base_name,
+            )
+            handle.write(response['Status'].encode())
+            handle.flush()
+
+        except docker.errors.APIError as ex:
+            message = str(DockerAPIError(
+                self.job.docker_client, ex,
+            ))
+            handle.write(('FAILED: %s' % message).encode())
+            handle.flush()
+
+            raise StageFailedError(
+                message=message,
+                handled=True,
+            )
+
+    def handle_registry(self, handle, base_name):
+        """
+        Find the given registry, and handle login. If ``base_name`` is
+        ``None``, lookup entry ``docker.io`` registry model
+        """
+        query = self.job.db_session.query(AuthenticatedRegistry)
+        registry = query.filter_by(
+            base_name=base_name or 'docker.io',
+        ).first()
+
+        if registry:
+            self.login_registry(handle, registry)
+
+        else:
+            handle.write(("Unauthenticated for '%s' registry" % (
+                base_name or 'docker.io',
+            )).encode())
+            handle.flush()
+
     def runnable(self, handle):
+        """ Load the Dockerfile, scan for FROM line, login """
         dockerfile = self.workdir.join(self.job.job_config.dockerfile)
         with dockerfile.open() as dockerfile_handle:
             for line in dockerfile_handle:
@@ -938,32 +987,7 @@ class DockerLoginStage(JobStageBase):
                     if len(image_parts) != 3:
                         base_name = None
 
-                    query = self.job.db_session.query(AuthenticatedRegistry)
-                    registry = query.filter_by(base_name=base_name or 'docker.io').first()
-
-                    if registry:
-                        handle.write(("Logging into '%s' registry: " % registry.display_name).encode())
-                        handle.flush()
-                        try:
-                            response = self.job.docker_client.login(
-                                username=registry.username,
-                                password=registry.password,
-                                email=registry.email,
-                                registry=base_name,
-                            )
-                            handle.write(response['Status'].encode())
-                            handle.flush()
-
-                        except docker.errors.APIError as ex:
-                            message = str(DockerAPIError(self.job.docker_client, ex))
-                            handle.write(('FAILED: %s' % message).encode())
-                            handle.flush()
-
-                            raise StageFailedError(message=message, handled=True)
-                    else:
-                        handle.write(("Unauthenticated for '%s' registry" % (base_name or 'docker.io')).encode())
-                        handle.flush()
-
+                    self.handle_registry(handle, base_name)
                     continue
 
         return 0
