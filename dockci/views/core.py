@@ -4,7 +4,7 @@ Core app views
 
 import py.error  # pylint:disable=import-error
 
-from flask import render_template, request
+from flask import abort, render_template, request
 from flask_security import login_required
 
 from dockci.server import APP, CONFIG

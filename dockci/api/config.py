@@ -1,13 +1,12 @@
 """ API relating to configuration """
-from flask_restful import fields, inputs, marshal_with, reqparse, Resource
+from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
-from .fields import NonBlankInput, RewriteUrl
+from .fields import NonBlankInput
 from .util import new_edit_parsers
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.server import API, DB
-
 
 
 BASIC_FIELDS = {
@@ -35,7 +34,9 @@ REGISTRY_NEW_PARSER = BaseRequestParser()
 REGISTRY_EDIT_PARSER = BaseRequestParser()
 new_edit_parsers(REGISTRY_NEW_PARSER, REGISTRY_EDIT_PARSER, SHARED_PARSER_ARGS)
 
+
 # pylint:disable=no-self-use
+
 
 class RegistryList(Resource):
     """ API resource that handles listing registries """
@@ -54,7 +55,9 @@ class RegistryDetail(BaseDetailResource):
     @marshal_with(BASIC_FIELDS)
     def get(self, base_name):
         """ Get registry details """
-        return Project.query.filter_by(slug=project_slug).first_or_404()
+        return AuthenticatedRegistry.query.filter_by(
+            base_name=base_name
+        ).first_or_404()
 
     @login_required
     @marshal_with(BASIC_FIELDS)

@@ -18,6 +18,7 @@ import docker.errors
 import py.error  # pylint:disable=import-error
 import py.path  # pylint:disable=import-error
 
+from dockci.exceptions import DockerAPIError, StageFailedError
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
@@ -928,17 +929,13 @@ class DockerLoginStage(JobStageBase):
         super(DockerLoginStage, self).__init__(job)
         self.workdir = workdir
 
-    def login_registry(self, handle, registry):
+    def login_registry(self, handle, username, password, email, base_name):
         """ Handle login to the given registry model """
-        handle.write(("Logging into '%s' registry: " % (
-            registry.display_name,
-        )).encode())
-        handle.flush()
         try:
             response = self.job.docker_client.login(
-                username=registry.username,
-                password=registry.password,
-                email=registry.email,
+                username=username,
+                password=password,
+                email=email,
                 registry=base_name,
             )
             handle.write(response['Status'].encode())
@@ -967,7 +964,17 @@ class DockerLoginStage(JobStageBase):
         ).first()
 
         if registry:
-            self.login_registry(handle, registry)
+            handle.write(("Logging into '%s' registry: " % (
+                registry.display_name,
+            )).encode())
+            handle.flush()
+            self.login_registry(
+                handle,
+                registry.username,
+                registry.password,
+                registry.email,
+                base_name,
+            )
 
         else:
             handle.write(("Unauthenticated for '%s' registry" % (
