@@ -21,59 +21,17 @@ class PushStage(DockerStage):
 
     slug = 'docker_push'
 
-    def _login_gen(self):
-        """
-        Generator for the login process to output actions, and their results in
-        docker JSON log format
-        """
-        faux_log = FauxDockerLog()
-        with faux_log.more_defaults(id="Logging in"):
-            yield next(faux_log.update())
-            try:
-                response = self.job.docker_client.login(
-                    username=CONFIG.docker_registry_username,
-                    password=CONFIG.docker_registry_password,
-                    email=CONFIG.docker_registry_email,
-                    registry=CONFIG.docker_registry,
-                )
-                yield next(faux_log.update(status=response['Status']))
-            except docker.errors.APIError as ex:
-                message = str(DockerAPIError(self.job.docker_client, ex))
-                yield next(faux_log.update(status="FAILED", error=message))
-
-                raise StageFailedError(message=message, handled=True)
-
-    def _runnable_docker_gen(self):
-        """ Generator to chain ``login_gen`` and push outputs """
-        if (
-            (
-                CONFIG.docker_registry_username is not None and
-                CONFIG.docker_registry_username != ''
-            ) or (
-                CONFIG.docker_registry_password is not None and
-                CONFIG.docker_registry_password != ''
-            ) or (
-                CONFIG.docker_registry_email is not None and
-                CONFIG.docker_registry_email != ''
-            )
-        ):
-            for line in self._login_gen():
-                yield line
-
-        for line in self.job.docker_client.push(
-            self.job.docker_image_name,
-            tag=self.job.tag,
-            stream=True,
-            insecure_registry=CONFIG.docker_registry_insecure,
-        ):
-            yield line
-
     def runnable_docker(self):
         """
         Perform the actual Docker push operation
         """
-        if self.job.tag and CONFIG.docker_use_registry:
-            return self._runnable_docker_gen()
+        if self.job.pushable:
+            return self.job.docker_client.push(
+                self.job.docker_image_name,
+                tag=self.job.tag,
+                stream=True,
+                insecure_registry=CONFIG.docker_registry_insecure,
+            )
 
 
 class FetchStage(JobStageBase):

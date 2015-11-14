@@ -953,15 +953,22 @@ class DockerLoginStage(JobStageBase):
                 handled=True,
             )
 
-    def handle_registry(self, handle, base_name):
+    def handle_registry(self, handle, base_name_or_reg):
         """
         Find the given registry, and handle login. If ``base_name`` is
         ``None``, lookup entry ``docker.io`` registry model
         """
-        query = self.job.db_session.query(AuthenticatedRegistry)
-        registry = query.filter_by(
-            base_name=base_name or 'docker.io',
-        ).first()
+        if isinstance(base_name_or_reg, AuthenticatedRegistry):
+            registry = base_name_or_reg
+            base_name = (None
+                         if registry.base_name == 'docker.io'
+                         else registry.base_name)
+        else:
+            base_name = base_name_or_reg
+            query = self.job.db_session.query(AuthenticatedRegistry)
+            registry = query.filter_by(
+                base_name=base_name or 'docker.io',
+            ).first()
 
         if registry:
             handle.write(("Logging into '%s' registry: " % (
@@ -1001,7 +1008,7 @@ class DockerLoginStage(JobStageBase):
             for line in dockerfile_handle:
                 line = line.strip()
                 if line.startswith('FROM '):
-                    return set(base_name_from_image(line[5:].strip()))
+                    return {self.base_name_from_image(line[5:].strip())}
 
         return set()
 
@@ -1009,15 +1016,18 @@ class DockerLoginStage(JobStageBase):
         return set()
 
     def registries_from_push(self):
+        if self.job.push_candidate:
+            return {self.job.project.target_registry}
+
         return set()
 
     def runnable(self, handle):
         """ Load the Dockerfile, scan for FROM line, login """
-        for base_name in (
-            registries_from_dockerfile() +
-            registries_from_utilities() +
-            registries_from_push()
+        for base_name_or_reg in set.union(
+            self.registries_from_dockerfile(),
+            self.registries_from_utilities(),
+            self.registries_from_push(),
         ):
-            self.handle_registry(handle, base_name)
+            self.handle_registry(handle, base_name_or_reg)
 
         return 0

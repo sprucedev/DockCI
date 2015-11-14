@@ -353,6 +353,26 @@ class Job(DB.Model):
         )
         return OrderedDict(utilities)
 
+    @property
+    def is_good_state(self):
+        """ Is the job completed, and in a good state (success) """
+        return self.result == JobResult.success
+
+    @property
+    def is_bad_state(self):
+        """ Is the job completed, and in a bad state (failed, broken) """
+        return self.result in (JobResult.fail, JobResult.broken)
+
+    @property
+    def push_candidate(self):
+        """ Is the job a tagged, and docker registry enabled """
+        return self.tag and self.project.target_registry
+
+    @property
+    def pushable(self):
+        """ Is the job a push candidate, and in a good state """
+        return self.push_candidate and self.is_good_state
+
     @classmethod
     def delete_all_in_project(cls, project):
         """ Delete all jobs and data for the given project """
