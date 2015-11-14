@@ -1,5 +1,5 @@
 """ API relating to configuration """
-from flask_restful import fields, marshal_with, Resource
+from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
@@ -22,10 +22,7 @@ SHARED_PARSER_ARGS = {
         help="Registry display name",
         required=None, type=NonBlankInput(),
     ),
-    'username': dict(
-        help="Username for logging into the registry",
-        required=None, type=NonBlankInput(),
-    ),
+    'username': dict(help="Username for logging into the registry"),
     'password': dict(help="Password for logging into the registry"),
     'email': dict(help="Email for logging into the registry"),
 }
