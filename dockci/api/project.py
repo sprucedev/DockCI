@@ -7,9 +7,10 @@ from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
-from .exceptions import WrappedValueError
+from .exceptions import NoModelError, WrappedValueError
 from .fields import NonBlankInput, RewriteUrl
 from .util import clean_attrs, filter_query_args, new_edit_parsers
+from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API
@@ -49,6 +50,10 @@ DETAIL_FIELDS = {
     'gitlab_repo_id': fields.String(),
     'shield_text': fields.String(),
     'shield_color': fields.String(),
+    'target_registry': RewriteUrl(
+        'registry_detail',
+        rewrites=dict(base_name='target_registry.base_name'),
+    ),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
@@ -65,6 +70,9 @@ SHARED_PARSER_ARGS = {
     'repo': dict(
         help="Git repository for the project code",
         required=None, type=NonBlankInput(),
+    ),
+    'target_registry': dict(
+        help="Base name of the registry to push to", required=None,
     ),
     'github_secret': dict(help="Shared secret to validate GitHub hooks"),
 }
@@ -92,6 +100,23 @@ PROJECT_NEW_PARSER.add_argument(
 
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
+
+
+def set_target_registry(args):
+    """ Set the ``target_registry`` to the model object """
+    if 'target_registry' not in args:
+        return
+
+    if args['target_registry'] == '':
+        args['target_registry'] = None
+        return
+
+    args['target_registry'] = (
+        AuthenticatedRegistry.query.filter_by(
+            base_name=args['target_registry'])).first()
+
+    if args['target_registry'] is None:
+        raise NoModelError('Registry')
 
 
 # pylint:disable=no-self-use
@@ -134,6 +159,8 @@ class ProjectDetail(BaseDetailResource):
             args['external_auth_token'] = (
                 current_user.oauth_token_for('github'))
 
+        set_target_registry(args)
+
         project = Project(slug=project_slug)
         return self.handle_write(project, data=args)
 
@@ -142,7 +169,10 @@ class ProjectDetail(BaseDetailResource):
     def post(self, project_slug):
         """ Update an existing project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
-        return self.handle_write(project, PROJECT_EDIT_PARSER)
+        args = PROJECT_EDIT_PARSER.parse_args(strict=True)
+        args = clean_attrs(args)
+        set_target_registry(args)
+        return self.handle_write(project, data=args)
 
     @login_required
     def delete(self, project_slug):

@@ -2,12 +2,13 @@ define([
       'knockout'
     , '../util'
     , '../models/project'
+    , '../models/registry'
 
     , 'text!./project_edit.html'
 
     , './loading_bar'
     , './external_repos_list'
-], function(ko, util, ProjectModel, template) {
+], function(ko, util, ProjectModel, RegistryModel, template) {
     function ProjectEditModel(params) {
         finalParams = $.extend({
               'reload': false
@@ -40,6 +41,28 @@ define([
         this.secretsPlaceholder = ko.computed(function(){
             return this.isNew() ? '' : '*****'
         }.bind(this))
+
+        this.registries        = ko.observableArray()
+        this.loadingRegistries = ko.observable(false)
+        this.reloadRegistries = function() {
+            this.loadingRegistries(true)
+            $.ajax("/api/v1/registries").done(function(regListData) {
+                this.registries([])
+                $(regListData).each(function(idx, regData) {
+                    registry = new RegistryModel(regData)
+                    if(regData['base_name'] === this.project().target_registry_base_name()) {
+                        this.project().target_registry(registry)
+                    }
+                    this.registries.push(registry)
+                }.bind(this))
+            }.bind(this)).fail(function(jqXHR, textStatus, errorThrown) {
+                util.ajax_fail(this.messages)(jqXHR, textStatus, errorThrown)
+            }.bind(this)).always(function() {
+                this.loadingRegistries(false)
+            }.bind(this))
+        }.bind(this)
+
+        this.reloadRegistries()
 
         this.trigGithubReload = ko.observable()
         this.trigGitlabReload = ko.observable()

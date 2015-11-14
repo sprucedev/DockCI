@@ -16,6 +16,10 @@ define(['knockout', 'app/util'], function (ko, util) {
     this.email = util.param(finalParams['email'])
     this.raw_detail = util.param(finalParams['detail'])
 
+    this.displayText = ko.computed(function() {
+      return this.display_name() + ' (' + this.base_name() + ')'
+    }.bind(this))
+
     this.isNew = ko.computed(function() { return this.raw_detail() === null }.bind(this))
 
     this.detail = ko.computed(function() {
