@@ -5,7 +5,7 @@ from .util import clean_attrs, set_attrs
 from dockci.server import DB
 
 
-AUTH_FORM_LOCATIONS = ('form', 'headers', 'json')
+AUTH_FORM_LOCATIONS = ('form', 'json')
 
 
 class BaseDetailResource(Resource):
@@ -38,3 +38,12 @@ class BaseRequestParser(reqparse.RequestParser):
         self.add_argument('username', location=AUTH_FORM_LOCATIONS)
         self.add_argument('password', location=AUTH_FORM_LOCATIONS)
         self.add_argument('api_key', location=('args',) + AUTH_FORM_LOCATIONS)
+        self.add_argument('X-Dockci-Username',
+                          location='headers',
+                          dest='username')
+        self.add_argument('X-Dockci-Password',
+                          location='headers',
+                          dest='password')
+        self.add_argument('X-Dockci-Api-Key',
+                          location='headers',
+                          dest='api_key')
