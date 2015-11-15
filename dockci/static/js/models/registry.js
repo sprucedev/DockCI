@@ -6,6 +6,7 @@ define(['knockout', 'app/util'], function (ko, util) {
       , 'username': null
       , 'password': null
       , 'email': null
+      , 'insecure': null
       , 'detail': null
     }, params)
 
@@ -14,6 +15,7 @@ define(['knockout', 'app/util'], function (ko, util) {
     this.username = util.param(finalParams['username'])
     this.password = util.param(finalParams['password'])
     this.email = util.param(finalParams['email'])
+    this.insecure = util.param(finalParams['insecure'])
     this.raw_detail = util.param(finalParams['detail'])
 
     this.displayText = ko.computed(function() {
@@ -35,6 +37,7 @@ define(['knockout', 'app/util'], function (ko, util) {
         , 'username': this.username() || undefined
         , 'password': this.password() || undefined
         , 'email': this.email() || undefined
+        , 'insecure': this.insecure()
       }
     }.bind(this)
 

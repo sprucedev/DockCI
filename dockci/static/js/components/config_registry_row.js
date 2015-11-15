@@ -22,11 +22,9 @@ define([
     this.savable = ko.computed(function() {
       var   displayName = this.registry().display_name()
           , baseName = this.registry().base_name()
-          , username = this.registry().username()
 
       return    displayName !== null && displayName !== ''
              && baseName !== null && baseName !== ''
-             && username !== null && username !== ''
     }.bind(this))
 
     this.save = function() {

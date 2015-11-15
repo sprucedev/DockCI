@@ -14,6 +14,7 @@ BASIC_FIELDS = {
     'base_name': fields.String(),
     'username': fields.String(),
     'email': fields.String(),
+    'insecure': fields.Boolean(),
     'detail': fields.Url('registry_detail'),
 }
 
@@ -25,6 +26,10 @@ SHARED_PARSER_ARGS = {
     'username': dict(help="Username for logging into the registry"),
     'password': dict(help="Password for logging into the registry"),
     'email': dict(help="Email for logging into the registry"),
+    'insecure': dict(
+        help="Whether connection is over HTTP (default HTTPS)",
+        required=None, type=inputs.boolean,
+    )
 }
 
 REGISTRY_NEW_PARSER = BaseRequestParser()

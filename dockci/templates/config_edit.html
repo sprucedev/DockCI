@@ -59,38 +59,6 @@
           </span>
         </div>
       </div>
-      <div class="form-group">
-        <label for="inputDockerRegistry" class="col-sm-2 control-label">Docker registry host</label>
-        <div class="col-sm-9">
-          <input class="form-control" id="inputDockerRegistry" name="docker_registry" value="{{ config.model.docker_registry or '' }}" placeholder="Docker Hub">
-          <div class="help-block" style="display:none">A longer block of help text that breaks onto a new line and may extend beyond one line.</div>
-        </div>
-        <div class="col-sm-1"><a id="btnTestRegistry" href="javascript:void(0)" class="btn btn-flat pull-right">Test</a></div>
-      </div>
-      <div class="form-group">
-        <label for="inputDockerRegistryUsername" class="col-sm-2 control-label">Username</label>
-        <div class="col-sm-4">
-          <input class="form-control" id="inputDockerRegistryUsername" name="docker_registry_username" value="{{ config.model.docker_registry_username or '' }}">
-        </div>
-        <label for="inputDockerRegistryPassword" class="col-sm-2 control-label">Password</label>
-        <div class="col-sm-4">
-          <input class="form-control" id="inputDockerRegistryPassword" name="docker_registry_password" type="password" placeholder="*****">
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="inputDockerRegistryEmail" class="col-sm-2 control-label">Email</label>
-        <div class="col-sm-10">
-          <input class="form-control" id="inputDockerRegistryEmail" name="docker_registry_email" value="{{ config.model.docker_registry_email or '' }}">
-        </div>
-      </div>
-      <div class="form-group">
-        <div class="checkbox col-sm-10  col-sm-offset-2">
-          <label for="inputUseDockerRegistry">
-            <input id="inputUseDockerRegistry" name="docker_use_registry" type="checkbox" {{ 'checked' if config.model.docker_use_registry else '' }}>
-            Use Docker registry
-          </label>
-        </div>
-      </div>
     </div>
   </div>
   <div class="panel panel-default">

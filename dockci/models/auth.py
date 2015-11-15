@@ -82,9 +82,11 @@ class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
                           index=True,
                           nullable=False,
                           )
-    username = DB.Column(DB.String(255), nullable=False)
+    username = DB.Column(DB.String(255))
     password = DB.Column(DB.String(255))
     email = DB.Column(DB.String(255))
+
+    insecure = DB.Column(DB.Boolean, nullable=False, default=False)
 
     def __str__(self):
         return '<{klass}: {base_name} ({username})>'.format(

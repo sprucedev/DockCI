@@ -481,7 +481,9 @@ class InlineProjectStage(JobStageBase):
                             service_job.image_id,
                             service_job.docker_image_name,
                             service_job.tag,
-                            insecure_registry=CONFIG.docker_registry_insecure,
+                            insecure_registry=(
+                                service_job.project.target_registry.insecure
+                            ),
                             handle=handle,
                         )
 
