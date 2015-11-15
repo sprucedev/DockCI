@@ -972,7 +972,15 @@ class DockerLoginStage(JobStageBase):
                 base_name=base_name or 'docker.io',
             ).first()
 
-        if registry:
+        auth_registry = (
+            registry is not None and (
+                   registry.username is not None
+                or registry.password is not None
+                or registry.email is not None
+            )
+        )
+
+        if auth_registry:
             handle.write(("Logging into '%s' registry: " % (
                 registry.display_name,
             )).encode())
