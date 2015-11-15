@@ -141,14 +141,14 @@ def try_all_auth(api_key, password, username):
 def try_reqparser():
     """
     Use ``try_all_auth`` to attempt authorization from the ``LOGIN_FORM``
-    ``RequestParser``. Will take JWT keys from ``api_key``, and
-    ``username``/``password`` combinations
+    ``RequestParser``. Will take JWT keys from ``x_dockci_api_key``, and
+    ``x_dockci_username``/``x_dockci_password`` combinations
     """
     args = LOGIN_FORM.parse_args()
     return try_all_auth(
-        args.get('api_key', None),
-        args.get('password', None),
-        args.get('username', None),
+        args.get('x_dockci_api_key', args.get('hx_dockci_api_key', None)),
+        args.get('x_dockci_password', args.get('hx_dockci_password', None)),
+        args.get('x_dockci_username', args.get('hx_dockci_username', None)),
     )
 
 

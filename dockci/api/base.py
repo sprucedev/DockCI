@@ -35,15 +35,16 @@ class BaseRequestParser(reqparse.RequestParser):
     """
     def __init__(self, *args, **kwargs):
         super(BaseRequestParser, self).__init__(*args, **kwargs)
-        self.add_argument('username', location=AUTH_FORM_LOCATIONS)
-        self.add_argument('password', location=AUTH_FORM_LOCATIONS)
-        self.add_argument('api_key', location=('args',) + AUTH_FORM_LOCATIONS)
+        self.add_argument('x_dockci_username', location=AUTH_FORM_LOCATIONS)
+        self.add_argument('x_dockci_password', location=AUTH_FORM_LOCATIONS)
+        self.add_argument('x_dockci_api_key',
+                          location=('args',) + AUTH_FORM_LOCATIONS)
         self.add_argument('X-Dockci-Username',
                           location='headers',
-                          dest='username')
+                          dest='hx_dockci_username')
         self.add_argument('X-Dockci-Password',
                           location='headers',
-                          dest='password')
+                          dest='hx_dockci_password')
         self.add_argument('X-Dockci-Api-Key',
                           location='headers',
-                          dest='api_key')
+                          dest='hx_dockci_api_key')
