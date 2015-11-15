@@ -940,14 +940,14 @@ class DockerLoginStage(JobStageBase):
                 email=email,
                 registry=base_name,
             )
-            handle.write(response['Status'].encode())
+            handle.write(('%s\n' % response['Status']).encode())
             handle.flush()
 
         except docker.errors.APIError as ex:
             message = str(DockerAPIError(
                 self.job.docker_client, ex,
             ))
-            handle.write(('FAILED: %s' % message).encode())
+            handle.write(('FAILED: %s\n' % message).encode())
             handle.flush()
 
             raise StageFailedError(
@@ -986,7 +986,7 @@ class DockerLoginStage(JobStageBase):
             )
 
         else:
-            handle.write(("Unauthenticated for '%s' registry" % (
+            handle.write(("Unauthenticated for '%s' registry\n" % (
                 base_name or 'docker.io',
             )).encode())
             handle.flush()
