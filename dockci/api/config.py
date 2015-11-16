@@ -61,7 +61,7 @@ class RegistryDetail(BaseDetailResource):
     def get(self, base_name):
         """ Get registry details """
         return AuthenticatedRegistry.query.filter_by(
-            base_name=base_name
+            base_name=base_name,
         ).first_or_404()
 
     @login_required
