@@ -101,22 +101,6 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     security_recoverable = LoadOnAccess(default=True)
 
     @property
-    def docker_registry_host(self):
-        """
-        Get the hostname portion of the Docker registry
-        """
-        url = urlparse(self.docker_registry)
-        return url.netloc
-
-    @property
-    def docker_registry_insecure(self):
-        """
-        Tell if the Docker registry URL is secure, or insecure
-        """
-        url = urlparse(self.docker_registry)
-        return url.scheme.lower() == 'http'
-
-    @property
     def mail_host_string(self):
         """
         Get the host/port as a h:p string
@@ -161,20 +145,6 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     errors.append(str(DockerUnreachableError(
                         docker_client_args['base_url'], ex,
                     )))
-
-            if self.docker_registry != '':
-                registry_url = urlparse(self.docker_registry)
-                if registry_url.scheme.lower() not in ('http', 'https'):
-                    errors.append("Registry URL must be HTTP, or HTTPS")
-
-                invalid_url_parts = (
-                    bool(getattr(registry_url, url_part))
-                    for url_part
-                    in ('path', 'params', 'query', 'fragment')
-                )
-                if any(invalid_url_parts):
-                    errors.append("Registry URL can only include scheme, "
-                                  "host, and port")
 
             if self.external_url is not None and self.external_url != '':
                 external_url = urlparse(self.external_url)

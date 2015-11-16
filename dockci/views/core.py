@@ -35,15 +35,10 @@ def config_edit_view():
         'github_key', 'github_secret',
         'gitlab_key', 'gitlab_secret', 'gitlab_base_url',
     )
-    all_fields = restart_fields + (
-        'docker_use_registry', 'docker_registry',
-        'docker_registry_username', 'docker_registry_password',
-        'docker_registry_email',
-    )
+    all_fields = restart_fields + ()
     blanks = (
         'external_url', 'github_key', 'gitlab_key', 'gitlab_base_url',
         'mail_host_string', 'mail_default_sender', 'mail_username',
-        'docker_registry', 'docker_registry_email', 'docker_registry_username',
     )
 
     if request.method == 'POST':

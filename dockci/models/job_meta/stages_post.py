@@ -30,7 +30,7 @@ class PushStage(DockerStage):
                 self.job.docker_image_name,
                 tag=self.job.tag,
                 stream=True,
-                insecure_registry=CONFIG.docker_registry_insecure,
+                insecure_registry=self.job.project.target_registry.insecure,
             )
 
 
