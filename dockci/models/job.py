@@ -29,15 +29,16 @@ from dockci.models.job_meta.stages_post import (PushStage,
                                                 FetchStage,
                                                 CleanupStage,
                                                 )
-from dockci.models.job_meta.stages_prepare import (DockerLoginStage,
-                                                   GitChangesStage,
+from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    GitInfoStage,
                                                    GitMtimeStage,
-                                                   ProvisionStage,
                                                    TagVersionStage,
-                                                   UtilStage,
                                                    WorkdirStage,
                                                    )
+from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
+                                                          ProvisionStage,
+                                                          UtilStage,
+                                                          )
 from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (add_to_url_path,
                          bytes_human_readable,
