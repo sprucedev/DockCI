@@ -130,7 +130,7 @@ def set_target_registry(args):
         raise NoModelError('Registry')
 
 
-def validate_utility_target_registry(required):
+def ensure_target_registry(required):
     """ Ensures that the ``target_registry`` is non-blank for utilities """
     value, found = reqparse.Argument(
         *TARGET_REGISTRY_ARGS,
@@ -183,7 +183,7 @@ class ProjectDetail(BaseDetailResource):
                 current_user.oauth_token_for('github'))
 
         if args['utility']:  # Utilities must have target registry set
-            validate_utility_target_registry(True)
+            ensure_target_registry(True)
 
         set_target_registry(args)
 
@@ -199,7 +199,7 @@ class ProjectDetail(BaseDetailResource):
         args = clean_attrs(args)
 
         if args.get('utility', project.utility):
-            validate_utility_target_registry(False)
+            ensure_target_registry(False)
 
         set_target_registry(args)
         return self.handle_write(project, data=args)
