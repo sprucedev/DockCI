@@ -24,11 +24,25 @@ from dockci.util import (base_name_from_image,
 
 class InlineProjectStage(JobStageBase):
     """ Stage to run project containers inline in another project job """
+    _projects = None
+
     def get_project_slugs(self):
         """ Get all project slugs that relate to this inline stage """
         raise NotImplementedError(
             "You must override the 'get_project_slugs' method"
         )
+
+    def get_projects(self):
+        """
+        Get all the project model objects that relate to this inline stage
+        """
+        if self._projects is None:
+            self._projects = {
+                slug: Project.query.filter_by(slug=slug).first()
+                for slug in self.get_project_slugs()
+            }
+
+        return self._projects
 
     def id_for_project(self, project_slug):
         """ Get the event series ID for a given project's slug """
@@ -41,7 +55,7 @@ class InlineProjectStage(JobStageBase):
         """
         all_okay = True
         faux_log = FauxDockerLog(handle)
-        for project_slug in self.get_project_slugs():
+        for project_slug, service_project in self.get_projects().items():
 
             # pylint:disable=no-member
             defaults = {'id': self.id_for_project(project_slug)}
@@ -51,9 +65,6 @@ class InlineProjectStage(JobStageBase):
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
 
-                    service_project = Project.query.filter_by(
-                        slug=project_slug,
-                    ).first()
                     if not service_project:
                         faux_log.update(error="No project found")
                         all_okay = False
@@ -618,9 +629,22 @@ class DockerLoginStage(JobStageBase):
 
         return set()
 
-    def registries_from_utilities(self):
+    def registries_from_inline_stages(self):
         """ Registry set for registries required by utilities """
-        return set()
+        full_set = set()
+        # pylint:disable=protected-access
+        for stage in self.job._stage_objects.values():
+            if isinstance(stage, InlineProjectStage):
+                full_set.update((
+                    project.target_registry
+                    for project in stage.get_projects().values()
+                    if (
+                        project is not None and
+                        project.target_registry is not None
+                    )
+                ))
+
+        return full_set
 
     def registries_from_push(self):
         """ Registry set for registries required in project push """
@@ -633,7 +657,7 @@ class DockerLoginStage(JobStageBase):
         """ Load the Dockerfile, scan for FROM line, login """
         registry_set = set.union(
             self.registries_from_dockerfile(),
-            self.registries_from_utilities(),
+            self.registries_from_inline_stages(),
             self.registries_from_push(),
         )
 
