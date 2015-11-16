@@ -71,7 +71,7 @@ SHARED_PARSER_ARGS = {
         help="Git repository for the project code",
         required=None, type=NonBlankInput(),
     ),
-    'target_registry': dict(
+    'target_registry': dict(  # TODO utils MUST have a target registry
         help="Base name of the registry to push to", required=None,
     ),
     'github_secret': dict(help="Shared secret to validate GitHub hooks"),
