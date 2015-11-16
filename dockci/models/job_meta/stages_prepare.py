@@ -933,6 +933,7 @@ class DockerLoginStage(JobStageBase):
 
     def login_registry(self, handle, username, password, email, base_name):
         """ Handle login to the given registry model """
+        err = None
         try:
             response = self.job.docker_client.login(
                 username=username,
@@ -943,15 +944,20 @@ class DockerLoginStage(JobStageBase):
             handle.write(('%s\n' % response['Status']).encode())
             handle.flush()
 
+        except KeyError:
+            err = "Unknown response: %s" % response
+
         except docker.errors.APIError as ex:
-            message = str(DockerAPIError(
+            err = str(DockerAPIError(
                 self.job.docker_client, ex,
             ))
-            handle.write(('FAILED: %s\n' % message).encode())
+
+        if err:
+            handle.write(('FAILED: %s\n' % err).encode())
             handle.flush()
 
             raise StageFailedError(
-                message=message,
+                message=err,
                 handled=True,
             )
 
