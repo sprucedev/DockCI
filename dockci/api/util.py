@@ -23,8 +23,8 @@ def clean_attrs(values):
         attr_name: attr_value
         for attr_name, attr_value in values.items()
         if (
-            attr_name in request.values or
-            attr_name in request.json
+            (request.values is not None and attr_name in request.values) or
+            (request.json is not None and attr_name in request.json)
         )
     }
 
