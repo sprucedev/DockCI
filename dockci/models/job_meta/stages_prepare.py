@@ -24,7 +24,8 @@ from dockci.models.project import Project
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
 from dockci.server import CONFIG
-from dockci.util import (built_docker_image_id,
+from dockci.util import (base_name_from_image,
+                         built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
                          git_head_ref_name,
@@ -1006,19 +1007,6 @@ class DockerLoginStage(JobStageBase):
             )).encode())
             handle.flush()
 
-    def base_name_from_image(self, image):
-        """
-        Given an image name such as ``quay.io/thatpanda/dockci:latest``, gets
-        the registry base name (``quay.io`` in this case). If there isn't a
-        host, namespace, and image part, docker hub is assumed and ``None``
-        returned
-        """
-        image_parts = image.split('/', 2)
-        if len(image_parts) != 3:
-            return None
-
-        return image_parts[0]
-
     def registries_from_dockerfile(self):
         """ Registry set for registries required by Dockerfile FROM """
         dockerfile = self.workdir.join(self.job.job_config.dockerfile)
@@ -1026,7 +1014,7 @@ class DockerLoginStage(JobStageBase):
             for line in dockerfile_handle:
                 line = line.strip()
                 if line.startswith('FROM '):
-                    return {self.base_name_from_image(line[5:].strip())}
+                    return {base_name_from_image(line[5:].strip())}
 
         return set()
 

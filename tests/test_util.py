@@ -4,6 +4,7 @@ import docker
 import pytest
 
 from dockci.util import (add_to_url_path,
+                         base_name_from_image,
                          client_kwargs_from_config,
                          git_head_ref_name,
                          is_git_ancestor,
@@ -277,3 +278,19 @@ class TestAddToUrlPath(object):
     def test_basic(self, in_url, in_path, exp_url):
         """ Test that some basic combinations produce expected outputs """
         assert add_to_url_path(in_url, in_path) == exp_url
+
+
+class TestBaseNameFromImage(object):
+    """ Tests the ``base_name_from_image`` utility """
+    @pytest.mark.parametrize('image_name,exp_output', [
+        ('quay.io/SpruceDev/DockCI', 'quay.io'),
+        ('SpruceDev/DockCI', None),
+        ('localhost:5000/SpruceDev/DockCI', 'localhost:5000'),
+        ('DockCI', None),
+        ('DockCI:latest', None),
+        ('DockCI:7', None),
+        ('localhost:5000/SpruceDev/DockCI:latest', 'localhost:5000'),
+    ])
+    def test_basic(self, image_name, exp_output):
+        """ Tests that image names produce expected output """
+        assert base_name_from_image(image_name) == exp_output
