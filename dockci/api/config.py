@@ -44,6 +44,7 @@ new_edit_parsers(REGISTRY_NEW_PARSER,
 
 class RegistryList(Resource):
     """ API resource that handles listing registries """
+    @login_required
     @marshal_with(REGISTRY_BASIC_FIELDS)
     def get(self):
         """ List of all projects """
