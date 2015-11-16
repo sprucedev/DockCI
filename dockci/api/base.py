@@ -33,7 +33,7 @@ class BaseDetailResource(Resource):
         }
         conflicts = {
             field_name: "Duplicate value '%s'" % getattr(
-                query.first(), field_name
+                query.first(), field_name,
             )
             for field_name, query in unique_model_conflicts(
                 model.__class__,
