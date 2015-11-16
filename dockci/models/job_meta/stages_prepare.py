@@ -994,8 +994,9 @@ class DockerLoginStage(JobStageBase):
             )
 
         else:
+            display_name = registry.display_name if registry else base_name
             handle.write(("Unauthenticated for '%s' registry\n" % (
-                base_name or 'docker.io',
+                display_name or 'docker.io',
             )).encode())
             handle.flush()
 
