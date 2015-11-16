@@ -1,8 +1,9 @@
 """ Base classes and data for building the API """
-from flask_restful import reqparse, Resource
+from flask_restful import abort, reqparse, Resource
 
 from .util import clean_attrs, set_attrs
 from dockci.server import DB
+from dockci.util import unique_model_conflicts
 
 
 AUTH_FORM_LOCATIONS = ('form', 'json')
@@ -21,6 +22,26 @@ class BaseDetailResource(Resource):
             args = clean_attrs(args)
         else:
             args = data
+
+        unique_columns = {name
+                          for name, column in model.__mapper__.c.items()
+                          if column.unique}
+        conflict_checks = {
+            name: value
+            for name, value in args.items()
+            if name in unique_columns
+        }
+        conflicts = {
+            field_name: "Duplicate value '%s'" % getattr(
+                query.first(), field_name
+            )
+            for field_name, query in unique_model_conflicts(
+                model.__class__,
+                **conflict_checks
+            ).items()
+        }
+        if conflicts:
+            abort(400, message=conflicts)
 
         set_attrs(model, args)
         DB.session.add(model)

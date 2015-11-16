@@ -649,3 +649,16 @@ def base_name_from_image(image):
         return None
 
     return image_parts[0]
+
+
+def unique_model_conflicts(klass, **fields):
+    """ Find any models that have values in fields """
+    queries = {
+        field_name: klass.query.filter_by(**{field_name: field_value})
+        for field_name, field_value in fields.items()
+    }
+    return {
+        field_name: query
+        for field_name, query in queries.items()
+        if query.count() > 0
+    }
