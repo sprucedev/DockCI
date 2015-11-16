@@ -1,8 +1,10 @@
 """ API relating to Project model objects """
 import re
 
+import flask_restful
 import sqlalchemy
 
+from flask import request
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import current_user, login_required
 
@@ -62,6 +64,16 @@ BASIC_BRANCH_FIELDS = {
 }
 
 
+TARGET_REGISTRY_ARGS = ('target_registry',)
+TARGET_REGISTRY_KWARGS = dict(help="Base name of the registry to push to")
+
+TARGET_REGISTRY_ARGUMENT_NEW = reqparse.Argument(
+    *TARGET_REGISTRY_ARGS, required=True, **TARGET_REGISTRY_KWARGS
+)
+TARGET_REGISTRY_ARGUMENT_EDIT = reqparse.Argument(
+    *TARGET_REGISTRY_ARGS, required=False, **TARGET_REGISTRY_KWARGS
+)
+
 SHARED_PARSER_ARGS = {
     'name': dict(
         help="Project display name",
@@ -70,9 +82,6 @@ SHARED_PARSER_ARGS = {
     'repo': dict(
         help="Git repository for the project code",
         required=None, type=NonBlankInput(),
-    ),
-    'target_registry': dict(  # TODO utils MUST have a target registry
-        help="Base name of the registry to push to", required=None,
     ),
     'github_secret': dict(help="Shared secret to validate GitHub hooks"),
 }
@@ -97,6 +106,8 @@ PROJECT_NEW_PARSER.add_argument(
     'github_repo_id',
     help="Full repository ID in GitHub",
 )
+PROJECT_NEW_PARSER.add_argument(TARGET_REGISTRY_ARGUMENT_NEW)
+PROJECT_EDIT_PARSER.add_argument(TARGET_REGISTRY_ARGUMENT_EDIT)
 
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
@@ -117,6 +128,18 @@ def set_target_registry(args):
 
     if args['target_registry'] is None:
         raise NoModelError('Registry')
+
+
+def validate_utility_target_registry(required):
+    """ Ensures that the ``target_registry`` is non-blank for utilities """
+    value, found = reqparse.Argument(
+        *TARGET_REGISTRY_ARGS,
+        required=required,
+        type=NonBlankInput(),
+        **TARGET_REGISTRY_KWARGS
+    ).parse(request, False)
+    if isinstance(value, ValueError):
+        flask_restful.abort(400, message=found)
 
 
 # pylint:disable=no-self-use
@@ -159,6 +182,9 @@ class ProjectDetail(BaseDetailResource):
             args['external_auth_token'] = (
                 current_user.oauth_token_for('github'))
 
+        if args['utility']:  # Utilities must have target registry set
+            validate_utility_target_registry(True)
+
         set_target_registry(args)
 
         project = Project(slug=project_slug)
@@ -171,6 +197,10 @@ class ProjectDetail(BaseDetailResource):
         project = Project.query.filter_by(slug=project_slug).first_or_404()
         args = PROJECT_EDIT_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
+
+        if args.get('utility', project.utility):
+            validate_utility_target_registry(False)
+
         set_target_registry(args)
         return self.handle_write(project, data=args)
 
