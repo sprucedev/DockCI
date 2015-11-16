@@ -21,6 +21,7 @@
   - Provisioned images
 - Per-project registry push target #341
 - Utilities require registry target to be set #341
+- Validate unique values before DB commit in API #341
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
