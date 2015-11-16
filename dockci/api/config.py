@@ -9,7 +9,7 @@ from dockci.models.auth import AuthenticatedRegistry
 from dockci.server import API, DB
 
 
-BASIC_FIELDS = {
+REGISTRY_BASIC_FIELDS = {
     'display_name': fields.String(),
     'base_name': fields.String(),
     'username': fields.String(),
@@ -18,7 +18,7 @@ BASIC_FIELDS = {
     'detail': fields.Url('registry_detail'),
 }
 
-SHARED_PARSER_ARGS = {
+REGISTRY_SHARED_PARSER_ARGS = {
     'display_name': dict(
         help="Registry display name",
         required=None, type=NonBlankInput(),
@@ -34,7 +34,9 @@ SHARED_PARSER_ARGS = {
 
 REGISTRY_NEW_PARSER = BaseRequestParser()
 REGISTRY_EDIT_PARSER = BaseRequestParser()
-new_edit_parsers(REGISTRY_NEW_PARSER, REGISTRY_EDIT_PARSER, SHARED_PARSER_ARGS)
+new_edit_parsers(REGISTRY_NEW_PARSER,
+                 REGISTRY_EDIT_PARSER,
+                 REGISTRY_SHARED_PARSER_ARGS)
 
 
 # pylint:disable=no-self-use
@@ -42,7 +44,7 @@ new_edit_parsers(REGISTRY_NEW_PARSER, REGISTRY_EDIT_PARSER, SHARED_PARSER_ARGS)
 
 class RegistryList(Resource):
     """ API resource that handles listing registries """
-    @marshal_with(BASIC_FIELDS)
+    @marshal_with(REGISTRY_BASIC_FIELDS)
     def get(self):
         """ List of all projects """
         return AuthenticatedRegistry.query.all()
@@ -54,7 +56,7 @@ class RegistryDetail(BaseDetailResource):
     updating existing registries, and deleting registries
     """
     @login_required
-    @marshal_with(BASIC_FIELDS)
+    @marshal_with(REGISTRY_BASIC_FIELDS)
     def get(self, base_name):
         """ Get registry details """
         return AuthenticatedRegistry.query.filter_by(
@@ -62,14 +64,14 @@ class RegistryDetail(BaseDetailResource):
         ).first_or_404()
 
     @login_required
-    @marshal_with(BASIC_FIELDS)
+    @marshal_with(REGISTRY_BASIC_FIELDS)
     def put(self, base_name):
         """ Create a new registry """
         registry = AuthenticatedRegistry(base_name=base_name)
         return self.handle_write(registry, REGISTRY_NEW_PARSER)
 
     @login_required
-    @marshal_with(BASIC_FIELDS)
+    @marshal_with(REGISTRY_BASIC_FIELDS)
     def post(self, base_name):
         """ Update an existing registry """
         registry = AuthenticatedRegistry.query.filter_by(
