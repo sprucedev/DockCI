@@ -146,9 +146,9 @@ def try_reqparser():
     """
     args = LOGIN_FORM.parse_args()
     return try_all_auth(
-        args.get('x_dockci_api_key', args.get('hx_dockci_api_key', None)),
-        args.get('x_dockci_password', args.get('hx_dockci_password', None)),
-        args.get('x_dockci_username', args.get('hx_dockci_username', None)),
+        args['x_dockci_api_key'] or args['hx_dockci_api_key'],
+        args['x_dockci_password'] or args['hx_dockci_password'],
+        args['x_dockci_username'] or args['hx_dockci_username'],
     )
 
 
