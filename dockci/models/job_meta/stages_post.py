@@ -2,13 +2,8 @@
 Job stages that occur after a job is complete
 """
 
-import docker
-
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.exceptions import DockerAPIError, StageFailedError
-from dockci.server import CONFIG
 from dockci.util import (bytes_human_readable,
-                         FauxDockerLog,
                          stream_write_status,
                          )
 

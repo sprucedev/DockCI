@@ -355,8 +355,8 @@ class Job(DB.Model):
     def is_good_state(self):
         """ Is the job completed, and in a good state (success) """
         return (
-               self.result == JobResult.success
-            or (self.result == None and self.exit_code == 0)
+            self.result == JobResult.success or
+            (self.result is None and self.exit_code == 0)
         )
 
     @property

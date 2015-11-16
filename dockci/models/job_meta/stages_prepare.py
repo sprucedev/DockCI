@@ -980,9 +980,9 @@ class DockerLoginStage(JobStageBase):
 
         auth_registry = (
             registry is not None and (
-                   registry.username is not None
-                or registry.password is not None
-                or registry.email is not None
+                registry.username is not None or
+                registry.password is not None or
+                registry.email is not None
             )
         )
 
@@ -1020,6 +1020,7 @@ class DockerLoginStage(JobStageBase):
         return image_parts[0]
 
     def registries_from_dockerfile(self):
+        """ Registry set for registries required by Dockerfile FROM """
         dockerfile = self.workdir.join(self.job.job_config.dockerfile)
         with dockerfile.open() as dockerfile_handle:
             for line in dockerfile_handle:
@@ -1030,9 +1031,11 @@ class DockerLoginStage(JobStageBase):
         return set()
 
     def registries_from_utilities(self):
+        """ Registry set for registries required by utilities """
         return set()
 
     def registries_from_push(self):
+        """ Registry set for registries required in project push """
         if self.job.push_candidate:
             return {self.job.project.target_registry}
 
