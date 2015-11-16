@@ -1040,11 +1040,24 @@ class DockerLoginStage(JobStageBase):
 
     def runnable(self, handle):
         """ Load the Dockerfile, scan for FROM line, login """
-        for base_name_or_reg in set.union(
+        registry_set = set.union(
             self.registries_from_dockerfile(),
             self.registries_from_utilities(),
             self.registries_from_push(),
-        ):
+        )
+
+        # Dedupe AuthenticatedRegistry objects with base_name strings
+        for base_name_or_reg in registry_set.copy():
+            if isinstance(base_name_or_reg, AuthenticatedRegistry):
+                try:
+                    if base_name_or_reg.base_name == 'docker.io':
+                        registry_set.remove(None)
+                    else:
+                        registry_set.remove(base_name_or_reg.base_name)
+                except KeyError:
+                    pass
+
+        for base_name_or_reg in registry_set:
             self.handle_registry(handle, base_name_or_reg)
 
         return 0
