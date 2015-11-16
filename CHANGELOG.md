@@ -14,6 +14,13 @@
 - External repos list resets, aborts load on type change #331
 - Can clone private GitHub, GitLab repos with OAuth #333
 - Rename auth input names #338
+- Authenticate registries where auth config exists for: #341
+  - Push stage
+  - Dockerfile FROM line
+  - Utility images
+  - Provisioned images
+- Per-project registry push target #341
+- Utilities require registry target to be set #341
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
