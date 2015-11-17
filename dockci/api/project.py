@@ -1,15 +1,18 @@
 """ API relating to Project model objects """
 import re
 
+import flask_restful
 import sqlalchemy
 
+from flask import request
 from flask_restful import fields, inputs, marshal_with, reqparse, Resource
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
-from .exceptions import WrappedValueError
+from .exceptions import NoModelError, WrappedValueError
 from .fields import NonBlankInput, RewriteUrl
 from .util import clean_attrs, filter_query_args, new_edit_parsers
+from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import API
@@ -49,6 +52,10 @@ DETAIL_FIELDS = {
     'gitlab_repo_id': fields.String(),
     'shield_text': fields.String(),
     'shield_color': fields.String(),
+    'target_registry': RewriteUrl(
+        'registry_detail',
+        rewrites=dict(base_name='target_registry.base_name'),
+    ),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
@@ -56,6 +63,16 @@ BASIC_BRANCH_FIELDS = {
     'name': fields.String(),
 }
 
+
+TARGET_REGISTRY_ARGS = ('target_registry',)
+TARGET_REGISTRY_KWARGS = dict(help="Base name of the registry to push to")
+
+TARGET_REGISTRY_ARGUMENT_NEW = reqparse.Argument(
+    *TARGET_REGISTRY_ARGS, required=True, **TARGET_REGISTRY_KWARGS
+)
+TARGET_REGISTRY_ARGUMENT_EDIT = reqparse.Argument(
+    *TARGET_REGISTRY_ARGS, required=False, **TARGET_REGISTRY_KWARGS
+)
 
 SHARED_PARSER_ARGS = {
     'name': dict(
@@ -89,9 +106,40 @@ PROJECT_NEW_PARSER.add_argument(
     'github_repo_id',
     help="Full repository ID in GitHub",
 )
+PROJECT_NEW_PARSER.add_argument(TARGET_REGISTRY_ARGUMENT_NEW)
+PROJECT_EDIT_PARSER.add_argument(TARGET_REGISTRY_ARGUMENT_EDIT)
 
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
+
+
+def set_target_registry(args):
+    """ Set the ``target_registry`` to the model object """
+    if 'target_registry' not in args:
+        return
+
+    if args['target_registry'] == '':
+        args['target_registry'] = None
+        return
+
+    args['target_registry'] = (
+        AuthenticatedRegistry.query.filter_by(
+            base_name=args['target_registry'])).first()
+
+    if args['target_registry'] is None:
+        raise NoModelError('Registry')
+
+
+def ensure_target_registry(required):
+    """ Ensures that the ``target_registry`` is non-blank for utilities """
+    value, found = reqparse.Argument(
+        *TARGET_REGISTRY_ARGS,
+        required=required,
+        type=NonBlankInput(),
+        **TARGET_REGISTRY_KWARGS
+    ).parse(request, False)
+    if isinstance(value, ValueError):
+        flask_restful.abort(400, message=found)
 
 
 # pylint:disable=no-self-use
@@ -126,6 +174,8 @@ class ProjectDetail(BaseDetailResource):
         args = PROJECT_NEW_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
 
+        args['slug'] = project_slug
+
         if 'gitlab_repo_id' in args:
             args['external_auth_token'] = (
                 current_user.oauth_token_for('gitlab'))
@@ -134,15 +184,26 @@ class ProjectDetail(BaseDetailResource):
             args['external_auth_token'] = (
                 current_user.oauth_token_for('github'))
 
-        project = Project(slug=project_slug)
-        return self.handle_write(project, data=args)
+        if args['utility']:  # Utilities must have target registry set
+            ensure_target_registry(True)
+
+        set_target_registry(args)
+
+        return self.handle_write(Project(), data=args)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def post(self, project_slug):
         """ Update an existing project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
-        return self.handle_write(project, PROJECT_EDIT_PARSER)
+        args = PROJECT_EDIT_PARSER.parse_args(strict=True)
+        args = clean_attrs(args)
+
+        if args.get('utility', project.utility):
+            ensure_target_registry(False)
+
+        set_target_registry(args)
+        return self.handle_write(project, data=args)
 
     @login_required
     def delete(self, project_slug):

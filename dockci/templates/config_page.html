@@ -1,0 +1,29 @@
+{% extends "_base.html" %}
+{% block title %}{{ page | title }} Configuration{% endblock %}
+{% block header %}
+    {{ page | title }} Configuration
+    <span class="btn-group pull-right">
+        <a class="btn btn-lg btn-default" href="{{ url_for('config_edit_view') }}"><i class="glyphicon glyphicon-chevron-left"></i></a>
+    </span>
+{% endblock %}
+{% block content %}
+<ul class="list-group" data-bind="foreach:messages">
+    <li class="list-group-item" data-bind="text:message_display, css:category_css"></li>
+</ul>
+<config-page-{{ page }} params="pageModel:$data"></config-page-{{ page }}>
+<script>
+    require([
+          'jquery'
+        , 'knockout'
+
+        , 'app/components/config_{{ page }}'
+    ], function($, ko) {
+        $(document).ready(function() {
+            function ThisPage() {
+                this.messages = ko.observableArray()
+            }
+            ko.applyBindings(new ThisPage())
+        })
+    })
+</script>
+{% endblock %}

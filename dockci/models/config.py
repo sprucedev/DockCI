@@ -42,23 +42,6 @@ def default_docker_host():
     )
 
 
-def default_registry_host():
-    """
-    Get a default value for the registry_host variable. This will try Docker
-    link env vars, and fall back to localhost:5000
-    """
-    try:
-        return "http://{host}:{port}".format(
-            host=os.environ['REGISTRY_PORT_5000_TCP_ADDR'],
-            port=os.environ['REGISTRY_PORT_5000_TCP_PORT'],
-        )
-
-    except KeyError:
-        pass
-
-    return ""
-
-
 def default_host(format_string, local_default=None):
     """
     Get a default host. If running in Docker, we get the default gateway, and
@@ -70,15 +53,6 @@ def default_host(format_string, local_default=None):
         return format_string.format(ip=default_gateway())
 
     return local_default
-
-
-def default_use_registry():
-    """
-    Get a value for the ``use_registry`` variable. True if Docker link env vars
-    are set
-    """
-    return ('REGISTRY_PORT_5000_TCP_ADDR' in os.environ and
-            'REGISTRY_PORT_5000_TCP_PORT' in os.environ)
 
 
 def default_external_url():
@@ -104,14 +78,6 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
         input_transform=guess_multi_value,
         default=lambda _: [default_docker_host()]
     )
-    docker_use_registry = LoadOnAccess(
-        default=lambda _: default_use_registry(),
-        input_transform=bool,
-    )
-    docker_registry = LoadOnAccess(default=lambda _: default_registry_host())
-    docker_registry_username = LoadOnAccess(default=lambda _: "")
-    docker_registry_password = LoadOnAccess(default=lambda _: "")
-    docker_registry_email = LoadOnAccess(default=lambda _: "")
 
     mail_server = LoadOnAccess(default=lambda _: "localhost")
     mail_port = LoadOnAccess(default=lambda _: 25, input_transform=int)
@@ -133,22 +99,6 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     security_password_salt = LoadOnAccess(generate=lambda _: uuid4().hex)
     security_registerable = LoadOnAccess(default=True)
     security_recoverable = LoadOnAccess(default=True)
-
-    @property
-    def docker_registry_host(self):
-        """
-        Get the hostname portion of the Docker registry
-        """
-        url = urlparse(self.docker_registry)
-        return url.netloc
-
-    @property
-    def docker_registry_insecure(self):
-        """
-        Tell if the Docker registry URL is secure, or insecure
-        """
-        url = urlparse(self.docker_registry)
-        return url.scheme.lower() == 'http'
 
     @property
     def mail_host_string(self):
@@ -195,20 +145,6 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                     errors.append(str(DockerUnreachableError(
                         docker_client_args['base_url'], ex,
                     )))
-
-            if self.docker_registry != '':
-                registry_url = urlparse(self.docker_registry)
-                if registry_url.scheme.lower() not in ('http', 'https'):
-                    errors.append("Registry URL must be HTTP, or HTTPS")
-
-                invalid_url_parts = (
-                    bool(getattr(registry_url, url_part))
-                    for url_part
-                    in ('path', 'params', 'query', 'fragment')
-                )
-                if any(invalid_url_parts):
-                    errors.append("Registry URL can only include scheme, "
-                                  "host, and port")
 
             if self.external_url is not None and self.external_url != '':
                 external_url = urlparse(self.external_url)

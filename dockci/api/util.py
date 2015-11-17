@@ -17,12 +17,15 @@ def set_attrs(obj, values):
 def clean_attrs(values):
     """
     Return only dict items from ``values`` whose keys exist in the request
-    values
+    values, or json
     """
     return {
         attr_name: attr_value
         for attr_name, attr_value in values.items()
-        if attr_name in request.values
+        if (
+            (request.values is not None and attr_name in request.values) or
+            (request.json is not None and attr_name in request.json)
+        )
     }
 
 

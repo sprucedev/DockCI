@@ -35,6 +35,13 @@ class WrongAuthMethodError(BaseActionExceptionMixin):
     message_fs = "Must authenticate with %s"
 
 
+class NoModelError(BaseActionExceptionMixin):
+    """ Raised when a model couldn't be found for setting the relation """
+    code = 400
+    action = "Object"
+    message_fs = "%s couldn't be found"
+
+
 class WrappedException(HTTPException):
     """
     Wraps an exception in HTTPException so that it can have a status code

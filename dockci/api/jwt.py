@@ -64,10 +64,11 @@ class JwtMeDetail(Resource):
     def get(self):
         """ Get details about the current JWT token """
         args = JWT_ME_DETAIL_PARSER.parse_args()
-        if args['api_key'] is None:
+        api_key = args['x_dockci_api_key'] or args['hx_dockci_api_key']
+        if api_key is None:
             raise WrongAuthMethodError("a JWT token")
         else:
-            return JwtDetail().get(args['api_key'])
+            return JwtDetail().get(api_key)
 
     @login_required
     def post(self):

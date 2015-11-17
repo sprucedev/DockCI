@@ -32,11 +32,13 @@ from dockci.models.job_meta.stages_post import (PushStage,
 from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    GitInfoStage,
                                                    GitMtimeStage,
-                                                   ProvisionStage,
                                                    TagVersionStage,
-                                                   UtilStage,
                                                    WorkdirStage,
                                                    )
+from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
+                                                          ProvisionStage,
+                                                          UtilStage,
+                                                          )
 from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (add_to_url_path,
                          bytes_human_readable,
@@ -125,6 +127,7 @@ class Job(DB.Model):
     project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
 
     _provisioned_containers = []
+    _stage_objects = {}
 
     _job_config = None
     _db_session = None
@@ -309,13 +312,11 @@ class Job(DB.Model):
         """
         Get the docker image name, including repository where necessary
         """
-        if (
-            CONFIG.docker_use_registry and
-            CONFIG.docker_registry_host is not None and
-            CONFIG.docker_registry_host != ''
-        ):
-            return '{host}/{name}'.format(host=CONFIG.docker_registry_host,
-                                          name=self.project.slug)
+        if self.project.target_registry:
+            return '{host}/{name}'.format(
+                host=self.project.target_registry.base_name,
+                name=self.project.slug,
+            )
 
         return self.project.slug
 
@@ -351,6 +352,29 @@ class Job(DB.Model):
             utility_suffixes, self.job_config.utilities
         )
         return OrderedDict(utilities)
+
+    @property
+    def is_good_state(self):
+        """ Is the job completed, and in a good state (success) """
+        return (
+            self.result == JobResult.success or
+            (self.result is None and self.exit_code == 0)
+        )
+
+    @property
+    def is_bad_state(self):
+        """ Is the job completed, and in a bad state (failed, broken) """
+        return self.result in (JobResult.fail, JobResult.broken)
+
+    @property
+    def push_candidate(self):
+        """ Is the job a tagged, and docker registry enabled """
+        return self.tag and self.project.target_registry
+
+    @property
+    def pushable(self):
+        """ Is the job a push candidate, and in a good state """
+        return self.push_candidate and self.is_good_state
 
     @classmethod
     def delete_all_in_project(cls, project):
@@ -395,21 +419,44 @@ class Job(DB.Model):
         self.db_session.add(self)
         self.db_session.commit()
 
+        self._stage_objects = {
+            stage.slug: stage
+            for stage in [
+                WorkdirStage(self, workdir),
+                GitInfoStage(self, workdir),
+                ExternalStatusStage(self, 'start'),
+                GitChangesStage(self, workdir),
+                GitMtimeStage(self, workdir),
+                TagVersionStage(self, workdir),
+                DockerLoginStage(self, workdir),
+                ProvisionStage(self),
+                BuildStage(self, workdir),
+                TestStage(self),
+                PushStage(self),
+                FetchStage(self),
+                ExternalStatusStage(self, 'complete'),
+                CleanupStage(self),
+            ]
+        }
+
         try:
             git_info = (stage() for stage in (
-                lambda: WorkdirStage(self, workdir).run(0),
-                lambda: GitInfoStage(self, workdir).run(0),
+                lambda: self._stage_objects['git_prepare'].run(0),
+                lambda: self._stage_objects['git_info'].run(0),
             ))
 
             if not all(git_info):
                 self.result = 'broken'
                 return False
 
-            def create_util_stage(suffix, config):
-                """ Create a UtilStage wrapped in lambda for running """
-                return lambda: UtilStage(
-                    self, workdir, suffix, config,
-                ).run(0)
+            self._stage_objects.update({
+                stage.slug: stage
+                for stage in [
+                    UtilStage(self, workdir, util_suffix, util_config)
+                    for util_suffix, util_config
+                    in self.utilities.items()
+                ]
+            })
 
             if self.tag:  # NoOp if tag is already given
                 def tag_stage():
@@ -418,25 +465,31 @@ class Job(DB.Model):
             else:
                 def tag_stage():
                     """ Runner for ``TagVersionStage`` """
-                    return TagVersionStage(self, workdir).run(None)
+                    return self._stage_objects['git_tag'].run(None)
+
+            def util_stage_wrapper(suffix):
+                """ Wrap a util stage for running """
+                stage = self._stage_objects['utility_%s' % suffix]
+                return lambda: stage.run(0)
 
             prepare = (stage() for stage in chain(
                 (
-                    lambda: GitChangesStage(self, workdir).run(0),
-                    lambda: GitMtimeStage(self, workdir).run(None),
+                    lambda: self._stage_objects['git_changes'].run(0),
+                    lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
+                    lambda: self._stage_objects['docker_login'].run(0),
                 ), (
-                    create_util_stage(suffix_outer, config_outer)
-                    for suffix_outer, config_outer
-                    in self.utilities.items()
+                    util_stage_wrapper(util_suffix)
+                    for util_suffix
+                    in self.utilities.keys()
                 ), (
-                    lambda: ProvisionStage(self).run(0),
-                    lambda: BuildStage(self, workdir).run(0),
+                    lambda: self._stage_objects['docker_provision'].run(0),
+                    lambda: self._stage_objects['docker_build'].run(0),
                 )
             ))
 
-            if self.project.github_repo_id:
-                ExternalStatusStage(self, 'start').run(0)
+            if self.project.github_repo_id:  # TODO GitLab
+                self._stage_objects['external_status_start'].run(0)
 
             if not all(prepare):
                 self.result = 'broken'
@@ -444,7 +497,7 @@ class Job(DB.Model):
                 self.db_session.commit()
                 return False
 
-            if not TestStage(self).run(0):
+            if not self._stage_objects['docker_test'].run(0):
                 self.result = 'fail'
                 self.db_session.add(self)
                 self.db_session.commit()
@@ -452,7 +505,7 @@ class Job(DB.Model):
 
             # We should fail the job here because if this is a tagged
             # job, we can't rebuild it
-            if not PushStage(self).run(0):
+            if not self._stage_objects['docker_push'].run(0):
                 self.result = 'broken'
                 self.db_session.add(self)
                 self.db_session.commit()
@@ -464,7 +517,7 @@ class Job(DB.Model):
 
             # Failing this doesn't indicate job failure
             # TODO what kind of a failure would this not working be?
-            FetchStage(self).run(None)
+            self._stage_objects['docker_fetch'].run(None)
 
             return True
         except Exception:  # pylint:disable=broad-except
@@ -477,8 +530,8 @@ class Job(DB.Model):
 
         finally:
             try:
-                ExternalStatusStage(self, 'complete').run(0)
-                CleanupStage(self).run(None)
+                self._stage_objects['external_status_complete'].run(0)
+                self._stage_objects['cleanup'].run(None)
 
             except Exception:  # pylint:disable=broad-except
                 self._error_stage('post_error')

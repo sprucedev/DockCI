@@ -4,7 +4,7 @@ Core app views
 
 import py.error  # pylint:disable=import-error
 
-from flask import render_template, request
+from flask import abort, render_template, request
 from flask_security import login_required
 
 from dockci.server import APP, CONFIG
@@ -35,15 +35,10 @@ def config_edit_view():
         'github_key', 'github_secret',
         'gitlab_key', 'gitlab_secret', 'gitlab_base_url',
     )
-    all_fields = restart_fields + (
-        'docker_use_registry', 'docker_registry',
-        'docker_registry_username', 'docker_registry_password',
-        'docker_registry_email',
-    )
+    all_fields = restart_fields + ()
     blanks = (
         'external_url', 'github_key', 'gitlab_key', 'gitlab_base_url',
         'mail_host_string', 'mail_default_sender', 'mail_username',
-        'docker_registry', 'docker_registry_email', 'docker_registry_username',
     )
 
     if request.method == 'POST':
@@ -69,3 +64,12 @@ def config_edit_view():
             CONFIG.restart_needed = True
 
     return render_template('config_edit.html')
+
+
+@APP.route('/config/<page>', methods=('GET',))
+@login_required
+def config_page_view(page):
+    """ View and edit misc config """
+    if page not in ('registries',):
+        abort(404)
+    return render_template('config_page.html', page=page)

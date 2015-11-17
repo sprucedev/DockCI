@@ -50,6 +50,15 @@ class Project(DB.Model):  # pylint:disable=no-init
         backref=DB.backref('projects', lazy='dynamic'),
     )
 
+    target_registry_id = DB.Column(
+        DB.Integer, DB.ForeignKey('authenticated_registry.id'),
+    )
+    target_registry = DB.relationship(
+        'AuthenticatedRegistry',
+        foreign_keys="Project.target_registry_id",
+        backref=DB.backref('target_for', lazy='dynamic'),
+    )
+
     jobs = DB.relationship(
         'Job',
         foreign_keys='Job.project_id',
