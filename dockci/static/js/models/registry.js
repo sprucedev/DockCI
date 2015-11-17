@@ -6,7 +6,7 @@ define(['knockout', 'app/util'], function (ko, util) {
       , 'username': null
       , 'password': null
       , 'email': null
-      , 'insecure': null
+      , 'insecure': false
       , 'detail': null
     }, params)
 

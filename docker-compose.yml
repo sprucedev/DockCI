@@ -11,6 +11,8 @@ web:
    - ./dockci:/code/dockci
    - ./alembic:/code/alembic
    - /Users:/Users
+  environment:
+    OAUTHLIB_INSECURE_TRANSPORT: true
 postgres:
   image: postgres
   environment:
