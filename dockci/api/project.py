@@ -174,6 +174,8 @@ class ProjectDetail(BaseDetailResource):
         args = PROJECT_NEW_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
 
+        args['slug'] = project_slug
+
         if 'gitlab_repo_id' in args:
             args['external_auth_token'] = (
                 current_user.oauth_token_for('gitlab'))
@@ -187,8 +189,7 @@ class ProjectDetail(BaseDetailResource):
 
         set_target_registry(args)
 
-        project = Project(slug=project_slug)
-        return self.handle_write(project, data=args)
+        return self.handle_write(Project(), data=args)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
