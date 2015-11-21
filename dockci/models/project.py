@@ -32,6 +32,7 @@ class Project(DB.Model):  # pylint:disable=no-init
     slug = DB.Column(DB.String(255), unique=True, nullable=False, index=True)
     repo = DB.Column(DB.String(255), nullable=False)
     name = DB.Column(DB.String(255), nullable=False)
+    branch_pattern = DB.Column(DB.Text(), nullable=True)
     utility = DB.Column(DB.Boolean(), nullable=False, index=True)
 
     # TODO repo ID from repo
@@ -311,3 +312,8 @@ class Project(DB.Model):  # pylint:disable=no-init
         """ URL for this project """
         return ext_url_for('job_new_view',
                            project_slug=self.slug)
+
+    @property
+    def branch_pattern_re(self):
+        """ Regex from the branch pattern """
+        return re.compile(self.branch_pattern)

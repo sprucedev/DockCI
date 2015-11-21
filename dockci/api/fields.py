@@ -3,6 +3,8 @@ Flask RESTful fields, and WTForms input validators for validation and
 marshaling
 """
 
+import re
+
 from functools import wraps
 
 from flask_restful import fields
@@ -51,6 +53,15 @@ class NonBlankInput(object):
             pass
 
         return value
+
+
+class RegexInput(object):
+    """ Validate a RegEx """
+    def __call__(self, value, name):  # pylint:disable=no-self-use
+        try:
+            return re.compile(value)
+        except re.error as ex:
+            raise ValueError(str(ex))
 
 
 def strip(field_type):

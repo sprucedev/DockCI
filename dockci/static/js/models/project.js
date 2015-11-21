@@ -1,21 +1,22 @@
 define(['jquery', 'knockout', '../util'], function ($, ko, util) {
     function ProjectModel(params) {
-        this.slug = ko.observable()
-        this.name = ko.observable()
-        this.repo = ko.observable()
-        this.utility = ko.observable()
+        this.slug           = ko.observable()
+        this.name           = ko.observable()
+        this.repo           = ko.observable()
+        this.branch_pattern = ko.observable()
+        this.utility        = ko.observable()
 
         this.forcedType = ko.observable()
 
-        this.gitlab_base_uri = ko.observable()
-        this.gitlab_repo_id = ko.observable()
+        this.gitlab_base_uri      = ko.observable()
+        this.gitlab_repo_id       = ko.observable()
         this.gitlab_private_token = ko.observable()
 
-        this.github_secret = ko.observable()
+        this.github_secret  = ko.observable()
         this.github_repo_id = ko.observable()
 
-        this.target_registry = ko.observable()
-        this._target_registry_uri = ko.observable()
+        this.target_registry           = ko.observable()
+        this._target_registry_uri      = ko.observable()
         this.target_registry_base_name = ko.computed(function() {
             target_registry = this.target_registry()
             target_registry_uri = this._target_registry_uri()
@@ -43,8 +44,8 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         }.bind(this))
 
         this._branchesLoaded = ko.observable()
-        this._branches = ko.observableArray()
-        this.branches = util.pauseableComputed({
+        this._branches       = ko.observableArray()
+        this.branches        = util.pauseableComputed({
             'read': function() {
               if(!this._branchesLoaded()) { this.reloadBranches() }
               return this._branches()
@@ -62,6 +63,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             var baseParams = {
                 'name': this.name() || '',
                 'repo': this.repo() || '',
+                'branch_pattern': this.branch_pattern() || undefined,
                 'github_secret': this.github_secret() || undefined,
                 'gitlab_private_token': this.gitlab_private_token() || undefined,
                 'target_registry': this.target_registry_base_name() || null,
@@ -97,6 +99,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                   'slug': ''
                 , 'name': ''
                 , 'repo': ''
+                , 'branch_pattern': ''
                 , 'utility': false
                 , 'gitlab_base_uri': ''
                 , 'gitlab_repo_id': ''
@@ -106,6 +109,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             this.slug(data['slug'])
             this.name(data['name'])
             this.repo(data['repo'])
+            this.branch_pattern(data['branch_pattern'])
             this.utility(data['utility'])
             this.gitlab_base_uri(data['gitlab_base_uri'])
             this.gitlab_repo_id(data['gitlab_repo_id'])
