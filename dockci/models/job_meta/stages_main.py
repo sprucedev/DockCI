@@ -115,42 +115,54 @@ class BuildStage(DockerStage):
         self.tag = None
         self.no_cache = None
 
+    def existing_image(self, namespace, tag):
+        """ Return an image in the namespace, with a given tag (or None) """
+        for image in self.job.docker_client.images(name=namespace):
+            if tag in image['RepoTags']:
+                return image
+
+    def assert_versioned_tag(self):
+        """ Raise ``AlreadyBuiltError`` if tag is semantic """
+        if is_semantic(self.job.tag):
+            raise AlreadyBuiltError(
+                'Version %s of %s already built' % (
+                    self.job.tag,
+                    self.job.project.slug,
+                )
+            )
+
+    def remove_docker_image(self, image_id):
+        """ Remove the docker image with image_id """
+        # TODO it would be nice to inform the user of this action
+        try:
+            self.job.docker_client.remove_image(
+                image=image_id,
+            )
+        except docker.errors.APIError:
+            # TODO handle deletion of containers here
+            pass
+
+    def check_tag_details(self):
+        """ Check existing tags, handling removal and AlreadyBuiltError """
+        tag = self.job.docker_full_name
+        if self.job.tag is not None:
+            existing_image = self.existing_image(
+                self.job.project.slug,
+                self.job.tag,
+            )
+            if existing_image is not None:
+                self.assert_versioned_tag()  # raises on fail
+                self.remove_docker_image(existing_image['Id'])
+
+        return tag
+
     def runnable_docker(self):
         """
         Determine the image tag, and cache flag value, then trigger a Docker
         image job, returning the output stream so that DockerStage can handle
         the output
         """
-        tag = self.job.docker_full_name
-        if self.job.tag is not None:
-            existing_image = None
-            for image in self.job.docker_client.images(
-                name=self.job.project.slug,
-            ):
-                if tag in image['RepoTags']:
-                    existing_image = image
-                    break
-
-            if existing_image is not None:
-                # Do not override existing jobs of _versioned_ tagged code
-                if is_semantic(self.job.tag):
-                    raise AlreadyBuiltError(
-                        'Version %s of %s already built' % (
-                            self.job.tag,
-                            self.job.project.slug,
-                        )
-                    )
-                # Delete existing jobs of _non-versioned_ tagged code
-                # (allows replacement of images)
-                else:
-                    # TODO it would be nice to inform the user of this action
-                    try:
-                        self.job.docker_client.remove_image(
-                            image=existing_image['Id'],
-                        )
-                    except docker.errors.APIError:
-                        # TODO handle deletion of containers here
-                        pass
+        tag = self.check_tag_details()
 
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.job.tag is not None)
