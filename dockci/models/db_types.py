@@ -4,6 +4,9 @@ import re
 
 from sqlalchemy import types
 
+# Be very careful changing these. Changes MAY NOT be reflected in the
+# migrations (eg changing ``impl`` won't correctly migrate)
+
 class RegexType(types.TypeDecorator):
     """ Regex to unicode in, compiled regex object out """
 
