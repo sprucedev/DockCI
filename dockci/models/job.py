@@ -308,6 +308,17 @@ class Job(DB.Model):
         }
 
     @property
+    def docker_tag(self):
+        """ Tag for the docker image """
+        if not self.push_candidate:
+            return None
+
+        if self.tag_push_candidate:
+            return self.tag
+
+        return 'latest-%s' % self.git_branch
+
+    @property
     def docker_image_name(self):
         """
         Get the docker image name, including repository where necessary
@@ -326,9 +337,10 @@ class Job(DB.Model):
         Get the full name of the docker image, including tag, and repository
         where necessary
         """
-        if self.tag:
+        tag = self.docker_tag
+        if tag:
             return '{name}:{tag}'.format(name=self.docker_image_name,
-                                         tag=self.tag)
+                                         tag=tag)
 
         return self.docker_image_name
 

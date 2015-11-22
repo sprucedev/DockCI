@@ -144,15 +144,19 @@ class BuildStage(DockerStage):
 
     def check_tag_details(self):
         """ Check existing tags, handling removal and AlreadyBuiltError """
+        if not self.job.push_candidate:
+            return
+
         tag = self.job.docker_full_name
-        if self.job.tag is not None:
-            existing_image = self.existing_image(
-                self.job.project.slug,
-                self.job.tag,
-            )
-            if existing_image is not None:
+        existing_image = self.existing_image(
+            self.job.project.slug,
+            self.job.tag,
+        )
+        if existing_image is not None:
+            if self.job.tag_push_candidate:
                 self.assert_versioned_tag()  # raises on fail
-                self.remove_docker_image(existing_image['Id'])
+
+            self.remove_docker_image(existing_image['Id'])
 
         return tag
 

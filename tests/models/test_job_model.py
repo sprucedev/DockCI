@@ -246,3 +246,34 @@ class TestPushable(object):
         job = Job()
 
         assert job.pushable == exp
+
+
+class TestNames(object):
+    """ Test some of the job naming methods """
+    def setup_method(self, method):
+        self.registry = AuthenticatedRegistry()
+        self.project = Project(
+            target_registry=self.registry,
+            branch_pattern=re.compile('master'),
+        )
+        self.job = Job(project=self.project)
+
+    def test_docker_tag_branch(self):
+        """ Test ``Job.docker_tag`` when ``git_branch`` is set """
+        self.job.git_branch = 'master'
+        assert self.job.docker_tag == 'latest-master'
+
+    def test_docker_tag_tag(self):
+        """ Test ``Job.docker_tag`` when ``tag`` is set """
+        self.job.tag = 'test'
+        assert self.job.docker_tag == 'test'
+
+    def test_docker_tag_none(self):
+        """ Test ``Job.docker_tag`` when nothing is set """
+        assert self.job.docker_tag == None
+
+    def test_docker_tag_branch_tag(self):
+        """ Test ``Job.docker_tag`` when ``git_branch``, and ``tag`` is set """
+        self.job.tag = 'test'
+        self.job.git_branch = 'master'
+        assert self.job.docker_tag == 'test'

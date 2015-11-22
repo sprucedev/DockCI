@@ -23,7 +23,8 @@ class PushStage(DockerStage):
         if self.job.pushable:
             tag = (self.job.tag if
                    self.job.tag_push_candidate else
-                   'latest-%s' % self.job.git_branch)
+                   self.job.docker_tag)
+
             return self.job.docker_client.push(
                 self.job.docker_image_name,
                 tag=tag,
