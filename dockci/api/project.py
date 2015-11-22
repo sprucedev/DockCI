@@ -10,7 +10,7 @@ from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import NoModelError, WrappedValueError
-from .fields import NonBlankInput, RegexInput, RewriteUrl
+from .fields import NonBlankInput, RegexField, RegexInput, RewriteUrl
 from .util import clean_attrs, filter_query_args, new_edit_parsers
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job
@@ -46,7 +46,7 @@ LIST_FIELDS.update(BASIC_FIELDS)
 
 DETAIL_FIELDS = {
     'repo': fields.String(),
-    'branch_pattern': fields.String(),
+    'branch_pattern': RegexField(),
     'utility': fields.Boolean(),
     'github_repo_id': fields.String(),
     'github_hook_id': fields.String(),

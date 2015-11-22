@@ -13,6 +13,7 @@ import sqlalchemy
 
 from flask import url_for
 
+from dockci.models.db_types import RegexType
 from dockci.server import DB, OAUTH_APPS
 from dockci.util import (ext_url_for,
                          is_git_ancestor,
@@ -32,7 +33,7 @@ class Project(DB.Model):  # pylint:disable=no-init
     slug = DB.Column(DB.String(255), unique=True, nullable=False, index=True)
     repo = DB.Column(DB.String(255), nullable=False)
     name = DB.Column(DB.String(255), nullable=False)
-    branch_pattern = DB.Column(DB.Text(), nullable=True)
+    branch_pattern = DB.Column(RegexType(), nullable=True)
     utility = DB.Column(DB.Boolean(), nullable=False, index=True)
 
     # TODO repo ID from repo
