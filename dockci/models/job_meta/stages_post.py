@@ -21,9 +21,12 @@ class PushStage(DockerStage):
         Perform the actual Docker push operation
         """
         if self.job.pushable:
+            tag = (self.job.tag if
+                   self.job.tag_push_candidate else
+                   'latest-%s' % self.job.git_branch)
             return self.job.docker_client.push(
                 self.job.docker_image_name,
-                tag=self.job.tag,
+                tag=tag,
                 stream=True,
                 insecure_registry=self.job.project.target_registry.insecure,
             )

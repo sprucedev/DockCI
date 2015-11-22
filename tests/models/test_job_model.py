@@ -1,7 +1,10 @@
+import re
+
 from unittest.mock import PropertyMock
 
 import pytest
 
+from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job, JobResult
 from dockci.models.project import Project
 
@@ -153,3 +156,93 @@ class TestStateDataFor(object):
 
         assert out_state == exp_state
         assert out_msg == exp_msg
+
+
+class TestStateBools(object):
+    """ Test ``Job.is_good_state`` and ``Job.is_bad_state`` """
+    @pytest.mark.parametrize('result,exp', [
+        (JobResult.success, True),
+        (JobResult.fail, False),
+    ])
+    def test_good_state_result(self, result, exp):
+        """ Test ``Job.is_good_state`` from job result """
+        job = Job(result=result)
+        assert job.is_good_state == exp
+
+    @pytest.mark.parametrize('result,code,exp', [
+        (JobResult.fail, 0, False),
+        (None, 1, False),
+        (None, 0, True),
+    ])
+    def test_good_state_exit_code(self, result, code, exp):
+        """ Test ``Job.is_good_state`` from exit code """
+        job = Job(result=result, exit_code=code)
+        assert job.is_good_state == exp
+
+    @pytest.mark.parametrize('result,exp', [
+        (JobResult.success, False),
+        (JobResult.fail, True),
+        (JobResult.broken, True),
+    ])
+    def test_bad_state(self, result, exp):
+        """ Test ``Job.is_bad_state`` """
+        job = Job(result=result)
+        assert job.is_bad_state == exp
+
+
+class TestPushable(object):
+    """ Test the various job push properties """
+    @pytest.mark.parametrize('tag,reg,exp', [
+        (None, None, False),
+        ('abc', None, False),
+        (None, AuthenticatedRegistry(), False),
+        ('abc', AuthenticatedRegistry(), True),
+    ])
+    def test_tag_push_candidate(self, tag, reg, exp):
+        """ Test ``Job.tag_push_candidate`` """
+        project = Project(target_registry=reg)
+        job = Job(project=project, tag=tag)
+
+        assert job.tag_push_candidate == exp
+
+    @pytest.mark.parametrize('branch,pattern,reg,exp', [
+        (None, None, None, False),
+        ('abc', None, None, False),
+        (None, None, AuthenticatedRegistry(), False),
+        ('abc', None, AuthenticatedRegistry(), False),
+        (None, re.compile('abc'), None, False),
+        ('abc', re.compile('abc'), None, False),
+        (None, re.compile('abc'), AuthenticatedRegistry(), False),
+        ('abc', re.compile('abc'), AuthenticatedRegistry(), True),
+        ('abc', re.compile('nomatch'), AuthenticatedRegistry(), False),
+        ('abc', re.compile('(a|b)bc'), AuthenticatedRegistry(), True),
+        ('acd', re.compile('(a|b)cd'), AuthenticatedRegistry(), True),
+        ('bcd', re.compile('(a|b)cd'), AuthenticatedRegistry(), True),
+        ('abcd', re.compile('bcd'), AuthenticatedRegistry(), False),
+    ])
+    def test_branch_push_candidate(self, branch, pattern, reg, exp):
+        """ Test ``Job.branch_push_candidate`` """
+        project = Project(branch_pattern=pattern, target_registry=reg)
+        job = Job(project=project, git_branch=branch)
+
+        assert job.branch_push_candidate == exp
+
+    @pytest.mark.parametrize('tag_pc,branch_pc,good_state,exp', [
+        (False, False, False, False),
+        (True, False, True, True),
+        (False, True, True, True),
+        (True, False, False, False),
+        (False, True, False, False),
+        (True, True, True, True),
+    ])
+    def test_pushable(self, mocker, tag_pc, branch_pc, good_state, exp):
+        """ Test ``Job.pushable`` """
+        mocker.patch('dockci.models.job.Job.is_good_state',
+                     new_callable=PropertyMock(return_value=good_state))
+        mocker.patch('dockci.models.job.Job.tag_push_candidate',
+                     new_callable=PropertyMock(return_value=tag_pc))
+        mocker.patch('dockci.models.job.Job.branch_push_candidate',
+                     new_callable=PropertyMock(return_value=branch_pc))
+        job = Job()
+
+        assert job.pushable == exp

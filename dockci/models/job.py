@@ -367,9 +367,27 @@ class Job(DB.Model):
         return self.result in (JobResult.fail, JobResult.broken)
 
     @property
+    def tag_push_candidate(self):
+        """ Determines if this job has a tag, and target registry """
+        return bool(self.tag and self.project.target_registry)
+
+    @property
+    def branch_push_candidate(self):
+        """
+        Determines if this job has a branch, target registry and the project
+        branch pattern matches
+        """
+        return bool(
+            self.git_branch and
+            self.project.branch_pattern and
+            self.project.target_registry and
+            self.project.branch_pattern.match(self.git_branch)
+        )
+
+    @property
     def push_candidate(self):
-        """ Is the job a tagged, and docker registry enabled """
-        return self.tag and self.project.target_registry
+        """ Is the job a push candidate for either tag or branch push """
+        return self.tag_push_candidate or self.branch_push_candidate
 
     @property
     def pushable(self):
