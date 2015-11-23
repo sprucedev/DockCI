@@ -313,8 +313,3 @@ class Project(DB.Model):  # pylint:disable=no-init
         """ URL for this project """
         return ext_url_for('job_new_view',
                            project_slug=self.slug)
-
-    @property
-    def branch_pattern_re(self):
-        """ Regex from the branch pattern """
-        return re.compile(self.branch_pattern)
