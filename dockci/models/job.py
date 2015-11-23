@@ -346,6 +346,12 @@ class Job(DB.Model):
             return self.tag
 
     @property
+    def branch_tag(self):
+        """ Docker tag for the git branch """
+        if self.git_branch:
+            return 'latest-%s' % self.git_branch
+
+    @property
     def docker_tag(self):
         """ Tag for the docker image """
         if not self.push_candidate:
@@ -354,7 +360,33 @@ class Job(DB.Model):
         if self.tag_push_candidate:
             return self.tag
 
-        return 'latest-%s' % self.git_branch
+        return self.branch_tag
+
+    @property
+    def tags_set(self):
+        """ Set of all tags this job should be known by """
+        return {
+            tag
+            for tag in (
+                self.tag,
+                self.branch_tag,
+            )
+            if tag is not None
+        }
+
+    @property
+    def possible_tags_set(self):
+        """ Set of all tags this job may be known by """
+        return {
+            tag
+            for tag in (
+                self.tag_semver_str,
+                self.tag_semver_str_v,
+                self.tag,
+                self.branch_tag,
+            )
+            if tag is not None
+        }
 
     @property
     def docker_image_name(self):

@@ -281,6 +281,36 @@ class TestNames(TestJobBase):
         self.job.git_branch = 'master'
         assert self.job.docker_tag == 'test'
 
+    @pytest.mark.parametrize('tag,branch,exp', [
+        ('0.0.0', 'master', {'0.0.0', 'latest-master'}),
+        ('v0.0.0', 'master', {'v0.0.0', 'latest-master'}),
+        ('0.0', 'master', {'0.0', 'latest-master'}),
+        (None, 'master', {'latest-master'}),
+        ('0.0', None, {'0.0'}),
+        ('0.0.0', None, {'0.0.0'}),
+        ('v0.0.0', None, {'v0.0.0'}),
+    ])
+    def test_tags_set(self, tag, branch, exp):
+        """ Test ``Job.tags_set`` """
+        self.job.tag = tag
+        self.job.git_branch = branch
+        assert self.job.tags_set == exp
+
+    @pytest.mark.parametrize('tag,branch,exp', [
+        ('0.0.0', 'master', {'0.0.0', 'v0.0.0', 'latest-master'}),
+        ('v0.0.0', 'master', {'0.0.0', 'v0.0.0', 'latest-master'}),
+        ('0.0', 'master', {'0.0', 'latest-master'}),
+        (None, 'master', {'latest-master'}),
+        ('0.0', None, {'0.0'}),
+        ('0.0.0', None, {'0.0.0', 'v0.0.0'}),
+        ('v0.0.0', None, {'0.0.0', 'v0.0.0'}),
+    ])
+    def test_possible_tags_set(self, tag, branch, exp):
+        """ Test ``Job.possible_tags_set`` """
+        self.job.tag = tag
+        self.job.git_branch = branch
+        assert self.job.possible_tags_set == exp
+
 
 class TestSemver(TestJobBase):
     """ Test semver related functionality for the ``Job`` model """
