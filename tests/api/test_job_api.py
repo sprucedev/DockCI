@@ -4,6 +4,25 @@ import pytest
 
 from dockci.api.job import filter_jobs_by_request
 
+from contextlib import contextmanager
+import flask
+
+@contextmanager
+def request_values(values):
+    """
+    Mock request values. Python mocks isn't used because it attempts to delete
+    things, and we get an exception
+    """
+    old_values = flask.request.values
+    flask.request.values = values
+
+    try:
+        yield
+
+    finally:
+        flask.request.values = old_values
+
+
 class TestFilterJobsByRequest(object):
     """ Test the ``filter_jobs_by_request`` function """
     @pytest.mark.parametrize('mock_values,expected_kwargs', [
@@ -18,7 +37,7 @@ class TestFilterJobsByRequest(object):
             {'branch': 'abc', 'versioned': True},
         ),
     ])
-    def test_filter_kwargs(self, mocker, mock_values, expected_kwargs):
+    def test_filter_kwargs(self, mock_values, expected_kwargs):
         """ Ensure that the correct kwargs are passed to ``filtered_jobs`` """
 
         class MockProject(object):
@@ -28,9 +47,8 @@ class TestFilterJobsByRequest(object):
                 assert kwargs == expected_kwargs
                 return 'test val'
 
-        import flask
-        mocker.patch.object(flask.request, 'values', new=mock_values)
-        mock_project = MockProject()
+        with request_values(mock_values):
+            mock_project = MockProject()
 
-        assert filter_jobs_by_request(mock_project) == 'test val'
-        assert mock_project.filtered_jobs_called
+            assert filter_jobs_by_request(mock_project) == 'test val'
+            assert mock_project.filtered_jobs_called
