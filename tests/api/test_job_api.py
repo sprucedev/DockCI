@@ -1,11 +1,11 @@
+from contextlib import contextmanager
 from unittest.mock import patch, PropertyMock
 
+import flask
 import pytest
 
 from dockci.api.job import filter_jobs_by_request
 
-from contextlib import contextmanager
-import flask
 
 @contextmanager
 def request_values(values):
