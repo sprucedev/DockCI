@@ -9,7 +9,7 @@ import docker.errors
 
 from dockci.exceptions import AlreadyBuiltError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.util import built_docker_image_id, is_semantic
+from dockci.util import built_docker_image_id
 
 
 def parse_oauth_response(response):
@@ -122,8 +122,8 @@ class BuildStage(DockerStage):
                 return image
 
     def assert_versioned_tag(self):
-        """ Raise ``AlreadyBuiltError`` if tag is semantic """
-        if is_semantic(self.job.tag):
+        """ Raise ``AlreadyBuiltError`` if tag is semantic-like """
+        if self.job.tag_semver is not None:
             raise AlreadyBuiltError(
                 'Version %s of %s already built' % (
                     self.job.tag,

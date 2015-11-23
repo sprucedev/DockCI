@@ -10,10 +10,13 @@ import docker.errors
 import py.error  # pylint:disable=import-error
 import py.path  # pylint:disable=import-error
 
-from dockci.exceptions import DockerAPIError, StageFailedError
+from dockci.exceptions import (AlreadyBuiltError,
+                               DockerAPIError,
+                               StageFailedError,
+                               )
 from dockci.models.auth import AuthenticatedRegistry
-from dockci.models.project import Project
 from dockci.models.job_meta.stages import JobStageBase
+from dockci.models.project import Project
 from dockci.util import (base_name_from_image,
                          built_docker_image_id,
                          docker_ensure_image,
@@ -125,6 +128,35 @@ class InlineProjectStage(JobStageBase):
         raise NotImplementedError(
             "You must override the 'get_project_slugs' method"
         )
+
+
+class PushPrepTagStage(JobStageBase):
+    """ Ensure versioned tags haven't already been built """
+    slug = 'docker_push_prep'
+
+    def runnable(self, handle):
+        tag_no_v = self.job.tag_semver_str or self.job.tag
+        tag_v = ('v%s' % tag_no_v) or self.job.tag
+
+        handle.write("Checking for previous job... ".encode())
+        handle.flush()
+
+        from dockci.models.job import Job, JobResult
+        job_count = self.job.project.jobs.filter(
+            Job.result.in_((JobResult.success.value, None)),
+            Job.tag.in_((tag_no_v, tag_v)),
+        ).count()
+
+        if job_count:
+            raise AlreadyBuiltError(
+                'Version %s of %s already built' % (
+                    self.job.tag,
+                    self.job.project.slug,
+                )
+            )
+        else:
+            handle.write("OKAY!".encode())
+            handle.flush()
 
 
 class ProvisionStage(InlineProjectStage):

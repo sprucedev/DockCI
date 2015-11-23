@@ -38,6 +38,7 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    )
 from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
                                                           ProvisionStage,
+                                                          PushPrepTagStage,
                                                           UtilStage,
                                                           )
 from dockci.server import CONFIG, DB, OAUTH_APPS
@@ -321,14 +322,12 @@ class Job(DB.Model):
         except ValueError:
             pass
 
-
     @property
     def tag_semver_str_v(self):
         """ Job commit's tag with v prefix added or None if not semver """
         without = self.tag_semver_str
         if without:
             return "v%s" % without
-
 
     @property
     def tag_semver_str(self):
@@ -338,7 +337,6 @@ class Job(DB.Model):
         if self.tag_semver:
             return self._tag_without_v
 
-
     @property
     def _tag_without_v(self):
         """ Job commit's tag with any v prefix dropped """
@@ -346,7 +344,6 @@ class Job(DB.Model):
             return self.tag[1:]
         else:
             return self.tag
-
 
     @property
     def docker_tag(self):
@@ -499,6 +496,7 @@ class Job(DB.Model):
                 GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
+                PushPrepTagStage(self),
                 DockerLoginStage(self, workdir),
                 ProvisionStage(self),
                 BuildStage(self, workdir),
@@ -529,14 +527,19 @@ class Job(DB.Model):
                 ]
             })
 
-            if self.tag:  # NoOp if tag is already given
-                def tag_stage():
-                    """ NoOp tag stage """
-                    return True
-            else:
-                def tag_stage():
-                    """ Runner for ``TagVersionStage`` """
+            def tag_stage():
+                """ Runner for ``TagVersionStage`` """
+                if self.tag:
+                    return True  # Don't override tags
+                else:
                     return self._stage_objects['git_tag'].run(None)
+
+            def prep_tag_stage():
+                """ Runner for ``PushPrepTagStage`` """
+                if self.tag:
+                    return self._stage_objects['docker_push_prep'].run(None)
+                else:
+                    return True  # No tag to check
 
             def util_stage_wrapper(suffix):
                 """ Wrap a util stage for running """
@@ -548,6 +551,7 @@ class Job(DB.Model):
                     lambda: self._stage_objects['git_changes'].run(0),
                     lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
+                    prep_tag_stage,
                     lambda: self._stage_objects['docker_login'].run(0),
                 ), (
                     util_stage_wrapper(util_suffix)
