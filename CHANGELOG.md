@@ -22,6 +22,9 @@
 - Per-project registry push target #341
 - Utilities require registry target to be set #341
 - Validate unique values before DB commit in API #341
+- Add "branch pattern" to allow floating tagged images for branches #345
+- Fix tagged version rebuild #345
+- Compare tagged versions vXXX and XXX as the same #345
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
