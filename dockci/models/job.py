@@ -375,18 +375,28 @@ class Job(DB.Model):
         }
 
     @property
-    def possible_tags_set(self):
-        """ Set of all tags this job may be known by """
+    def tag_tags_set(self):
+        """ Set of all tags from the git tag this job may be known by """
         return {
             tag
             for tag in (
                 self.tag_semver_str,
                 self.tag_semver_str_v,
                 self.tag,
-                self.branch_tag,
             )
             if tag is not None
         }
+
+
+    @property
+    def possible_tags_set(self):
+        """ Set of all tags this job may be known by """
+        branch_tag = self.branch_tag
+        tags_set = self.tag_tags_set
+        if branch_tag:
+            tags_set.add(branch_tag)
+
+        return tags_set
 
     @property
     def docker_image_name(self):

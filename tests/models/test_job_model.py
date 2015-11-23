@@ -289,6 +289,7 @@ class TestNames(TestJobBase):
         ('0.0', None, {'0.0'}),
         ('0.0.0', None, {'0.0.0'}),
         ('v0.0.0', None, {'v0.0.0'}),
+        (None, None, set()),
     ])
     def test_tags_set(self, tag, branch, exp):
         """ Test ``Job.tags_set`` """
@@ -304,12 +305,29 @@ class TestNames(TestJobBase):
         ('0.0', None, {'0.0'}),
         ('0.0.0', None, {'0.0.0', 'v0.0.0'}),
         ('v0.0.0', None, {'0.0.0', 'v0.0.0'}),
+        (None, None, set()),
     ])
     def test_possible_tags_set(self, tag, branch, exp):
         """ Test ``Job.possible_tags_set`` """
         self.job.tag = tag
         self.job.git_branch = branch
         assert self.job.possible_tags_set == exp
+
+    @pytest.mark.parametrize('tag,branch,exp', [
+        ('0.0.0', 'master', {'0.0.0', 'v0.0.0'}),
+        ('v0.0.0', 'master', {'0.0.0', 'v0.0.0'}),
+        ('0.0', 'master', {'0.0'}),
+        (None, 'master', set()),
+        ('0.0', None, {'0.0'}),
+        ('0.0.0', None, {'0.0.0', 'v0.0.0'}),
+        ('v0.0.0', None, {'0.0.0', 'v0.0.0'}),
+        (None, None, set()),
+    ])
+    def test_tag_tags_set(self, tag, branch, exp):
+        """ Test ``Job.tag_tags_set`` """
+        self.job.tag = tag
+        self.job.git_branch = branch
+        assert self.job.tag_tags_set == exp
 
 
 class TestSemver(TestJobBase):
