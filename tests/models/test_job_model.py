@@ -277,3 +277,36 @@ class TestNames(object):
         self.job.tag = 'test'
         self.job.git_branch = 'master'
         assert self.job.docker_tag == 'test'
+
+    @pytest.mark.parametrize('tag,exp', [
+        ('0.0.0', dict(major=0, minor=0, patch=0)),
+        ('1.2.3', dict(major=1, minor=2, patch=3)),
+        ('7.11.2', dict(major=7, minor=11, patch=2)),
+        ('v7.11.2', dict(major=7, minor=11, patch=2)),
+        ('7.11.2-abc', dict(major=7, minor=11, patch=2, prerelease='abc')),
+        ('7.11.2-abc+d', dict(
+            major=7, minor=11, patch=2, prerelease='abc', build='d',
+        )),
+        ('v7.11.2-abc+d', dict(
+            major=7, minor=11, patch=2, prerelease='abc', build='d',
+        )),
+    ])
+    def test_tag_semver(self, tag, exp):
+        """ Test semver-like parsings for ``Job.tag_semver`` """
+        self.job.tag = tag
+
+        actual = self.job.tag_semver
+        for key, value in exp.items():
+            assert actual.pop(key) == value
+
+        for key, value in actual.items():
+            assert value is None
+
+    @pytest.mark.parametrize('tag', [
+        'av1.1.1', 'a1.1.1', '1.1', '1', 'a.1.1', '1.a.1', '1.1.a', '1.1.1-½',
+        '1.1.1-1+½', None
+    ])
+    def test_tag_semver_invalid(self, tag):
+        """ Test non-semver-like parsings for ``Job.tag_semver`` """
+        self.job.tag = tag
+        assert self.job.tag_semver == None

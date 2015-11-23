@@ -13,6 +13,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import semver
 import sqlalchemy
 
 from docker.utils import kwargs_from_env
@@ -306,6 +307,25 @@ class Job(DB.Model):
             for name, path in output_files
             if path.check(file=True)
         }
+
+    @property
+    def tag_semver(self):
+        """
+        Job tag, parsed as semver (or None if no match). Allows a 'v' prefix
+        """
+        if self.tag is None:
+            return None
+
+        if self.tag[0] == 'v':
+            tag = self.tag[1:]
+        else:
+            tag = self.tag
+
+        try:
+            return semver.parse(tag)
+        except ValueError:
+            pass
+
 
     @property
     def docker_tag(self):
