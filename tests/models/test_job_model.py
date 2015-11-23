@@ -248,8 +248,8 @@ class TestPushable(object):
         assert job.pushable == exp
 
 
-class TestNames(object):
-    """ Test some of the job naming methods """
+class TestJobBase(object):
+    """ Base for name, semver tests """
     def setup_method(self, method):
         self.registry = AuthenticatedRegistry()
         self.project = Project(
@@ -258,6 +258,9 @@ class TestNames(object):
         )
         self.job = Job(project=self.project)
 
+
+class TestNames(TestJobBase):
+    """ Test some of the job naming methods """
     def test_docker_tag_branch(self):
         """ Test ``Job.docker_tag`` when ``git_branch`` is set """
         self.job.git_branch = 'master'
@@ -278,6 +281,9 @@ class TestNames(object):
         self.job.git_branch = 'master'
         assert self.job.docker_tag == 'test'
 
+
+class TestSemver(TestJobBase):
+    """ Test semver related functionality for the ``Job`` model """
     @pytest.mark.parametrize('tag,exp', [
         ('0.0.0', dict(major=0, minor=0, patch=0)),
         ('1.2.3', dict(major=1, minor=2, patch=3)),
@@ -304,9 +310,33 @@ class TestNames(object):
 
     @pytest.mark.parametrize('tag', [
         'av1.1.1', 'a1.1.1', '1.1', '1', 'a.1.1', '1.a.1', '1.1.a', '1.1.1-½',
-        '1.1.1-1+½', None
+        '1.1.1-1+½', None,
     ])
     def test_tag_semver_invalid(self, tag):
         """ Test non-semver-like parsings for ``Job.tag_semver`` """
         self.job.tag = tag
         assert self.job.tag_semver == None
+
+    @pytest.mark.parametrize('tag,exp_no_v', [
+        ('0.0.0-ab+cd', '0.0.0-ab+cd'),
+        ('v0.0.0-ab+cd', '0.0.0-ab+cd'),
+    ])
+    def test_str(self, tag, exp_no_v):
+        """
+        Test ``tag_semver_str`` and ``tag_semver_str_v`` with semver-like tags
+        """
+        self.job.tag = tag
+        assert self.job.tag_semver_str == exp_no_v
+        assert self.job.tag_semver_str_v == 'v%s' % exp_no_v
+
+    @pytest.mark.parametrize('tag', [
+        'a.0.0-ab+cd', 'a0.0.0-ab+cd',
+    ])
+    def test_str_invalid(self, tag):
+        """
+        Test ``tag_semver_str`` and ``tag_semver_str_v`` with non-semver-like
+        tags
+        """
+        self.job.tag = tag
+        assert self.job.tag_semver_str is None
+        assert self.job.tag_semver_str_v is None

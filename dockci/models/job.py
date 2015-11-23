@@ -316,15 +316,36 @@ class Job(DB.Model):
         if self.tag is None:
             return None
 
-        if self.tag[0] == 'v':
-            tag = self.tag[1:]
-        else:
-            tag = self.tag
-
         try:
-            return semver.parse(tag)
+            return semver.parse(self._tag_without_v)
         except ValueError:
             pass
+
+
+    @property
+    def tag_semver_str_v(self):
+        """ Job commit's tag with v prefix added or None if not semver """
+        without = self.tag_semver_str
+        if without:
+            return "v%s" % without
+
+
+    @property
+    def tag_semver_str(self):
+        """
+        Job commit's tag with any v prefix dropped or None if not semver
+        """
+        if self.tag_semver:
+            return self._tag_without_v
+
+
+    @property
+    def _tag_without_v(self):
+        """ Job commit's tag with any v prefix dropped """
+        if self.tag[0] == 'v':
+            return self.tag[1:]
+        else:
+            return self.tag
 
 
     @property
