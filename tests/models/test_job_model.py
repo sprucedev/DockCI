@@ -161,8 +161,8 @@ class TestStateDataFor(object):
 class TestStateBools(object):
     """ Test ``Job.is_good_state`` and ``Job.is_bad_state`` """
     @pytest.mark.parametrize('result,exp', [
-        (JobResult.success, True),
-        (JobResult.fail, False),
+        (JobResult.success.value, True),
+        (JobResult.fail.value, False),
     ])
     def test_good_state_result(self, result, exp):
         """ Test ``Job.is_good_state`` from job result """
@@ -170,7 +170,7 @@ class TestStateBools(object):
         assert job.is_good_state == exp
 
     @pytest.mark.parametrize('result,code,exp', [
-        (JobResult.fail, 0, False),
+        (JobResult.fail.value, 0, False),
         (None, 1, False),
         (None, 0, True),
     ])
@@ -180,9 +180,9 @@ class TestStateBools(object):
         assert job.is_good_state == exp
 
     @pytest.mark.parametrize('result,exp', [
-        (JobResult.success, False),
-        (JobResult.fail, True),
-        (JobResult.broken, True),
+        (JobResult.success.value, False),
+        (JobResult.fail.value, True),
+        (JobResult.broken.value, True),
     ])
     def test_bad_state(self, result, exp):
         """ Test ``Job.is_bad_state`` """

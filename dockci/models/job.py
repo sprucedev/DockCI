@@ -449,14 +449,14 @@ class Job(DB.Model):
     def is_good_state(self):
         """ Is the job completed, and in a good state (success) """
         return (
-            self.result == JobResult.success or
+            self.result == JobResult.success.value or
             (self.result is None and self.exit_code == 0)
         )
 
     @property
     def is_bad_state(self):
         """ Is the job completed, and in a bad state (failed, broken) """
-        return self.result in (JobResult.fail, JobResult.broken)
+        return self.result in (JobResult.fail.value, JobResult.broken.value)
 
     @property
     def tag_push_candidate(self):
