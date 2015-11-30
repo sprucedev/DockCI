@@ -17,5 +17,6 @@ py==1.4.30
 PyJWT==1.4.0
 PyYAML==3.11
 rollbar==0.11.0
+semver==2.2.1
 SQLAlchemy==1.0.8
 yaml-model==0.1.5

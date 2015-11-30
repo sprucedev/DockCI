@@ -4,12 +4,8 @@ Main job stages that constitute a job
 
 import json
 
-import docker
-import docker.errors
-
-from dockci.exceptions import AlreadyBuiltError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.util import built_docker_image_id, is_semantic
+from dockci.util import built_docker_image_id
 
 
 def parse_oauth_response(response):
@@ -121,44 +117,12 @@ class BuildStage(DockerStage):
         image job, returning the output stream so that DockerStage can handle
         the output
         """
-        tag = self.job.docker_full_name
-        if self.job.tag is not None:
-            existing_image = None
-            for image in self.job.docker_client.images(
-                name=self.job.project.slug,
-            ):
-                if tag in image['RepoTags']:
-                    existing_image = image
-                    break
-
-            if existing_image is not None:
-                # Do not override existing jobs of _versioned_ tagged code
-                if is_semantic(self.job.tag):
-                    raise AlreadyBuiltError(
-                        'Version %s of %s already built' % (
-                            self.job.tag,
-                            self.job.project.slug,
-                        )
-                    )
-                # Delete existing jobs of _non-versioned_ tagged code
-                # (allows replacement of images)
-                else:
-                    # TODO it would be nice to inform the user of this action
-                    try:
-                        self.job.docker_client.remove_image(
-                            image=existing_image['Id'],
-                        )
-                    except docker.errors.APIError:
-                        # TODO handle deletion of containers here
-                        pass
-
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.job.tag is not None)
         dockerfile = self.job.job_config.dockerfile
 
         return self.job.docker_client.build(path=self.workdir.strpath,
                                             dockerfile=dockerfile,
-                                            tag=tag,
                                             nocache=no_cache,
                                             rm=True,
                                             stream=True)

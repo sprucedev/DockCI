@@ -13,6 +13,7 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import semver
 import sqlalchemy
 
 from docker.utils import kwargs_from_env
@@ -37,6 +38,7 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    )
 from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
                                                           ProvisionStage,
+                                                          PushPrepStage,
                                                           UtilStage,
                                                           )
 from dockci.server import CONFIG, DB, OAUTH_APPS
@@ -126,11 +128,24 @@ class Job(DB.Model):
     )
     project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
 
-    _provisioned_containers = []
-    _stage_objects = {}
-
     _job_config = None
     _db_session = None
+
+    # Defaults in init_transient
+    _provisioned_containers = None
+    _old_image_ids = None
+    _stage_objects = None
+
+    def __init__(self, *args, **kwargs):
+        super(Job, self).__init__(*args, **kwargs)
+        self.init_transient()
+
+    @sqlalchemy.orm.reconstructor
+    def init_transient(self):
+        """ SLQAlchemy doesn't __init__, so need this separately """
+        self._provisioned_containers = []
+        self._old_image_ids = []
+        self._stage_objects = {}
 
     def __str__(self):
         try:
@@ -308,17 +323,116 @@ class Job(DB.Model):
         }
 
     @property
+    def tag_semver(self):
+        """
+        Job tag, parsed as semver (or None if no match). Allows a 'v' prefix
+        """
+        if self.tag is None:
+            return None
+
+        try:
+            return semver.parse(self._tag_without_v)
+        except ValueError:
+            pass
+
+    @property
+    def tag_semver_str_v(self):
+        """ Job commit's tag with v prefix added or None if not semver """
+        without = self.tag_semver_str
+        if without:
+            return "v%s" % without
+
+    @property
+    def tag_semver_str(self):
+        """
+        Job commit's tag with any v prefix dropped or None if not semver
+        """
+        if self.tag_semver:
+            return self._tag_without_v
+
+    @property
+    def _tag_without_v(self):
+        """ Job commit's tag with any v prefix dropped """
+        if self.tag[0] == 'v':
+            return self.tag[1:]
+        else:
+            return self.tag
+
+    @property
+    def branch_tag(self):
+        """ Docker tag for the git branch """
+        if self.git_branch:
+            return 'latest-%s' % self.git_branch
+
+    @property
+    def docker_tag(self):
+        """ Tag for the docker image """
+        if not self.push_candidate:
+            return None
+
+        if self.tag_push_candidate:
+            return self.tag
+
+        return self.branch_tag
+
+    @property
+    def tags_set(self):
+        """ Set of all tags this job should be known by """
+        return {
+            tag
+            for tag in (
+                self.tag,
+                self.branch_tag,
+            )
+            if tag is not None
+        }
+
+    @property
+    def tag_tags_set(self):
+        """ Set of all tags from the git tag this job may be known by """
+        return {
+            tag
+            for tag in (
+                self.tag_semver_str,
+                self.tag_semver_str_v,
+                self.tag,
+            )
+            if tag is not None
+        }
+
+    @property
+    def possible_tags_set(self):
+        """ Set of all tags this job may be known by """
+        branch_tag = self.branch_tag
+        tags_set = self.tag_tags_set
+        if branch_tag:
+            tags_set.add(branch_tag)
+
+        return tags_set
+
+    @property
+    def docker_base_name(self):
+        """ Name of the Docker image, without tag or registry """
+        return self.project.slug
+
+    @property
+    def target_registry_base_name(self):
+        """ Base name of the target registry, or None """
+        if self.project.target_registry:
+            return self.project.target_registry.base_name
+
+    @property
     def docker_image_name(self):
         """
         Get the docker image name, including repository where necessary
         """
         if self.project.target_registry:
             return '{host}/{name}'.format(
-                host=self.project.target_registry.base_name,
-                name=self.project.slug,
+                host=self.target_registry_base_name,
+                name=self.docker_base_name,
             )
 
-        return self.project.slug
+        return self.docker_base_name
 
     @property
     def docker_full_name(self):
@@ -326,9 +440,10 @@ class Job(DB.Model):
         Get the full name of the docker image, including tag, and repository
         where necessary
         """
-        if self.tag:
+        tag = self.docker_tag
+        if tag:
             return '{name}:{tag}'.format(name=self.docker_image_name,
-                                         tag=self.tag)
+                                         tag=tag)
 
         return self.docker_image_name
 
@@ -357,19 +472,37 @@ class Job(DB.Model):
     def is_good_state(self):
         """ Is the job completed, and in a good state (success) """
         return (
-            self.result == JobResult.success or
+            self.result == JobResult.success.value or
             (self.result is None and self.exit_code == 0)
         )
 
     @property
     def is_bad_state(self):
         """ Is the job completed, and in a bad state (failed, broken) """
-        return self.result in (JobResult.fail, JobResult.broken)
+        return self.result in (JobResult.fail.value, JobResult.broken.value)
+
+    @property
+    def tag_push_candidate(self):
+        """ Determines if this job has a tag, and target registry """
+        return bool(self.tag and self.project.target_registry)
+
+    @property
+    def branch_push_candidate(self):
+        """
+        Determines if this job has a branch, target registry and the project
+        branch pattern matches
+        """
+        return bool(
+            self.git_branch and
+            self.project.branch_pattern and
+            self.project.target_registry and
+            self.project.branch_pattern.match(self.git_branch)
+        )
 
     @property
     def push_candidate(self):
-        """ Is the job a tagged, and docker registry enabled """
-        return self.tag and self.project.target_registry
+        """ Is the job a push candidate for either tag or branch push """
+        return self.tag_push_candidate or self.branch_push_candidate
 
     @property
     def pushable(self):
@@ -428,6 +561,7 @@ class Job(DB.Model):
                 GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
+                PushPrepStage(self),
                 DockerLoginStage(self, workdir),
                 ProvisionStage(self),
                 BuildStage(self, workdir),
@@ -458,14 +592,19 @@ class Job(DB.Model):
                 ]
             })
 
-            if self.tag:  # NoOp if tag is already given
-                def tag_stage():
-                    """ NoOp tag stage """
-                    return True
-            else:
-                def tag_stage():
-                    """ Runner for ``TagVersionStage`` """
+            def tag_stage():
+                """ Runner for ``TagVersionStage`` """
+                if self.tag:
+                    return True  # Don't override tags
+                else:
                     return self._stage_objects['git_tag'].run(None)
+
+            def push_prep_stage():
+                """ Runner for ``PushPrepStage`` """
+                if self.push_candidate:
+                    return self._stage_objects['docker_push_prep'].run(None)
+                else:
+                    return True  # No prep to do for unpushable
 
             def util_stage_wrapper(suffix):
                 """ Wrap a util stage for running """
@@ -477,6 +616,7 @@ class Job(DB.Model):
                     lambda: self._stage_objects['git_changes'].run(0),
                     lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
+                    push_prep_stage,
                     lambda: self._stage_objects['docker_login'].run(0),
                 ), (
                     util_stage_wrapper(util_suffix)

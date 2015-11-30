@@ -180,16 +180,6 @@ class DateTimeEncoder(json.JSONEncoder):
         return encoded_object
 
 
-def is_semantic(version):
-    """
-    Returns True if tag contains a semantic version number prefixed with a
-    lowercase v.  e.g. v1.2.3 returns True
-    """
-    # TODO maybe this could be a configuable regex for different
-    # versioning schemes?  (yyyymmdd for example)
-    return re.match(r'^v\d+\.\d+\.\d+$', version) is not None
-
-
 def is_hex_string(value, max_len=None):
     """
     Is the value a hex string (only characters 0-f)

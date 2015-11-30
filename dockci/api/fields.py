@@ -3,6 +3,8 @@ Flask RESTful fields, and WTForms input validators for validation and
 marshaling
 """
 
+import re
+
 from functools import wraps
 
 from flask_restful import fields
@@ -35,6 +37,16 @@ class RewriteUrl(fields.Url):
         return super(RewriteUrl, self).output(key, data)
 
 
+class RegexField(fields.String):
+    """ Output a Python compiled regex as string """
+    def output(self, key, obj):
+        regex = getattr(obj, key, None)
+        if regex is None:
+            return None
+
+        return regex.pattern
+
+
 class NonBlankInput(object):
     """ Don't allow a field to be blank, or None """
     def _raise_error(self, name):  # pylint:disable=no-self-use
@@ -51,6 +63,15 @@ class NonBlankInput(object):
             pass
 
         return value
+
+
+class RegexInput(object):
+    """ Validate a RegEx """
+    def __call__(self, value, name):  # pylint:disable=no-self-use
+        try:
+            return re.compile(value)
+        except re.error as ex:
+            raise ValueError(str(ex))
 
 
 def strip(field_type):

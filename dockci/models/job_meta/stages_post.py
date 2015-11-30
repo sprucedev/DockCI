@@ -2,6 +2,9 @@
 Job stages that occur after a job is complete
 """
 
+import json
+
+from dockci.exceptions import StageFailedError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import (bytes_human_readable,
                          stream_write_status,
@@ -16,17 +19,39 @@ class PushStage(DockerStage):
 
     slug = 'docker_push'
 
-    def runnable_docker(self):
-        """
-        Perform the actual Docker push operation
-        """
-        if self.job.pushable:
-            return self.job.docker_client.push(
-                self.job.docker_image_name,
-                tag=self.job.tag,
-                stream=True,
-                insecure_registry=self.job.project.target_registry.insecure,
+    def gen_all_docker(self):
+        """ Generator to merge multiple docker push """
+        insecure_registry = self.job.project.target_registry.insecure
+        image_name = self.job.docker_image_name
+        for tag in self.job.tags_set:
+            success = self.job.docker_client.tag(
+                image=self.job.image_id,
+                repository=image_name,
+                tag=tag,
+                force=True,
             )
+            if not success:
+                raise StageFailedError(
+                    message="Couldn't tag image '%s' as '%s:%s'" % (
+                        self.job.image_id, image_name, tag,
+                    )
+                )
+
+            for line in self.job.docker_client.push(
+                repository=image_name,
+                tag=tag,
+                stream=True,
+                insecure_registry=insecure_registry,
+            ):
+                yield line
+
+    def runnable_docker(self):
+        """ Perform the actual Docker push operation """
+        if self.job.pushable:
+            return self.gen_all_docker()
+
+        else:
+            return (json.dumps(dict(status="Not pushable")),)
 
 
 class FetchStage(JobStageBase):
@@ -119,11 +144,21 @@ class CleanupStage(JobStageBase):
                         force=True,
                     )
 
-        # Only clean up image if this is an non-tagged job
-        if self.job.tag is None or self.job.result in ('broken', 'fail'):
-            if self.job.image_id:
-                with cleanup_context('image', self.job.image_id):
-                    self.job.docker_client.remove_image(self.job.image_id)
+        # Clean up old image if pushable, or self if not pushable
+        if self.job.pushable:
+            for image_id in self.job._old_image_ids:
+                if (
+                    self.job.image_id.startswith(image_id) or
+                    image_id.startswith(self.job.image_id)
+                ):
+                    continue
+
+                with cleanup_context('old image', image_id):
+                    self.job.docker_client.remove_image(image_id)
+
+        else:
+            with cleanup_context('image', self.job.image_id):
+                self.job.docker_client.remove_image(self.job.image_id)
 
         # TODO catch failures
         return 0

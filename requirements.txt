@@ -8,7 +8,7 @@ alembic==0.8.3
 aniso8601==1.1.0          # via flask-restful
 bcrypt==2.0.0
 blinker==1.4
-cffi==1.3.0               # via bcrypt
+cffi==1.3.1               # via bcrypt
 docker-py==1.5.0
 flask-login==0.2.11
 flask-mail==0.9.1
@@ -24,7 +24,7 @@ flask==0.10.1
 gunicorn==19.3.0
 itsdangerous==0.24        # via flask, flask-security
 jinja2==2.8               # via flask
-mako==1.0.2               # via alembic
+mako==1.0.3               # via alembic
 markupsafe==0.23          # via jinja2, mako
 oauthlib==1.0.3           # via flask-oauthlib, requests-oauthlib
 passlib==1.6.5            # via flask-security
@@ -39,9 +39,10 @@ pyyaml==3.11
 requests-oauthlib==0.5.0  # via flask-oauthlib
 requests==2.8.1           # via docker-py, requests-oauthlib, rollbar
 rollbar==0.11.0
-six==1.10.0               # via bcrypt, docker-py, flask-restful, purl, python-dateutil, rollbar, websocket-client
+semver==2.2.1
+six==1.10.0               # via bcrypt, docker-py, flask-restful, python-dateutil, rollbar, websocket-client
 sqlalchemy==1.0.8
-websocket-client==0.32.0  # via docker-py
-werkzeug==0.10.4          # via flask, flask-wtf
+websocket-client==0.34.0  # via docker-py
+werkzeug==0.11.2          # via flask, flask-wtf
 wtforms==2.0.2            # via flask-wtf
 yaml-model==0.1.5
