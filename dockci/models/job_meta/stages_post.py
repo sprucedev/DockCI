@@ -147,8 +147,12 @@ class CleanupStage(JobStageBase):
         # Clean up old image if pushable, or self if not pushable
         if self.job.pushable:
             for image_id in self.job._old_image_ids:
-                if self.job.image_id.startswith(image_id) or image_id.startswith(self.job.image_id):
+                if (
+                    self.job.image_id.startswith(image_id) or
+                    image_id.startswith(self.job.image_id)
+                ):
                     continue
+
                 with cleanup_context('old image', image_id):
                     self.job.docker_client.remove_image(image_id)
 
