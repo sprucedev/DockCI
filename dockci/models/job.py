@@ -38,7 +38,7 @@ from dockci.models.job_meta.stages_prepare import (GitChangesStage,
                                                    )
 from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
                                                           ProvisionStage,
-                                                          PushPrepTagStage,
+                                                          PushPrepStage,
                                                           UtilStage,
                                                           )
 from dockci.server import CONFIG, DB, OAUTH_APPS
@@ -128,11 +128,24 @@ class Job(DB.Model):
     )
     project_id = DB.Column(DB.Integer, DB.ForeignKey('project.id'), index=True)
 
-    _provisioned_containers = []
-    _stage_objects = {}
-
     _job_config = None
     _db_session = None
+
+    # Defaults in init_transient
+    _provisioned_containers = None
+    _old_image_ids = None
+    _stage_objects = None
+
+    def __init__(self, *args, **kwargs):
+        super(Job, self).__init__(*args, **kwargs)
+        self.init_transient()
+
+    @sqlalchemy.orm.reconstructor
+    def init_transient(self):
+        """ SLQAlchemy doesn't __init__, so need this separately """
+        self._provisioned_containers = []
+        self._old_image_ids = []
+        self._stage_objects = {}
 
     def __str__(self):
         try:
@@ -387,7 +400,6 @@ class Job(DB.Model):
             if tag is not None
         }
 
-
     @property
     def possible_tags_set(self):
         """ Set of all tags this job may be known by """
@@ -399,17 +411,28 @@ class Job(DB.Model):
         return tags_set
 
     @property
+    def docker_base_name(self):
+        """ Name of the Docker image, without tag or registry """
+        return self.project.slug
+
+    @property
+    def target_registry_base_name(self):
+        """ Base name of the target registry, or None """
+        if self.project.target_registry:
+            return self.project.target_registry.base_name
+
+    @property
     def docker_image_name(self):
         """
         Get the docker image name, including repository where necessary
         """
         if self.project.target_registry:
             return '{host}/{name}'.format(
-                host=self.project.target_registry.base_name,
-                name=self.project.slug,
+                host=self.target_registry_base_name,
+                name=self.docker_base_name,
             )
 
-        return self.project.slug
+        return self.docker_base_name
 
     @property
     def docker_full_name(self):
@@ -538,7 +561,7 @@ class Job(DB.Model):
                 GitChangesStage(self, workdir),
                 GitMtimeStage(self, workdir),
                 TagVersionStage(self, workdir),
-                PushPrepTagStage(self),
+                PushPrepStage(self),
                 DockerLoginStage(self, workdir),
                 ProvisionStage(self),
                 BuildStage(self, workdir),
@@ -576,12 +599,12 @@ class Job(DB.Model):
                 else:
                     return self._stage_objects['git_tag'].run(None)
 
-            def prep_tag_stage():
-                """ Runner for ``PushPrepTagStage`` """
-                if self.tag:
+            def push_prep_stage():
+                """ Runner for ``PushPrepStage`` """
+                if self.push_candidate:
                     return self._stage_objects['docker_push_prep'].run(None)
                 else:
-                    return True  # No tag to check
+                    return True  # No prep to do for unpushable
 
             def util_stage_wrapper(suffix):
                 """ Wrap a util stage for running """
@@ -593,7 +616,7 @@ class Job(DB.Model):
                     lambda: self._stage_objects['git_changes'].run(0),
                     lambda: self._stage_objects['git_mtime'].run(None),
                     tag_stage,
-                    prep_tag_stage,
+                    push_prep_stage,
                     lambda: self._stage_objects['docker_login'].run(0),
                 ), (
                     util_stage_wrapper(util_suffix)

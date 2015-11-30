@@ -4,10 +4,6 @@ Main job stages that constitute a job
 
 import json
 
-import docker
-import docker.errors
-
-from dockci.exceptions import AlreadyBuiltError
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import built_docker_image_id
 
@@ -115,66 +111,18 @@ class BuildStage(DockerStage):
         self.tag = None
         self.no_cache = None
 
-    def existing_image(self, namespace, tag):
-        """ Return an image in the namespace, with a given tag (or None) """
-        for image in self.job.docker_client.images(name=namespace):
-            if tag in image['RepoTags']:
-                return image
-
-    def assert_versioned_tag(self):
-        """ Raise ``AlreadyBuiltError`` if tag is semantic-like """
-        if self.job.tag_semver is not None:
-            raise AlreadyBuiltError(
-                'Version %s of %s already built' % (
-                    self.job.tag,
-                    self.job.project.slug,
-                )
-            )
-
-    def remove_docker_image(self, image_id):
-        """ Remove the docker image with image_id """
-        # TODO it would be nice to inform the user of this action
-        try:
-            self.job.docker_client.remove_image(
-                image=image_id,
-            )
-        except docker.errors.APIError:
-            # TODO handle deletion of containers here
-            pass
-
-    def check_tag_details(self):
-        """ Check existing tags, handling removal and AlreadyBuiltError """
-        if not self.job.push_candidate:
-            return
-
-        tag = self.job.docker_full_name
-        existing_image = self.existing_image(
-            self.job.project.slug,
-            self.job.tag,
-        )
-        if existing_image is not None:
-            if self.job.tag_push_candidate:
-                self.assert_versioned_tag()  # raises on fail
-
-            self.remove_docker_image(existing_image['Id'])
-
-        return tag
-
     def runnable_docker(self):
         """
         Determine the image tag, and cache flag value, then trigger a Docker
         image job, returning the output stream so that DockerStage can handle
         the output
         """
-        tag = self.check_tag_details()
-
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.job.tag is not None)
         dockerfile = self.job.job_config.dockerfile
 
         return self.job.docker_client.build(path=self.workdir.strpath,
                                             dockerfile=dockerfile,
-                                            tag=tag,
                                             nocache=no_cache,
                                             rm=True,
                                             stream=True)

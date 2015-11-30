@@ -130,21 +130,73 @@ class InlineProjectStage(JobStageBase):
         )
 
 
-class PushPrepTagStage(JobStageBase):
+class PushPrepStage(JobStageBase):
     """ Ensure versioned tags haven't already been built """
     slug = 'docker_push_prep'
 
-    def runnable(self, handle):
-        tag_no_v = self.job.tag_semver_str or self.job.tag
-        tag_v = ('v%s' % tag_no_v) or self.job.tag
+    def set_old_image_ids(self, handle):
+        """
+        Set the ``_old_image_ids`` attribute on the job so that cleanup knows
+        to remove other images that this job replaces
+        """
+        possible_tags_set = {
+            '%s:%s' % (self.job.docker_image_name, tag)
+            for tag in self.job.possible_tags_set
+        }
+        tags_set = {
+            '%s:%s' % (self.job.docker_image_name, tag)
+            for tag in self.job.tags_set
+        }
 
+        # This should work when docker/docker#18181 is fixed
+        # self.job.docker_client.images(name=self.job.docker_image_name)
+
+        # pylint:disable=protected-access
+
+        for image in self.job.docker_client.images():
+            matched_tags = {
+                tag for tag in possible_tags_set
+                if tag in image['RepoTags']
+            }
+            print('matched', matched_tags)
+            if matched_tags:
+                handle.write((
+                    "Matched tags; will replace image '%s':\n" % image['Id']
+                ).encode())
+                for tag in matched_tags:
+                    handle.write(("  %s\n" % tag).encode())
+                handle.flush()
+
+                repo_tags_set = set(image['RepoTags'])
+
+                # All this job's possible tags that are on the image
+                # Later, we clean up by removing the tags that our new image
+                #   will be tagged with
+                to_cleanup = repo_tags_set.intersection(possible_tags_set)
+
+                self.job._old_image_ids.extend(list(to_cleanup))
+
+                # If we're removing all the tags, delete the image too
+                if repo_tags_set.issubset(possible_tags_set):
+                    self.job._old_image_ids.append(image['Id'])
+
+        # Don't immediately delete our own tags
+        for tag in tags_set:
+            try:
+                while True:  # Remove tags until ValueError
+                    self.job._old_image_ids.remove(tag)
+            except ValueError:
+                pass
+
+    def check_existing_job(self, handle):
+        """ Check the tag to see if there's a job already built """
         handle.write("Checking for previous job... ".encode())
         handle.flush()
 
         from dockci.models.job import Job, JobResult
         job_count = self.job.project.jobs.filter(
             Job.result.in_((JobResult.success.value, None)),
-            Job.tag.in_((tag_no_v, tag_v)),
+            Job.tag.in_(self.job.tag_tags_set),
         ).count()
 
         if job_count:
@@ -155,8 +207,14 @@ class PushPrepTagStage(JobStageBase):
                 )
             )
         else:
-            handle.write("OKAY!".encode())
+            handle.write("OKAY!\n".encode())
             handle.flush()
+
+    def runnable(self, handle):
+        if self.job.tag_push_candidate:
+            self.check_existing_job(handle)
+
+        self.set_old_image_ids(handle)
 
 
 class ProvisionStage(InlineProjectStage):
