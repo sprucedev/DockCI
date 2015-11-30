@@ -158,7 +158,6 @@ class PushPrepStage(JobStageBase):
                 tag for tag in possible_tags_set
                 if tag in image['RepoTags']
             }
-            print('matched', matched_tags)
             if matched_tags:
                 handle.write((
                     "Matched tags; will replace image '%s':\n" % image['Id']
