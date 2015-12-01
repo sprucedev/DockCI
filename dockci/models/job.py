@@ -19,6 +19,7 @@ import sqlalchemy
 from docker.utils import kwargs_from_env
 from flask import url_for
 
+from .base import RepoFsMixin
 from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
@@ -91,7 +92,7 @@ class JobStageTmp(DB.Model):  # pylint:disable=no-init
 
 
 # pylint:disable=too-many-instance-attributes,no-init,too-many-public-methods
-class Job(DB.Model):
+class Job(DB.Model, RepoFsMixin):
     """ An individual project job, and result """
 
     id = DB.Column(DB.Integer(), primary_key=True)
@@ -106,7 +107,7 @@ class Job(DB.Model):
         *JobResult.__members__,
         name='job_results'
     ), index=True)
-    repo = DB.Column(DB.Text(), nullable=False)
+    repo_fs = DB.Column(DB.Text(), nullable=False)
     commit = DB.Column(DB.String(41), nullable=False)
     tag = DB.Column(DB.Text())
     image_id = DB.Column(DB.String(65))

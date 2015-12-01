@@ -38,6 +38,7 @@ class MockProject(object):
         return self.service_type == service
 
 
+# TODO this should test repo_fs now
 class TestCommandJobStage(object):
     """ Test some of ``CommandJobStage`` """
     def test_display_output(self, mocker, tmpdir):
@@ -64,6 +65,7 @@ class TestCommandJobStage(object):
             assert b'ab@****:ef.com' in handle.read()
 
 
+# TODO this should test repo_fs now
 class TestWorkdirStage(object):
     """ Test some of ``WorkdirStage`` """
     @pytest.mark.parametrize(
