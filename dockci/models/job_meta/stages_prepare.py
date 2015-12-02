@@ -7,14 +7,12 @@ import subprocess
 
 from datetime import datetime
 from itertools import chain
-from urllib.parse import urlparse, urlunparse
 
 import py.error  # pylint:disable=import-error
 import py.path  # pylint:disable=import-error
 
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
-from dockci.server import CONFIG
 from dockci.util import (git_head_ref_name,
                          path_contained,
                          write_all,

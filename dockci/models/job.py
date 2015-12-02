@@ -512,8 +512,8 @@ class Job(DB.Model, RepoFsMixin):
 
     @property
     def external_auth_token(self):
+        """ Pass the auth token getter off to the project """
         return self.project.external_auth_token
-
 
     @classmethod
     def delete_all_in_project(cls, project):

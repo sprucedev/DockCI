@@ -333,4 +333,3 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
             )
 
         return self.repo
-
