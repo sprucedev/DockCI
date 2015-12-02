@@ -5,8 +5,10 @@ import pytest
 import dockci.server
 
 from dockci.server import CONFIG
+from dockci.models.auth import OAuthToken
 from dockci.models.job_meta.stages import CommandJobStage
 from dockci.models.job_meta.stages_prepare import WorkdirStage
+from dockci.models.project import Project
 
 
 class MockProc(object):
@@ -38,7 +40,6 @@ class MockProject(object):
         return self.service_type == service
 
 
-# TODO this should test repo_fs now
 class TestCommandJobStage(object):
     """ Test some of ``CommandJobStage`` """
     def test_display_output(self, mocker, tmpdir):
@@ -66,26 +67,25 @@ class TestCommandJobStage(object):
 
 
 # TODO this should test repo_fs now
-class TestWorkdirStage(object):
-    """ Test some of ``WorkdirStage`` """
+class TestAAA(object):
     @pytest.mark.parametrize(
-        'repo,service,repo_id_attr,exp_display,exp_command',
+        'repo,github_repo_id,gitlab_repo_id,exp_display,exp_command',
         [
             (
                 'http://example.com/should/be/replaced.git',
-                'gitlab', 'gitlab_repo_id',
+                None, 'sprucedev/DockCI',
                 'http://oauth2:****@localhost:8000/sprucedev/DockCI.git',
                 'http://oauth2:authkey@localhost:8000/sprucedev/DockCI.git',
             ),
             (
                 'http://example.com/should/be/replaced.git',
-                'github', 'github_repo_id',
+                'sprucedev/DockCI', None,
                 'https://oauth2:****@github.com/sprucedev/DockCI.git',
                 'https://oauth2:authkey@github.com/sprucedev/DockCI.git',
             ),
             (
                 'http://example.com/should/clone/this.git',
-                'manual', None,
+                None, None,
                 'http://example.com/should/clone/this.git',
                 'http://example.com/should/clone/this.git',
             ),
@@ -93,10 +93,9 @@ class TestWorkdirStage(object):
     )
     def test_external_override_clone(self,
                                      mocker,
-                                     tmpdir,
                                      repo,
-                                     service,
-                                     repo_id_attr,
+                                     github_repo_id,
+                                     gitlab_repo_id,
                                      exp_display,
                                      exp_command,
                                      ):
@@ -104,31 +103,31 @@ class TestWorkdirStage(object):
         Ensure that github, gitlab, manual project types override command args
         as expected
         """
-        workdir = tmpdir.join('work')
-        workdir.ensure_dir()
-
         mocker.patch(
-            'dockci.models.job_meta.stages_prepare.CONFIG',
+            'dockci.models.project.CONFIG',
             namedtuple('Config', ['gitlab_base_url'])(
                 'http://localhost:8000'
             ),
         )
 
-        job = MockJob()
-        job.repo = repo
-        job.commit = 'abcdef'
-        job.project = MockProject(service)
-        if repo_id_attr is not None:
-            setattr(job.project, repo_id_attr, 'sprucedev/DockCI')
-            job.project.external_auth_token = namedtuple(
-                'AuthToken', ['key', 'secret', 'service']
-            )(
-                'authkey', 'authsecret', service
+        project = Project(
+            repo=repo,
+            github_repo_id=github_repo_id,
+            gitlab_repo_id=gitlab_repo_id,
+        )
+
+        service = None
+        if github_repo_id is not None:
+            service = 'github'
+        elif gitlab_repo_id is not None:
+            service = 'gitlab'
+
+        if service is not None:
+            project.external_auth_token = OAuthToken(
+                key='authkey',
+                secret='authsecret',
+                service=service,
             )
 
-        stage = WorkdirStage(job, workdir)
-
-        assert stage.cmd_args[0] == {
-            'display': ['git', 'clone', exp_display, workdir.strpath],
-            'command': ['git', 'clone', exp_command, workdir.strpath],
-        }
+        assert project.display_repo == exp_display
+        assert project.command_repo == exp_command

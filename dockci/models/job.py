@@ -510,6 +510,11 @@ class Job(DB.Model, RepoFsMixin):
         """ Is the job a push candidate, and in a good state """
         return self.push_candidate and self.is_good_state
 
+    @property
+    def external_auth_token(self):
+        return self.project.external_auth_token
+
+
     @classmethod
     def delete_all_in_project(cls, project):
         """ Delete all jobs and data for the given project """

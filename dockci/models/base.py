@@ -7,8 +7,13 @@ class RepoFsMixin(object):
 
     @property
     def command_repo(self):
+        try:
+            token_key = self.external_auth_token.key
+        except AttributeError:
+            token_key = ''
+
         return self.repo_fs.format(
-            token_key=self.project.external_auth_token.key,
+            token_key=token_key,
         )
 
     @property
