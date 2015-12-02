@@ -35,6 +35,7 @@ BASIC_FIELDS = {
     'slug': fields.String(),
     'utility': fields.Boolean(),
     'status': fields.String(),
+    'display_repo': fields.String(),
 }
 
 
@@ -45,7 +46,6 @@ LIST_FIELDS.update(BASIC_FIELDS)
 
 
 DETAIL_FIELDS = {
-    'repo': fields.String(),
     'branch_pattern': RegexField(),
     'utility': fields.Boolean(),
     'github_repo_id': fields.String(),

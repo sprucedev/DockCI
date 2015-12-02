@@ -5,7 +5,7 @@ DockCI - CI, but with that all important Docker twist
 import logging
 import re
 
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse, urlunparse
 from uuid import uuid4
 
 import py.error  # pylint:disable=import-error
@@ -13,8 +13,9 @@ import sqlalchemy
 
 from flask import url_for
 
+from .base import RepoFsMixin
 from dockci.models.db_types import RegexType
-from dockci.server import DB, OAUTH_APPS
+from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (ext_url_for,
                          is_git_ancestor,
                          is_git_hash,
@@ -24,7 +25,7 @@ from dockci.util import (ext_url_for,
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
 
 
-class Project(DB.Model):  # pylint:disable=no-init
+class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
     """
     A project, representing a container to be built
     """
@@ -313,3 +314,19 @@ class Project(DB.Model):  # pylint:disable=no-init
         """ URL for this project """
         return ext_url_for('job_new_view',
                            project_slug=self.slug)
+
+    @property
+    def repo_fs(self):
+        """ Format string for the repo """
+        if self.is_type('gitlab'):
+            gitlab_parts = list(urlparse(CONFIG.gitlab_base_url))
+            gitlab_parts[1] = 'oauth2:{token_key}@%s' % gitlab_parts[1]
+            gitlab_parts[2] = '%s.git' % self.gitlab_repo_id
+            return urlunparse(gitlab_parts)
+
+        elif self.is_type('github'):
+            return 'https://oauth2:{token_key}@github.com/%s.git' % (
+                self.github_repo_id
+            )
+
+        return self.repo

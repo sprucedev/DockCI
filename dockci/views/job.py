@@ -57,7 +57,7 @@ def job_new_view(project_slug):
         abort(400)
 
     project = Project.query.filter_by(slug=project_slug).first_or_404()
-    job = Job(project=project, repo=project.repo)
+    job = Job(project=project, repo_fs=project.repo_fs)
 
     if 'X-Github-Event' in request.headers:
         job_new_github(project, job)
@@ -166,7 +166,7 @@ def job_output_json(project_slug, job_slug):
                 tuple((key, getattr(job, key)) for key in (
                     'id', 'slug',
                     'create_ts', 'start_ts', 'complete_ts',
-                    'result', 'repo', 'commit', 'tag',
+                    'result', 'display_repo', 'commit', 'tag',
                     'image_id', 'container_id', 'docker_client_host',
                     'exit_code',
                     'git_author_name', 'git_author_email',

@@ -3,6 +3,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.slug           = ko.observable()
         this.name           = ko.observable()
         this.repo           = ko.observable()
+        this.display_repo   = ko.observable()
         this.branch_pattern = ko.observable()
         this.utility        = ko.observable()
 
@@ -99,6 +100,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                   'slug': ''
                 , 'name': ''
                 , 'repo': ''
+                , 'display_repo': ''
                 , 'branch_pattern': ''
                 , 'utility': false
                 , 'gitlab_base_uri': ''
@@ -109,6 +111,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             this.slug(data['slug'])
             this.name(data['name'])
             this.repo(data['repo'])
+            this.display_repo(data['display_repo'])
             this.branch_pattern(data['branch_pattern'])
             this.utility(data['utility'])
             this.gitlab_base_uri(data['gitlab_base_uri'])

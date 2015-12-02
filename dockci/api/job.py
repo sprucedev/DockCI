@@ -33,7 +33,7 @@ CREATE_FIELDS = {
         project_slug='project.slug',
     )),
     'create_ts': DT_FORMATTER,
-    'repo': fields.String(),
+    'display_repo': fields.String(),
     'commit': fields.String(),
 }
 CREATE_FIELDS.update(LIST_FIELDS)
@@ -115,7 +115,7 @@ class JobList(BaseDetailResource):
     def post(self, project_slug):
         """ Create a new job for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
-        job = Job(project=project, repo=project.repo)
+        job = Job(project=project, repo_fs=project.repo_fs)
         self.handle_write(job, JOB_NEW_PARSER)
         job.queue()
 
