@@ -318,9 +318,6 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
     @property
     def repo_fs(self):
         """ Format string for the repo """
-        # TODO document
-        # TODO test
-        # TODO replace repo model field with repo_fs
         if self.is_type('gitlab'):
             gitlab_parts = list(urlparse(CONFIG.gitlab_base_url))
             gitlab_parts[1] = 'oauth2:{token_key}@%s' % gitlab_parts[1]
