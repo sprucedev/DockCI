@@ -101,7 +101,7 @@
                     self.loadingProjects(true)
                     $.ajax("/api/v1/projects", {'dataType': 'json'})
                         .done(function(projects) {
-                            var mappedProjects = $.map(projects, function(project) {
+                            var mappedProjects = $.map(projects['items'], function(project) {
                                 return new ProjectModel(project)
                             })
                             self.projects(mappedProjects.filter(function(project) { return ! project.utility() }))
