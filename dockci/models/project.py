@@ -14,7 +14,7 @@ import sqlalchemy
 from flask import url_for
 
 from .base import RepoFsMixin
-from dockci.models.db_types import RegexType
+from .db_types import RegexType
 from dockci.server import CONFIG, DB, OAUTH_APPS
 from dockci.util import (ext_url_for,
                          is_git_ancestor,
@@ -85,7 +85,7 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
         """
         DB.session.delete(self)  # No commit just yet
 
-        from dockci.models.job import Job
+        from .job import Job
 
         try:
             result = self.delete_github_webhook(save=False)
@@ -116,49 +116,14 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
         """
         Find the latest job matching the criteria
         """
-        return self.filtered_jobs(
+        from .job import Job
+        return Job.filtered_query(
+            query=self.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
             passed=passed,
             versioned=versioned,
             completed=completed,
             branch=branch,
         ).first()
-
-    def filtered_jobs(self,
-                      passed=None,
-                      versioned=None,
-                      completed=None,
-                      branch=None,
-                      ):
-        """
-        Generator, filtering jobs matching the criteria
-        """
-        from .job import Job
-
-        query = self.jobs.order_by(sqlalchemy.desc(Job.create_ts))
-
-        def filter_on_value(query, equal, field, value):
-            """
-            Filter the query for field on a given value being equal, or
-            non-equal
-            """
-            if equal:
-                return query.filter(field == value)
-            else:
-                return query.filter(field != value)
-
-        if passed is not None:
-            query = filter_on_value(query, passed, Job.result, 'success')
-
-        if versioned is not None:
-            query = filter_on_value(query, not versioned, Job.tag, None)
-
-        if completed is not None:
-            query = query.filter(Job.result.in_(('success', 'fail', 'broken')))
-
-        if branch is not None:
-            query = query.filter_by(git_branch=branch)
-
-        return query
 
     def latest_job_ancestor(self,
                             workdir,
@@ -172,8 +137,10 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
         Find the latest job, matching the criteria, who's a git ancestor of
         the given commit
         """
+        from .job import Job
 
-        jobs_query = self.filtered_jobs(
+        jobs_query = Job.filtered_query(
+            query=self.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
             passed=passed,
             versioned=versioned,
             completed=completed,

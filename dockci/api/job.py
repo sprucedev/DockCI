@@ -1,4 +1,6 @@
 """ API relating to Job model objects """
+import sqlalchemy
+
 from flask import abort, request
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
@@ -97,7 +99,10 @@ def filter_jobs_by_request(project):
     except KeyError:
         pass
 
-    return project.filtered_jobs(**filter_args)
+    return Job.filtered_query(
+        query=project.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
+        **filter_args
+    )
 
 
 # pylint:disable=no-self-use
