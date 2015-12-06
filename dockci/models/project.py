@@ -302,16 +302,16 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
     def get_last_jobs(cls):
         """ Retrieve the last jobs for all projects """
         from .job import Job
-        JobLeft = Job
-        JobRight = sqlalchemy.orm.aliased(Job)
-        return JobLeft.query.outerjoin(
-            JobRight,
+        job_left = Job
+        job_right = sqlalchemy.orm.aliased(Job)
+        return job_left.query.outerjoin(
+            job_right,
             sqlalchemy.and_(
-                JobLeft.project_id == JobRight.project_id,
-                JobLeft.id < JobRight.id,
-                JobRight.result != None,
+                job_left.project_id == job_right.project_id,
+                job_left.id < job_right.id,
+                job_right.result != None,  # noqa
             )
-        ).filter(JobRight.id == None, JobLeft.result != None)
+        ).filter(job_right.id == None, job_left.result != None)  # noqa
 
     @classmethod
     def get_status_summary(cls):
