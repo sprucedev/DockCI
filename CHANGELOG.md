@@ -28,6 +28,7 @@
 - Jobs have only repo_fs, not repo any more #352
 - Project list, detail include display_repo, and repo is removed #352
 - Repo replaced with display repo in all of front end #352
+- Count projects in all states in meta #354
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
