@@ -17,7 +17,11 @@ from flask_security import current_user, login_required
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import NoModelError, WrappedValueError
 from .fields import NonBlankInput, RegexField, RegexInput, RewriteUrl
-from .util import clean_attrs, filter_query_args, new_edit_parsers
+from .util import (clean_attrs,
+                   DT_FORMATTER,
+                   filter_query_args,
+                   new_edit_parsers,
+                   )
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job
 from dockci.models.project import Project
@@ -50,8 +54,28 @@ LIST_FIELDS = {
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
+LATEST_JOB_FIELDS = {
+    'detail': RewriteUrl('job_detail', rewrites=dict(
+        project_slug='project.slug',
+        job_slug='slug',
+    )),
+    'state': fields.String(),
+    'create_ts': DT_FORMATTER,
+}
+LIST_FIELDS_LATEST_JOB = {
+    'latest_job': fields.Nested(
+        LATEST_JOB_FIELDS,
+        attribute=lambda project: project.latest_job(),
+        allow_null=True,
+    ),
+}
+LIST_FIELDS_LATEST_JOB.update(LIST_FIELDS)
+
+ITEMS_MARSHALER = fields.List(fields.Nested(LIST_FIELDS))
+ITEMS_MARSHALER_LATEST_JOB = fields.List(fields.Nested(LIST_FIELDS_LATEST_JOB))
+
 ALL_LIST_ROOT_FIELDS = {
-    'items': fields.List(fields.Nested(LIST_FIELDS)),
+    'items': ITEMS_MARSHALER,
     'meta': fields.Nested({
         'total': fields.Integer(default=None),
         'success': fields.Integer(default=None),
@@ -137,6 +161,12 @@ PROJECT_LIST_PARSER.add_argument(
     default=False,
     help="Whether to include metadata with the list",
 )
+PROJECT_LIST_PARSER.add_argument(
+    'latest_job',
+    type=inputs.boolean,
+    default=False,
+    help="Whether to include information about the latest job",
+)
 
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
@@ -193,6 +223,9 @@ class ProjectList(Resource):
             # Can't do this for filtered queries
             if query is base_query:
                 values['meta'].update(Project.get_status_summary())
+
+        if args['latest_job']:
+            marshaler['items'] = ITEMS_MARSHALER_LATEST_JOB
 
         return marshal(values, marshaler)
 

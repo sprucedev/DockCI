@@ -24,6 +24,9 @@ class RewriteUrl(fields.Url):
         self.rewrites = rewrites or {}
 
     def output(self, key, obj):
+        if obj is None:
+            return None
+
         data = obj.__dict__
         for field_set, field_from in self.rewrites.items():
             attr_path_data = obj
