@@ -50,4 +50,7 @@ def filter_query_args(parser, query):
     """ Use arguments parsed by ``parser`` to filter the SQLAlchemy query """
     args = parser.parse_args()
     args = clean_attrs(args)
-    return query.filter_by(**args)
+    if args:
+        return query.filter_by(**args)
+    else:
+        return query

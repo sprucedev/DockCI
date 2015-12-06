@@ -536,6 +536,44 @@ class Job(DB.Model, RepoFsMixin):
         """ Directory for any job output data """
         return self.data_dir_path_for_project(self.project).join(self.slug)
 
+    @classmethod
+    def filtered_query(cls,
+                       query=None,
+                       passed=None,
+                       versioned=None,
+                       completed=None,
+                       branch=None,
+                       ):
+        """
+        Generator, filtering jobs matching the criteria
+        """
+        if query is None:
+            query = cls.query.order_by(sqlalchemy.desc(cls.create_ts))
+
+        def filter_on_value(query, equal, field, value):
+            """
+            Filter the query for field on a given value being equal, or
+            non-equal
+            """
+            if equal:
+                return query.filter(field == value)
+            else:
+                return query.filter(field != value)
+
+        if passed is not None:
+            query = filter_on_value(query, passed, cls.result, 'success')
+
+        if versioned is not None:
+            query = filter_on_value(query, not versioned, cls.tag, None)
+
+        if completed is not None:
+            query = query.filter(cls.result.in_(('success', 'fail', 'broken')))
+
+        if branch is not None:
+            query = query.filter_by(git_branch=branch)
+
+        return query
+
     def queue(self):
         """
         Add the job to the queue

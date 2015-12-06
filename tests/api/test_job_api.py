@@ -1,10 +1,12 @@
 from contextlib import contextmanager
-from unittest.mock import patch, PropertyMock
+from unittest.mock import ANY, patch, PropertyMock
 
 import flask
 import pytest
 
 from dockci.api.job import filter_jobs_by_request
+from dockci.models.job import Job
+from dockci.models.project import Project
 
 
 @contextmanager
@@ -37,18 +39,22 @@ class TestFilterJobsByRequest(object):
             {'branch': 'abc', 'versioned': True},
         ),
     ])
-    def test_filter_kwargs(self, mock_values, expected_kwargs):
-        """ Ensure that the correct kwargs are passed to ``filtered_jobs`` """
+    def test_filter_kwargs(self, mocker, mock_values, expected_kwargs):
+        """
+        Ensure that the correct kwargs are passed to ``Job.filtered_query``
+        """
 
-        class MockProject(object):
-            filtered_jobs_called = False
-            def filtered_jobs(self, **kwargs):
-                self.filtered_jobs_called = True
-                assert kwargs == expected_kwargs
-                return 'test val'
+        filtered_query_mock = mocker.patch.object(
+            Job, 'filtered_query', return_value='test val',
+        )
+        project_mock = mocker.patch('dockci.models.project.Project')
+        query_mock = mocker.patch('sqlalchemy.orm.dynamic.Query')
+        query_mock_obj = query_mock()
+        project_mock.jobs.return_value = query_mock_obj
 
         with request_values(mock_values):
-            mock_project = MockProject()
-
-            assert filter_jobs_by_request(mock_project) == 'test val'
-            assert mock_project.filtered_jobs_called
+            filter_jobs_by_request(project_mock())
+            filtered_query_mock.assert_called_with(
+                query=ANY,
+                **expected_kwargs
+            )

@@ -5,7 +5,13 @@ import flask_restful
 import sqlalchemy
 
 from flask import request
-from flask_restful import fields, inputs, marshal_with, reqparse, Resource
+from flask_restful import (fields,
+                           inputs,
+                           marshal,
+                           marshal_with,
+                           reqparse,
+                           Resource,
+                           )
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
@@ -43,6 +49,16 @@ LIST_FIELDS = {
     'detail': RewriteUrl('project_detail', rewrites=dict(project_slug='slug')),
 }
 LIST_FIELDS.update(BASIC_FIELDS)
+
+ALL_LIST_ROOT_FIELDS = {
+    'items': fields.List(fields.Nested(LIST_FIELDS)),
+    'meta': fields.Nested({
+        'total': fields.Integer(default=None),
+        'success': fields.Integer(default=None),
+        'broken': fields.Integer(default=None),
+        'fail': fields.Integer(default=None),
+    }),
+}
 
 
 DETAIL_FIELDS = {
@@ -114,6 +130,14 @@ PROJECT_NEW_PARSER.add_argument(
 PROJECT_NEW_PARSER.add_argument(TARGET_REGISTRY_ARGUMENT_NEW)
 PROJECT_EDIT_PARSER.add_argument(TARGET_REGISTRY_ARGUMENT_EDIT)
 
+PROJECT_LIST_PARSER = BaseRequestParser()
+PROJECT_LIST_PARSER.add_argument(
+    'meta',
+    type=inputs.boolean,
+    default=False,
+    help="Whether to include metadata with the list",
+)
+
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
 
@@ -151,10 +175,26 @@ def ensure_target_registry(required):
 
 class ProjectList(Resource):
     """ API resource that handles listing projects """
-    @marshal_with(LIST_FIELDS)
     def get(self):
         """ List of all projects """
-        return filter_query_args(PROJECT_FILTERS_PARSER, Project.query).all()
+        args = PROJECT_LIST_PARSER.parse_args()
+        base_query = Project.query
+        query = filter_query_args(
+            PROJECT_FILTERS_PARSER,
+            base_query,
+        )
+        marshaler = dict(items=ALL_LIST_ROOT_FIELDS['items'])
+        values = dict(items=query.all())
+
+        if args['meta']:
+            marshaler['meta'] = ALL_LIST_ROOT_FIELDS['meta']
+            values['meta'] = {'total': query.count()}
+
+            # Can't do this for filtered queries
+            if query is base_query:
+                values['meta'].update(Project.get_status_summary())
+
+        return marshal(values, marshaler)
 
 
 class ProjectDetail(BaseDetailResource):
