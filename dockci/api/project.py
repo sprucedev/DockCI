@@ -54,6 +54,9 @@ ALL_LIST_ROOT_FIELDS = {
     'items': fields.List(fields.Nested(LIST_FIELDS)),
     'meta': fields.Nested({
         'total': fields.Integer(default=None),
+        'success': fields.Integer(default=None),
+        'broken': fields.Integer(default=None),
+        'fail': fields.Integer(default=None),
     }),
 }
 
@@ -175,9 +178,10 @@ class ProjectList(Resource):
     def get(self):
         """ List of all projects """
         args = PROJECT_LIST_PARSER.parse_args()
+        base_query = Project.query
         query = filter_query_args(
             PROJECT_FILTERS_PARSER,
-            Project.query,
+            base_query,
         )
         marshaler = dict(items=ALL_LIST_ROOT_FIELDS['items'])
         values = dict(items=query.all())
@@ -185,6 +189,10 @@ class ProjectList(Resource):
         if args['meta']:
             marshaler['meta'] = ALL_LIST_ROOT_FIELDS['meta']
             values['meta'] = {'total': query.count()}
+
+            # Can't do this for filtered queries
+            if query is base_query:
+                values['meta'].update(Project.get_status_summary())
 
         return marshal(values, marshaler)
 
