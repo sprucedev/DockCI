@@ -30,6 +30,7 @@
 - Repo replaced with display repo in all of front end #352
 - Count projects in all states in meta #354
 - Add option to projects list API #355
+- Skipped tests count as "good state" (pushable, etc) #357
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
