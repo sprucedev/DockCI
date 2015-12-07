@@ -157,6 +157,9 @@ class TestStage(DockerStage):
         """
         if self.job.job_config.skip_tests:
             handle.write("Skipping tests, as per configuration".encode())
+            self.job.exit_code = 0
+            self.job.db_session.add(self.job)
+            self.job.db_session.commit()
             return 0
 
         return super(TestStage, self).runnable(handle)
