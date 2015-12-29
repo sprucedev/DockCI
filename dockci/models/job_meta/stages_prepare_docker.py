@@ -720,33 +720,13 @@ class DockerLoginStage(JobStageBase):
             )).encode())
             handle.flush()
 
-    def registries_from_dockerfile(self):
-        """ Registry set for registries required by Dockerfile FROM """
-        dockerfile = self.workdir.join(self.job.job_config.dockerfile)
-        with dockerfile.open() as dockerfile_handle:
-            for line in dockerfile_handle:
-                line = line.strip()
-                if line.startswith('FROM '):
-                    return {base_name_from_image(line[5:].strip())}
-
-        return set()
-
-    def registries_from_stages(self):
-        """ Registry set for registries required by stages """
-        full_set = set()
+    def runnable(self, handle):
+        """ Load the Dockerfile, scan for FROM line, login """
+        registry_set = set()
         # pylint:disable=protected-access
         for stage in self.job._stage_objects.values():
             if hasattr(stage, registries):
-                full_set.update(stage.registries)
-
-        return full_set
-
-    def runnable(self, handle):
-        """ Load the Dockerfile, scan for FROM line, login """
-        registry_set = set.union(
-            self.registries_from_dockerfile(),
-            self.registries_from_stages(),
-        )
+                registry_set.update(stage.registries)
 
         # Dedupe AuthenticatedRegistry objects with base_name strings
         for base_name_or_reg in registry_set.copy():
