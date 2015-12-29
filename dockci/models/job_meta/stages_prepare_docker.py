@@ -731,8 +731,8 @@ class DockerLoginStage(JobStageBase):
 
         return set()
 
-    def registries_from_inline_stages(self):
-        """ Registry set for registries required by utilities """
+    def registries_from_stages(self):
+        """ Registry set for registries required by stages """
         full_set = set()
         # pylint:disable=protected-access
         for stage in self.job._stage_objects.values():
@@ -741,19 +741,11 @@ class DockerLoginStage(JobStageBase):
 
         return full_set
 
-    def registries_from_push(self):
-        """ Registry set for registries required in project push """
-        if self.job.push_candidate:
-            return {self.job.project.target_registry}
-
-        return set()
-
     def runnable(self, handle):
         """ Load the Dockerfile, scan for FROM line, login """
         registry_set = set.union(
             self.registries_from_dockerfile(),
-            self.registries_from_inline_stages(),
-            self.registries_from_push(),
+            self.registries_from_stages(),
         )
 
         # Dedupe AuthenticatedRegistry objects with base_name strings

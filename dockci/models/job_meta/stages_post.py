@@ -19,6 +19,15 @@ class PushStage(DockerStage):
 
     slug = 'docker_push'
 
+    @property
+    def registries(self):
+        """ Return target registry, if this is a push candidate """
+        if self.job.push_candidate:
+            return {self.job.project.target_registry}
+
+        return set()
+
+
     def gen_all_docker(self):
         """ Generator to merge multiple docker push """
         insecure_registry = self.job.project.target_registry.insecure
