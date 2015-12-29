@@ -17,8 +17,7 @@ from dockci.exceptions import (AlreadyBuiltError,
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job_meta.stages import JobStageBase
 from dockci.models.project import Project
-from dockci.util import (base_name_from_image,
-                         built_docker_image_id,
+from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          FauxDockerLog,
                          path_contained,
@@ -58,7 +57,6 @@ class InlineProjectStage(JobStageBase):
                 project.target_registry is not None
             )
         ]
-
 
     def id_for_project(self, project_slug):
         """ Get the event series ID for a given project's slug """
@@ -725,7 +723,7 @@ class DockerLoginStage(JobStageBase):
         registry_set = set()
         # pylint:disable=protected-access
         for stage in self.job._stage_objects.values():
-            if hasattr(stage, registries):
+            if hasattr(stage, 'registries'):
                 registry_set.update(stage.registries)
 
         # Dedupe AuthenticatedRegistry objects with base_name strings

@@ -27,7 +27,6 @@ class PushStage(DockerStage):
 
         return set()
 
-
     def gen_all_docker(self):
         """ Generator to merge multiple docker push """
         insecure_registry = self.job.project.target_registry.insecure
