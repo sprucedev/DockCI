@@ -47,6 +47,19 @@ class InlineProjectStage(JobStageBase):
 
         return self._projects
 
+    @property
+    def registries(self):
+        """ Get the registries associated with the projects in this stage """
+        return [
+            project.target_registry
+            for project in self.get_projects().values()
+            if (
+                project is not None and
+                project.target_registry is not None
+            )
+        ]
+
+
     def id_for_project(self, project_slug):
         """ Get the event series ID for a given project's slug """
         # pylint:disable=no-member
@@ -723,15 +736,8 @@ class DockerLoginStage(JobStageBase):
         full_set = set()
         # pylint:disable=protected-access
         for stage in self.job._stage_objects.values():
-            if isinstance(stage, InlineProjectStage):
-                full_set.update((
-                    project.target_registry
-                    for project in stage.get_projects().values()
-                    if (
-                        project is not None and
-                        project.target_registry is not None
-                    )
-                ))
+            if hasattr(stage, registries):
+                full_set.update(stage.registries)
 
         return full_set
 
