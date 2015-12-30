@@ -59,6 +59,68 @@ class ServiceBase(object):
         self._base_registry = base_registry
         self._auth_registry = auth_registry
 
+    @classmethod
+    def from_image(cls, image, name=None):
+        """
+        Given an image name such as ``quay.io/thatpanda/dockci:latest``,
+        creates a ``ServiceBase`` object.
+
+        For a registry host to be identified, it must have both a repo
+        namespace, and a repo name (otherwise Docker hub with a namespace is
+        assumed).
+
+        Examples:
+
+        >>> service = ServiceBase.from_image('registry/dockci')
+        >>> service.base_registry
+        'docker.io'
+
+        >>> service.repo
+        'registry/dockci'
+
+
+        >>> service = ServiceBase.from_image('registry/spruce/dockci')
+        >>> service.base_registry
+        'registry'
+
+        >>> service.repo
+        'spruce/dockci'
+
+        >>> service.tag
+        'latest'
+
+        >>> service = ServiceBase.from_image('registry/spruce/dockci:other')
+        >>> service.tag
+        'other'
+
+        >>> service = ServiceBase.from_image('dockci', 'DockCI App')
+        >>> service.base_registry
+        'docker.io'
+
+        >>> service.repo
+        'dockci'
+
+        >>> service.tag
+        'latest'
+
+        >>> service.name
+        'DockCI App'
+        """
+        path_parts = image.split('/', 2)
+        if len(path_parts) != 3:
+            base_registry = None
+            repo_etc = image
+        else:
+            base_registry = path_parts[0]
+            repo_etc = '/'.join(path_parts[1:])
+
+        tag_parts = repo_etc.rsplit(':', 1)
+        tag = None if len(tag_parts) != 2 else tag_parts[1]
+
+        repo = tag_parts[0]
+
+        return cls(base_registry=base_registry, repo=repo, tag=tag, name=name)
+
     @property
     def name_raw(self):
         """ Raw name given to this service """
