@@ -4,8 +4,9 @@ Main job stages that constitute a job
 
 import json
 
+from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.util import base_name_from_image, built_docker_image_id
+from dockci.util import built_docker_image_id
 
 
 def parse_oauth_response(response):
@@ -123,7 +124,9 @@ class BuildStage(DockerStage):
             for line in dockerfile_handle:
                 line = line.strip()
                 if line.startswith('FROM '):
-                    return {base_name_from_image(line[5:].strip())}
+                    return {ServiceBase.from_image(
+                        line[5:].strip(),
+                    ).base_registry}
 
         return set()
 
