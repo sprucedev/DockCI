@@ -21,7 +21,16 @@ def unittest():
     import pytest
 
     tests_dir = project_root().join('tests')
-    return pytest.main(['-vv', tests_dir.strpath])
+    return pytest.main(['--doctest-modules', '-vv', tests_dir.strpath])
+
+
+@MANAGER.command
+def doctest():
+    """ Run doc tests """
+    import pytest
+
+    tests_dir = project_root().join('dockci')
+    return pytest.main(['--doctest-modules', '-vv', tests_dir.strpath])
 
 
 @MANAGER.command
@@ -74,4 +83,4 @@ def styletest():
 @MANAGER.command
 def ci():  # pylint:disable=invalid-name
     """ Run all tests """
-    return call_seq(styletest, unittest)
+    return call_seq(styletest, unittest, doctest)
