@@ -46,7 +46,7 @@ class ServiceBase(object):
                  repo=None,
                  tag=None,
                  base_registry=None,
-                 auth_registry=None
+                 auth_registry=None,
                  ):
 
         if base_registry is not None and auth_registry is not None:
