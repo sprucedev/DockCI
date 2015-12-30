@@ -71,40 +71,47 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> service = ServiceBase.from_image('registry/dockci')
-        >>> service.base_registry
+        >>> svc = ServiceBase.from_image('registry/dockci')
+        >>> svc.base_registry
         'docker.io'
 
-        >>> service.repo
+        >>> svc.repo
         'registry/dockci'
 
 
-        >>> service = ServiceBase.from_image('registry/spruce/dockci')
-        >>> service.base_registry
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci')
+        >>> svc.base_registry
         'registry'
 
-        >>> service.repo
+        >>> svc.repo
         'spruce/dockci'
 
-        >>> service.tag
+        >>> svc.tag
         'latest'
 
-        >>> service = ServiceBase.from_image('registry/spruce/dockci:other')
-        >>> service.tag
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other')
+        >>> svc.tag
         'other'
 
-        >>> service = ServiceBase.from_image('dockci', 'DockCI App')
-        >>> service.base_registry
+        >>> svc = ServiceBase.from_image('dockci', 'DockCI App')
+        >>> svc.base_registry
         'docker.io'
 
-        >>> service.repo
+        >>> svc.repo
         'dockci'
 
-        >>> service.tag
+        >>> svc.tag
         'latest'
 
-        >>> service.name
+        >>> svc.name
         'DockCI App'
+
+        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other')
+        >>> svc.base_registry
+        'registry:5000'
+
+        >>> svc.tag
+        'other'
         """
         path_parts = image.split('/', 2)
         if len(path_parts) != 3:
