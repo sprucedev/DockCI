@@ -628,19 +628,6 @@ def add_to_url_path(url, more_path):
     return urlunparse(url)
 
 
-def base_name_from_image(image):
-    """
-    Given an image name such as ``quay.io/thatpanda/dockci:latest``, gets the
-    registry base name (``quay.io`` in this case). If there isn't a host,
-    namespace, and image part, docker hub is assumed and ``None`` returned
-    """
-    image_parts = image.split('/', 2)
-    if len(image_parts) != 3:
-        return None
-
-    return image_parts[0]
-
-
 def unique_model_conflicts(klass, **fields):
     """ Find any models that have values in fields """
     queries = {

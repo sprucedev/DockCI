@@ -5,6 +5,7 @@ Job stages that occur after a job is complete
 import json
 
 from dockci.exceptions import StageFailedError
+from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import (bytes_human_readable,
                          stream_write_status,
@@ -18,6 +19,17 @@ class PushStage(DockerStage):
     """
 
     slug = 'docker_push'
+
+    @property
+    def external_services(self):
+        """ Return target registry, if this is a push candidate """
+        if self.job.push_candidate:
+            return [ServiceBase(
+                auth_registry=self.job.project.target_registry,
+                name='Push Target',
+            )]
+
+        return []
 
     def gen_all_docker(self):
         """ Generator to merge multiple docker push """

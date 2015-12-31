@@ -4,6 +4,7 @@ Main job stages that constitute a job
 
 import json
 
+from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import built_docker_image_id
 
@@ -111,6 +112,25 @@ class BuildStage(DockerStage):
         self.tag = None
         self.no_cache = None
 
+    @property
+    def dockerfile(self):
+        """ Dockerfile used to build """
+        return self.job.job_config.dockerfile
+
+    @property
+    def external_services(self):
+        """ Services for registries required by Dockerfile FROM """
+        with self.workdir.join(self.dockerfile).open() as dockerfile_handle:
+            for line in dockerfile_handle:
+                line = line.strip()
+                if line.startswith('FROM '):
+                    return [ServiceBase.from_image(
+                        line[5:].strip(),
+                        name='Base Image',
+                    )]
+
+        return []
+
     def runnable_docker(self):
         """
         Determine the image tag, and cache flag value, then trigger a Docker
@@ -119,10 +139,9 @@ class BuildStage(DockerStage):
         """
         # Don't use the docker caches if a version tag is defined
         no_cache = (self.job.tag is not None)
-        dockerfile = self.job.job_config.dockerfile
 
         return self.job.docker_client.build(path=self.workdir.strpath,
-                                            dockerfile=dockerfile,
+                                            dockerfile=self.dockerfile,
                                             nocache=no_cache,
                                             rm=True,
                                             stream=True)
