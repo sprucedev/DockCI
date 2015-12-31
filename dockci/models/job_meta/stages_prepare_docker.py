@@ -14,7 +14,7 @@ from dockci.exceptions import (AlreadyBuiltError,
                                DockerAPIError,
                                StageFailedError,
                                )
-from dockci.models.auth import AuthenticatedRegistry
+from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase
 from dockci.models.project import Project
 from dockci.util import (built_docker_image_id,
@@ -47,10 +47,14 @@ class InlineProjectStage(JobStageBase):
         return self._projects
 
     @property
-    def registries(self):
-        """ Get the registries associated with the projects in this stage """
+    def external_services(self):
+        """ Get the services associated with the projects in this stage """
         return [
-            project.target_registry
+            ServiceBase(
+                name=project.name,
+                repo=project.slug,
+                auth_registry=project.target_registry,
+            )
             for project in self.get_projects().values()
             if (
                 project is not None and
@@ -673,23 +677,8 @@ class DockerLoginStage(JobStageBase):
                 handled=True,
             )
 
-    def handle_registry(self, handle, base_name_or_reg):
-        """
-        Find the given registry, and handle login. If ``base_name`` is
-        ``None``, lookup entry ``docker.io`` registry model
-        """
-        if isinstance(base_name_or_reg, AuthenticatedRegistry):
-            registry = base_name_or_reg
-            base_name = (None
-                         if registry.base_name == 'docker.io'
-                         else registry.base_name)
-        else:
-            base_name = base_name_or_reg
-            query = self.job.db_session.query(AuthenticatedRegistry)
-            registry = query.filter_by(
-                base_name=base_name or 'docker.io',
-            ).first()
-
+    def handle_registry(self, handle, base_name, registry):
+        """ Handle login if necessary """
         auth_registry = (
             registry is not None and (
                 registry.username is not None or
@@ -714,30 +703,25 @@ class DockerLoginStage(JobStageBase):
         else:
             display_name = registry.display_name if registry else base_name
             handle.write(("Unauthenticated for '%s' registry\n" % (
-                display_name or 'docker.io',
+                display_name,
             )).encode())
             handle.flush()
 
     def runnable(self, handle):
         """ Load the Dockerfile, scan for FROM line, login """
-        registry_set = set()
+        registries = {}
         # pylint:disable=protected-access
         for stage in self.job._stage_objects.values():
-            if hasattr(stage, 'registries'):
-                registry_set.update(stage.registries)
+            if hasattr(stage, 'external_services'):
+                for service in stage.external_services:
+                    registry_value = registries.setdefault(
+                        service.base_registry, None,
+                    )
+                    registry = service.auth_registry
+                    if registry_value is None and registry is not None:
+                        registries[service.base_registry] = registry
 
-        # Dedupe AuthenticatedRegistry objects with base_name strings
-        for base_name_or_reg in registry_set.copy():
-            if isinstance(base_name_or_reg, AuthenticatedRegistry):
-                try:
-                    if base_name_or_reg.base_name == 'docker.io':
-                        registry_set.remove(None)
-                    else:
-                        registry_set.remove(base_name_or_reg.base_name)
-                except KeyError:
-                    pass
-
-        for base_name_or_reg in registry_set:
-            self.handle_registry(handle, base_name_or_reg)
+        for base_name, registry in registries.items():
+            self.handle_registry(handle, base_name, registry)
 
         return 0

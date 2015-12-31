@@ -118,17 +118,18 @@ class BuildStage(DockerStage):
         return self.job.job_config.dockerfile
 
     @property
-    def registries(self):
-        """ Registry set for registries required by Dockerfile FROM """
+    def external_services(self):
+        """ Services for registries required by Dockerfile FROM """
         with self.workdir.join(self.dockerfile).open() as dockerfile_handle:
             for line in dockerfile_handle:
                 line = line.strip()
                 if line.startswith('FROM '):
-                    return {ServiceBase.from_image(
+                    return [ServiceBase.from_image(
                         line[5:].strip(),
-                    ).base_registry}
+                        name='Base Image',
+                    )]
 
-        return set()
+        return []
 
     def runnable_docker(self):
         """
