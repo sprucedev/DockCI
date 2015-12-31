@@ -114,6 +114,23 @@ BASIC_ATTR_TESTS = [
             repo='spruce/dockci',
             tag='latest',
         ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest'
+        ),
+        exp=dict(
+            display='DockCI - docker.io/spruce/dockci:latest',
+            display_full='DockCI - docker.io/spruce/dockci:latest',
+            slug='docker_io_spruce_dockci_latest',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
     )
 ]
 BASIC_ATTR_TESTS = list(itertools.chain.from_iterable(
