@@ -1,4 +1,6 @@
 """ Base model classes, mixins """
+import re
+
 from dockci.models.auth import AuthenticatedRegistry
 
 
@@ -36,6 +38,9 @@ class RepoFsMixin(object):
     def external_auth_token(self):
         """ OAuthToken for the object to use in ``command_repo`` """
         raise NotImplementedError("Must override external_auth_token property")
+
+
+SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 
 
 class ServiceBase(object):
@@ -238,11 +243,16 @@ class ServiceBase(object):
         """ Human readable display, including defaults """
         return self._display(full=True)
 
-    def _display(self, full):
+    @property
+    def slug(self):
+        """ Get a slug for the service """
+        return SLUG_REPLACE_RE.sub("_", self._display(full=False, name=False))
+
+    def _display(self, full, name=True):
         """ Used for the display properties """
         string = ""
 
-        if full or self.has_name:
+        if name and (full or self.has_name):
             string = "%s - " % self.name
         if full or self.has_base_registry:
             string += '%s/' % self.base_registry
