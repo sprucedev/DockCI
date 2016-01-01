@@ -140,11 +140,37 @@ class ServiceBase(object):
 
     @property
     def name(self):
-        """ Human readable name for this service. Falls back to the repo """
+        """
+        Human readable name for this service. Falls back to the repo
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.name
+        'spruce/dockci'
+
+        >>> svc.has_name
+        False
+
+        >>> svc.name = 'Test Name'
+        >>> svc.name
+        'Test Name'
+
+        >>> svc.has_name
+        True
+
+        >>> svc.display
+        'Test Name - spruce/dockci'
+        """
         if self.has_name:
             return self.name_raw
         else:
             return self.repo
+
+    @name.setter
+    def name(self, value):
+        """ Set the name """
+        self._name = value
 
     @property
     def has_name(self):
@@ -158,8 +184,31 @@ class ServiceBase(object):
 
     @property
     def repo(self):
-        """ Repository for this service """
+        """
+        Repository for this service
+
+        Examples:
+
+        >>> svc = ServiceBase(tag='special')
+        >>> svc.has_repo
+        False
+
+        >>> svc.repo = 'spruce/dockci'
+        >>> svc.repo
+        'spruce/dockci'
+
+        >>> svc.has_repo
+        True
+
+        >>> svc.display
+        'spruce/dockci:special'
+        """
         return self.repo_raw
+
+    @repo.setter
+    def repo(self, value):
+        """ Set the repo """
+        self._repo = value
 
     @property
     def has_repo(self):
@@ -173,11 +222,37 @@ class ServiceBase(object):
 
     @property
     def tag(self):
-        """ Tag for this service. Defaults to ``latest`` """
+        """
+        Tag for this service. Defaults to ``latest``
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.tag
+        'latest'
+
+        >>> svc.has_tag
+        False
+
+        >>> svc.tag = 'special'
+        >>> svc.tag
+        'special'
+
+        >>> svc.has_tag
+        True
+
+        >>> svc.display
+        'spruce/dockci:special'
+        """
         if self.has_tag:
             return self.tag_raw
         else:
             return 'latest'
+
+    @tag.setter
+    def tag(self, value):
+        """ Set the tag """
+        self._tag = value
 
     @property
     def has_tag(self):
@@ -195,6 +270,19 @@ class ServiceBase(object):
         A registry base name. This is the host name of the registry. Falls back
         to the authenticated registry ``base_name``, or defaults to
         ``docker.io`` if that's not given either
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.base_registry = 'quay.io'
+        >>> svc.base_registry
+        'quay.io'
+
+        >>> svc.has_base_registry
+        True
+
+        >>> svc.display
+        'quay.io/spruce/dockci'
         """
         if self.has_base_registry:
             return self.base_registry_raw
@@ -202,6 +290,12 @@ class ServiceBase(object):
             return self.auth_registry.base_name
         else:
             return 'docker.io'
+
+    @base_registry.setter
+    def base_registry(self, value):
+        """
+        Set the base_registry """
+        self._base_registry = value
 
     @property
     def has_base_registry(self):
@@ -227,6 +321,11 @@ class ServiceBase(object):
             )
             if query.count() > 0:
                 return query.first()
+
+    @auth_registry.setter
+    def auth_registry(self, value):
+        """ Set the auth_registry """
+        self._auth_registry = value
 
     @property
     def has_auth_registry(self):
