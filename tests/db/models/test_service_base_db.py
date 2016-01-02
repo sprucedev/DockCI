@@ -29,7 +29,6 @@ class TestServiceBaseProject(object):
         DB.session.commit()
         assert svc.project == project
 
-
     def test_project_target_svc_no_registry(self):
         """ Ensure project is not associated if service has no target """
         svc = ServiceBase(repo='postgres')
@@ -48,3 +47,22 @@ class TestServiceBaseProject(object):
         DB.session.add(project)
         DB.session.commit()
         assert svc.project == None
+
+    def test_registries_match(self):
+        """ Ensure project is associated if registry base names match """
+        svc = ServiceBase(repo='postgres', base_registry='registry:5000')
+        registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Test Reg',
+        )
+        project = Project(
+            slug='postgres',
+            name='Test PG',
+            repo='/test/PG',
+            utility=False,
+            target_registry=registry,
+        )
+        DB.session.add(registry)
+        DB.session.add(project)
+        DB.session.commit()
+        assert svc.project == project
