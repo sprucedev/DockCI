@@ -66,3 +66,22 @@ class TestServiceBaseProject(object):
         DB.session.add(project)
         DB.session.commit()
         assert svc.project == project
+
+    def test_service_registry_project_none(self):
+        """ Ensure project is not associated if service has auth registry """
+        registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Test Reg',
+            username='project'
+        )
+        svc = ServiceBase(repo='postgres', auth_registry=registry)
+        project = Project(
+            slug='postgres',
+            name='Test PG',
+            repo='/test/PG',
+            utility=False,
+        )
+        DB.session.add(registry)
+        DB.session.add(project)
+        DB.session.commit()
+        assert svc.project == None
