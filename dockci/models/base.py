@@ -360,6 +360,12 @@ class ServiceBase(object):
         if self.has_project:
             return self.project_raw
 
+        elif self._project_dynamic is None:
+            query = Project.query.filter_by(
+                slug=self.repo,
+            )
+            self._project_dynamic = query.first()
+
         return self._project_dynamic
 
     @project.setter
