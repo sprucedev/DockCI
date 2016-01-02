@@ -21,3 +21,6 @@ utilities:
     output:
       - from: /work/bower_components
         to: util
+services:
+  postgres:
+    alias: postgres
