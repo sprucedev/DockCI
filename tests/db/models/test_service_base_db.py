@@ -1,5 +1,6 @@
 import pytest
 
+from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.base import ServiceBase
 from dockci.models.project import Project
 from dockci.server import DB
@@ -27,3 +28,23 @@ class TestServiceBaseProject(object):
         DB.session.add(project)
         DB.session.commit()
         assert svc.project == project
+
+
+    def test_project_target_svc_no_registry(self):
+        """ Ensure project is not associated if service has no target """
+        svc = ServiceBase(repo='postgres')
+        registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Test Reg',
+        )
+        project = Project(
+            slug='postgres',
+            name='Test PG',
+            repo='/test/PG',
+            utility=False,
+            target_registry=registry,
+        )
+        DB.session.add(registry)
+        DB.session.add(project)
+        DB.session.commit()
+        assert svc.project == None

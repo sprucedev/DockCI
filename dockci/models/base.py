@@ -363,7 +363,9 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         elif self._project_dynamic is None:
             query = Project.query.filter_by(
                 slug=self.repo,
+                target_registry=self.auth_registry,
             )
+
             self._project_dynamic = query.first()
 
         return self._project_dynamic
