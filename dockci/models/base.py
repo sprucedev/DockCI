@@ -43,7 +43,7 @@ class RepoFsMixin(object):
 SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 
 
-class ServiceBase(object):
+class ServiceBase(object):  # pylint:disable=too-many-public-methods
     """ Service object for storing utility/provision information """
 
     def __init__(self,
