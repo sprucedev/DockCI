@@ -50,6 +50,7 @@ class ServiceBase(object):
                  name=None,
                  repo=None,
                  tag=None,
+                 project=None,
                  base_registry=None,
                  auth_registry=None,
                  ):
@@ -61,8 +62,11 @@ class ServiceBase(object):
         self._name = name
         self._repo = repo
         self._tag = tag
+        self._project = project
         self._base_registry = base_registry
         self._auth_registry = auth_registry
+
+        self._project_dynamic = None
 
     @classmethod
     def from_image(cls, image, name=None):
@@ -331,6 +335,42 @@ class ServiceBase(object):
     def has_auth_registry(self):
         """ Whether or not an authenticated registry was explicitly given """
         return self.auth_registry_raw is not None
+
+    @property
+    def project_raw(self):
+        """ Raw project given to this service """
+        return self._project
+
+    @property
+    def project(self):
+        """
+        ``Project`` associated with this service. If not given, tries to lookup
+        by matching the repository with the project slug. When a lookup occurs,
+        and a registry is given to the service, the ``Project`` must have the
+        same authenticated registry set
+
+        >>> svc = ServiceBase(repo='postgres')
+        >>> project = 'Fake Project'
+        >>> svc.project = project
+        >>> svc.project
+        'Fake Project'
+        """
+        from dockci.models.project import Project
+
+        if self.has_project:
+            return self.project_raw
+
+        return self._project_dynamic
+
+    @project.setter
+    def project(self, value):
+        """ Set the project """
+        self._project = value
+
+    @property
+    def has_project(self):
+        """ Whether or not a project was explicitly given """
+        return self.project_raw is not None
 
     @property
     def display(self):
