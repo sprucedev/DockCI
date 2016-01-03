@@ -45,7 +45,8 @@ class RepoFsMixin(object):
 SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 
 
-class ServiceBase(object):  # pylint:disable=too-many-public-methods
+# pylint:disable=too-many-public-methods,too-many-instance-attributes
+class ServiceBase(object):
     """ Service object for storing utility/provision information """
 
     def __init__(self,
@@ -349,6 +350,9 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         if lookup_allow is None:
             lookup_allow = defaultdict(lambda: True)
 
+        if False:  # help pylint understand our return value
+            return AuthenticatedRegistry()
+
         if self.has_auth_registry:
             return self.auth_registry_raw
 
@@ -399,6 +403,9 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
     def _get_project(self, lookup_allow=None):
         """ Dynamically get the project from other values """
         from dockci.models.project import Project
+
+        if False:  # help pylint understand our return value
+            return Project()
 
         if lookup_allow is None:
             lookup_allow = defaultdict(lambda: True)
@@ -453,8 +460,6 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
 
     def _get_job(self, lookup_allow=None):
         """ Dynamically get the job from other values """
-        from dockci.models.job import Job
-
         if lookup_allow is None:
             lookup_allow = defaultdict(lambda: True)
 

@@ -294,8 +294,8 @@ class UtilStage(InlineProjectStage):
     def get_project_slugs(self):
         return (self.config['name'],)
 
-    def id_for_project(self, project_slug):
-        return project_slug
+    def id_for_service(self, slug):
+        return slug
 
     def add_files(self, base_image_id, faux_log):
         """
@@ -549,7 +549,7 @@ class UtilStage(InlineProjectStage):
         utility_project = service_job.project
 
         defaults = {
-            'id': "%s-input" % self.id_for_project(utility_project.slug),
+            'id': "%s-input" % self.id_for_service(utility_project.slug),
             'status': "Adding files",
         }
         with faux_log.more_defaults(**defaults):
@@ -560,7 +560,7 @@ class UtilStage(InlineProjectStage):
 
         container_id = None
         success = True
-        cleanup_id = "%s-cleanup" % self.id_for_project(utility_project.slug)
+        cleanup_id = "%s-cleanup" % self.id_for_service(utility_project.slug)
         try:
             defaults = {'status': "Starting %s utility %s" % (
                 utility_project.name,
@@ -581,7 +581,7 @@ class UtilStage(InlineProjectStage):
 
                 if exit_code != 0:
                     faux_log.update(
-                        id="%s-exit" % self.id_for_project(
+                        id="%s-exit" % self.id_for_service(
                             utility_project.slug,
                         ),
                         error="Exit code was %d" % exit_code
@@ -590,7 +590,7 @@ class UtilStage(InlineProjectStage):
 
             if success:
                 files_id = (
-                    "%s-output" % self.id_for_project(utility_project.slug))
+                    "%s-output" % self.id_for_service(utility_project.slug))
                 defaults = {'status': "Getting files"}
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
