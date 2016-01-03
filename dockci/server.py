@@ -102,7 +102,8 @@ def app_init():
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
-    APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
+    if APP.config.get('SQLALCHEMY_DATABASE_URI', None) is None:
+        APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 

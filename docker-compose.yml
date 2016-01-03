@@ -10,7 +10,10 @@ web:
    - ./data:/code/data
    - ./dockci:/code/dockci
    - ./alembic:/code/alembic
+   - ./tests:/code/tests
    - /Users:/Users
+  environment:
+    OAUTHLIB_INSECURE_TRANSPORT: 1
 postgres:
   image: postgres
   environment:

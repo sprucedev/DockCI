@@ -62,10 +62,10 @@ class InlineProjectStage(JobStageBase):
             )
         ]
 
-    def id_for_project(self, project_slug):
-        """ Get the event series ID for a given project's slug """
+    def id_for_service(self, slug):
+        """ Get the event series ID for a given service's slug """
         # pylint:disable=no-member
-        return '%s_%s' % (self.slug, project_slug)
+        return '%s_%s' % (self.slug, slug)
 
     def runnable(self, handle):
         """
@@ -73,34 +73,37 @@ class InlineProjectStage(JobStageBase):
         """
         all_okay = True
         faux_log = IOFauxDockerLog(handle)
-        for project_slug, service_project in self.get_projects().items():
+        for service in self.external_services:
 
             # pylint:disable=no-member
-            defaults = {'id': self.id_for_project(project_slug)}
+            defaults = {'id': self.id_for_service(service.slug)}
             with faux_log.more_defaults(**defaults):
 
-                defaults = {'status': "Finding service %s" % project_slug}
+                defaults = {'status': "Finding service %s" % service.display}
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
 
-                    if not service_project:
-                        faux_log.update(error="No project found")
-                        all_okay = False
-                        continue
+                    service_project = service.project
+                    service_job = service.job
 
-                    service_job = service_project.latest_job(passed=True,
-                                                             versioned=True)
-                    if not service_job:
+                    if service_project is None:
+                        faux_log.update(error="No project found")
+
+                    elif service_job is None:
                         faux_log.update(
                             error="No successful, versioned job for %s" % (
                                 service_project.name
                             ),
                         )
+
+                    if service_project is None or service_job is None:
                         all_okay = False
                         continue
 
-                defaults = {'status': "Pulling container image %s:%s" % (
-                    service_job.docker_image_name, service_job.tag
+                    service.tag = service_job.tag
+
+                defaults = {'status': "Pulling container image %s" % (
+                    service.display,
                 )}
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
@@ -291,8 +294,8 @@ class UtilStage(InlineProjectStage):
     def get_project_slugs(self):
         return (self.config['name'],)
 
-    def id_for_project(self, project_slug):
-        return project_slug
+    def id_for_service(self, slug):
+        return slug
 
     def add_files(self, base_image_id, faux_log):
         """
@@ -546,7 +549,7 @@ class UtilStage(InlineProjectStage):
         utility_project = service_job.project
 
         defaults = {
-            'id': "%s-input" % self.id_for_project(utility_project.slug),
+            'id': "%s-input" % self.id_for_service(utility_project.slug),
             'status': "Adding files",
         }
         with faux_log.more_defaults(**defaults):
@@ -557,7 +560,7 @@ class UtilStage(InlineProjectStage):
 
         container_id = None
         success = True
-        cleanup_id = "%s-cleanup" % self.id_for_project(utility_project.slug)
+        cleanup_id = "%s-cleanup" % self.id_for_service(utility_project.slug)
         try:
             defaults = {'status': "Starting %s utility %s" % (
                 utility_project.name,
@@ -578,7 +581,7 @@ class UtilStage(InlineProjectStage):
 
                 if exit_code != 0:
                     faux_log.update(
-                        id="%s-exit" % self.id_for_project(
+                        id="%s-exit" % self.id_for_service(
                             utility_project.slug,
                         ),
                         error="Exit code was %d" % exit_code
@@ -587,7 +590,7 @@ class UtilStage(InlineProjectStage):
 
             if success:
                 files_id = (
-                    "%s-output" % self.id_for_project(utility_project.slug))
+                    "%s-output" % self.id_for_service(utility_project.slug))
                 defaults = {'status': "Getting files"}
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()

@@ -1,4 +1,8 @@
 """ Base model classes, mixins """
+import re
+
+from collections import defaultdict
+
 from dockci.models.auth import AuthenticatedRegistry
 
 
@@ -38,6 +42,10 @@ class RepoFsMixin(object):
         raise NotImplementedError("Must override external_auth_token property")
 
 
+SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
+
+
+# pylint:disable=too-many-public-methods,too-many-instance-attributes
 class ServiceBase(object):
     """ Service object for storing utility/provision information """
 
@@ -45,6 +53,8 @@ class ServiceBase(object):
                  name=None,
                  repo=None,
                  tag=None,
+                 project=None,
+                 job=None,
                  base_registry=None,
                  auth_registry=None,
                  ):
@@ -53,11 +63,21 @@ class ServiceBase(object):
             assert auth_registry.base_name == base_registry, (
                 "AuthenticatedRegistry.base_name doesn't match base_registry")
 
+        if project is not None and job is not None:
+            assert job.project == project, (
+                "Job %s isn't for project %s" % job, project)
+
         self._name = name
         self._repo = repo
         self._tag = tag
+        self._project = project
+        self._job = job
         self._base_registry = base_registry
         self._auth_registry = auth_registry
+
+        self._project_dynamic = None
+        self._job_dynamic = None
+        self._auth_registry_dynamic = None
 
     @classmethod
     def from_image(cls, image, name=None):
@@ -135,11 +155,37 @@ class ServiceBase(object):
 
     @property
     def name(self):
-        """ Human readable name for this service. Falls back to the repo """
+        """
+        Human readable name for this service. Falls back to the repo
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.name
+        'spruce/dockci'
+
+        >>> svc.has_name
+        False
+
+        >>> svc.name = 'Test Name'
+        >>> svc.name
+        'Test Name'
+
+        >>> svc.has_name
+        True
+
+        >>> svc.display
+        'Test Name - spruce/dockci'
+        """
         if self.has_name:
             return self.name_raw
         else:
             return self.repo
+
+    @name.setter
+    def name(self, value):
+        """ Set the name """
+        self._name = value
 
     @property
     def has_name(self):
@@ -153,8 +199,31 @@ class ServiceBase(object):
 
     @property
     def repo(self):
-        """ Repository for this service """
+        """
+        Repository for this service
+
+        Examples:
+
+        >>> svc = ServiceBase(tag='special')
+        >>> svc.has_repo
+        False
+
+        >>> svc.repo = 'spruce/dockci'
+        >>> svc.repo
+        'spruce/dockci'
+
+        >>> svc.has_repo
+        True
+
+        >>> svc.display
+        'spruce/dockci:special'
+        """
         return self.repo_raw
+
+    @repo.setter
+    def repo(self, value):
+        """ Set the repo """
+        self._repo = value
 
     @property
     def has_repo(self):
@@ -168,11 +237,37 @@ class ServiceBase(object):
 
     @property
     def tag(self):
-        """ Tag for this service. Defaults to ``latest`` """
+        """
+        Tag for this service. Defaults to ``latest``
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.tag
+        'latest'
+
+        >>> svc.has_tag
+        False
+
+        >>> svc.tag = 'special'
+        >>> svc.tag
+        'special'
+
+        >>> svc.has_tag
+        True
+
+        >>> svc.display
+        'spruce/dockci:special'
+        """
         if self.has_tag:
             return self.tag_raw
         else:
             return 'latest'
+
+    @tag.setter
+    def tag(self, value):
+        """ Set the tag """
+        self._tag = value
 
     @property
     def has_tag(self):
@@ -190,13 +285,42 @@ class ServiceBase(object):
         A registry base name. This is the host name of the registry. Falls back
         to the authenticated registry ``base_name``, or defaults to
         ``docker.io`` if that's not given either
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.base_registry = 'quay.io'
+        >>> svc.base_registry
+        'quay.io'
+
+        >>> svc.has_base_registry
+        True
+
+        >>> svc.display
+        'quay.io/spruce/dockci'
         """
+        return self._get_base_registry()
+
+    @base_registry.setter
+    def base_registry(self, value):
+        """ Set the base_registry """
+        self._base_registry = value
+
+    def _get_base_registry(self, lookup_allow=None):
+        """ Dynamically get the base_registry from other values """
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
         if self.has_base_registry:
             return self.base_registry_raw
-        elif self.has_auth_registry:
-            return self.auth_registry.base_name
-        else:
-            return 'docker.io'
+
+        elif lookup_allow['auth_registry']:
+            lookup_allow['base_registry'] = False
+            auth_registry = self._get_auth_registry(lookup_allow)
+            if auth_registry is not None:
+                return auth_registry.base_name
+
+        return 'docker.io'
 
     @property
     def has_base_registry(self):
@@ -214,19 +338,149 @@ class ServiceBase(object):
         ``AuthenticatedRegistry`` required for this service. If not given,
         tries to lookup using the registry base name
         """
+        return self._get_auth_registry()
+
+    @auth_registry.setter
+    def auth_registry(self, value):
+        """ Set the auth_registry """
+        self._auth_registry = value
+
+    def _get_auth_registry(self, lookup_allow=None):
+        """ Dynamically get the auth_registry from other values """
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if False:  # help pylint understand our return value
+            return AuthenticatedRegistry()
+
         if self.has_auth_registry:
             return self.auth_registry_raw
-        else:
+
+        lookup_allow['auth_registry'] = False
+
+        if (
+            lookup_allow['base_registry'] and
+            self._auth_registry_dynamic is None
+        ):
             query = AuthenticatedRegistry.query.filter_by(
-                base_name=self.base_registry,
+                base_name=self._get_base_registry(lookup_allow),
             )
-            if query.count() > 0:
-                return query.first()
+            self._auth_registry_dynamic = query.first()
+
+        return self._auth_registry_dynamic
 
     @property
     def has_auth_registry(self):
         """ Whether or not an authenticated registry was explicitly given """
         return self.auth_registry_raw is not None
+
+    @property
+    def project_raw(self):
+        """ Raw project given to this service """
+        return self._project
+
+    @property
+    def project(self):
+        """
+        ``Project`` associated with this service. If not given, tries to lookup
+        by matching the repository with the project slug. When a lookup occurs,
+        and a registry is given to the service, the ``Project`` must have the
+        same authenticated registry set
+
+        >>> svc = ServiceBase(repo='postgres')
+        >>> project = 'Fake Project'
+        >>> svc.project = project
+        >>> svc.project
+        'Fake Project'
+        """
+        return self._get_project()
+
+    @project.setter
+    def project(self, value):
+        """ Set the project """
+        self._project = value
+
+    def _get_project(self, lookup_allow=None):
+        """ Dynamically get the project from other values """
+        from dockci.models.project import Project
+
+        if False:  # help pylint understand our return value
+            return Project()
+
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if self.has_project:
+            return self.project_raw
+
+        lookup_allow['project'] = False
+
+        if self._project_dynamic is None:
+            auth_registry = None
+            if lookup_allow['auth_registry']:
+                auth_registry = self._get_auth_registry(lookup_allow)
+
+            query = Project.query.filter_by(
+                slug=self.repo,
+                target_registry=auth_registry,
+            )
+
+            self._project_dynamic = query.first()
+
+        return self._project_dynamic
+
+    @property
+    def has_project(self):
+        """ Whether or not a project was explicitly given """
+        return self.project_raw is not None
+
+    @property
+    def job_raw(self):
+        """ Raw job given to this service """
+        return self._job
+
+    @property
+    def job(self):
+        """
+        ``Job`` associated with this service. If not given, tries to lookup
+        by using the service project, and matching the tag
+
+        >>> svc = ServiceBase(repo='postgres')
+        >>> job = 'Fake Job'
+        >>> svc.job = job
+        >>> svc.job
+        'Fake Job'
+        """
+        return self._get_job()
+
+    @job.setter
+    def job(self, value):
+        """ Set the job """
+        self._job = value
+
+    def _get_job(self, lookup_allow=None):
+        """ Dynamically get the job from other values """
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if self.has_job:
+            return self.job_raw
+
+        lookup_allow['job'] = False
+
+        if lookup_allow['project'] and self._job_dynamic is None:
+            project = self._get_project(lookup_allow)
+            if project is not None:
+                self._job_dynamic = project.latest_job(
+                    passed=True, versioned=True, tag=self.tag_raw,
+                )
+
+        return self._job_dynamic
+
+    @property
+    def has_job(self):
+        """ Whether or not a job was explicitly given """
+        return self.job_raw is not None
 
     @property
     def display(self):
@@ -238,11 +492,16 @@ class ServiceBase(object):
         """ Human readable display, including defaults """
         return self._display(full=True)
 
-    def _display(self, full):
+    @property
+    def slug(self):
+        """ Get a slug for the service """
+        return SLUG_REPLACE_RE.sub("_", self._display(full=False, name=False))
+
+    def _display(self, full, name=True):
         """ Used for the display properties """
         string = ""
 
-        if full or self.has_name:
+        if name and (full or self.has_name):
             string = "%s - " % self.name
         if full or self.has_base_registry:
             string += '%s/' % self.base_registry

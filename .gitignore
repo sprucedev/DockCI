@@ -4,7 +4,8 @@ dockci/static/lib/
 node_modules/
 python_env/
 __pycache__/
-tests/.cache/
+tests/**/.cache/
+dockci/**/.cache/
 .python-version
 
 /docker_build_stream

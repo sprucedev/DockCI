@@ -27,6 +27,7 @@ ADD test-requirements.txt /code/test-requirements.txt
 ADD _deps_python.sh /code/_deps_python.sh
 RUN ./_deps_python.sh
 
+ADD entrypoint.sh /code/entrypoint.sh
 ADD manage.py /code/manage.py
 ADD dockci /code/dockci
 ADD tests /code/tests
@@ -34,5 +35,5 @@ ADD pylint.conf /code/pylint.conf
 ADD alembic /code/alembic
 
 EXPOSE 5000
-ENTRYPOINT ["/code/python_env/bin/python" , "/code/manage.py"]
+ENTRYPOINT ["/code/entrypoint.sh"]
 CMD ["run"]
