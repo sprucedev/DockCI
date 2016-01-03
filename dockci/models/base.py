@@ -75,6 +75,7 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         self._auth_registry = auth_registry
 
         self._project_dynamic = None
+        self._job_dynamic = None
         self._auth_registry_dynamic = None
 
     @classmethod
@@ -440,18 +441,33 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         >>> svc.job
         'Fake Job'
         """
-        if self.has_job:
-            return self.job_raw
-
-        else:
-            project = self.project
-            if project is not None:
-                pass
+        return self._get_job()
 
     @job.setter
     def job(self, value):
         """ Set the job """
         self._job = value
+
+    def _get_job(self, lookup_allow=None):
+        """ Dynamically get the job from other values """
+        from dockci.models.job import Job
+
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if self.has_job:
+            return self.job_raw
+
+        lookup_allow['job'] = False
+
+        if lookup_allow['project'] and self._job_dynamic is None:
+            project = self._get_project(lookup_allow)
+            if project is not None:
+                self._job_dynamic = project.latest_job(
+                    passed=True, versioned=True,
+                )
+
+        return self._job_dynamic
 
     @property
     def has_job(self):
