@@ -95,6 +95,9 @@ class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
             username=self.username,
         )
 
+    def __repr__(self):
+        return str(self)
+
     def __hash__(self):
         return hash(tuple(
             (attr_name, getattr(self, attr_name))
