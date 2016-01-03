@@ -117,8 +117,7 @@ class BuildStage(DockerStage):
         """ Dockerfile used to build """
         return self.job.job_config.dockerfile
 
-    @property
-    def external_services(self):
+    def get_services(self):
         """ Services for registries required by Dockerfile FROM """
         with self.workdir.join(self.dockerfile).open() as dockerfile_handle:
             for line in dockerfile_handle:

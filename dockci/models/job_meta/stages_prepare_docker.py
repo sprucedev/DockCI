@@ -46,8 +46,7 @@ class InlineProjectStage(JobStageBase):
 
         return self._projects
 
-    @property
-    def external_services(self):
+    def get_services(self):
         """ Get the services associated with the projects in this stage """
         return [
             ServiceBase(
@@ -73,7 +72,7 @@ class InlineProjectStage(JobStageBase):
         """
         all_okay = True
         faux_log = IOFauxDockerLog(handle)
-        for service in self.external_services:
+        for service in self.get_services():
 
             # pylint:disable=no-member
             defaults = {'id': self.id_for_service(service.slug)}
@@ -715,8 +714,8 @@ class DockerLoginStage(JobStageBase):
         registries = {}
         # pylint:disable=protected-access
         for stage in self.job._stage_objects.values():
-            if hasattr(stage, 'external_services'):
-                for service in stage.external_services:
+            if hasattr(stage, 'get_services'):
+                for service in stage.get_services():
                     registry_value = registries.setdefault(
                         service.base_registry, None,
                     )
