@@ -493,9 +493,31 @@ class ServiceBase(object):
         return self._display(full=True)
 
     @property
+    def image(self):
+        """
+        Pullable image for Docker
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.base_registry = 'quay.io'
+        >>> svc.image
+        'quay.io/spruce/dockci'
+
+        >>> svc.tag = 'latest'
+        >>> svc.image
+        'quay.io/spruce/dockci:latest'
+
+        >>> svc.name = 'Test Name'
+        >>> svc.image
+        'quay.io/spruce/dockci:latest'
+        """
+        return self._display(full=False, name=False)
+
+    @property
     def slug(self):
         """ Get a slug for the service """
-        return SLUG_REPLACE_RE.sub("_", self._display(full=False, name=False))
+        return SLUG_REPLACE_RE.sub("_", self.image)
 
     def _display(self, full, name=True):
         """ Used for the display properties """
