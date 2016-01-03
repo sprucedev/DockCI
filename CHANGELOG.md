@@ -32,6 +32,7 @@
 - Add option to projects list API #355
 - Skipped tests count as "good state" (pushable, etc) #357
 - Significant simplification of image parsing #363
+- If jobs fail before an image is built, doesn't try to clean up #365
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260

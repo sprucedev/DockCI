@@ -169,8 +169,9 @@ class CleanupStage(JobStageBase):
                     self.job.docker_client.remove_image(image_id)
 
         else:
-            with cleanup_context('image', self.job.image_id):
-                self.job.docker_client.remove_image(self.job.image_id)
+            if self.job.image_id is not None:
+                with cleanup_context('image', self.job.image_id):
+                    self.job.docker_client.remove_image(self.job.image_id)
 
         # TODO catch failures
         return 0
