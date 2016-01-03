@@ -24,3 +24,5 @@ utilities:
 services:
   postgres:
     alias: postgres
+    environment:
+      POSTGRES_PASSWORD: dockcitest
