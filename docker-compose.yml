@@ -10,6 +10,7 @@ web:
    - ./data:/code/data
    - ./dockci:/code/dockci
    - ./alembic:/code/alembic
+   - ./tests:/code/tests
    - /Users:/Users
 postgres:
   image: postgres
