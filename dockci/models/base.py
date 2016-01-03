@@ -1,6 +1,8 @@
 """ Base model classes, mixins """
 import re
 
+from collections import defaultdict
+
 from dockci.models.auth import AuthenticatedRegistry
 
 
@@ -73,6 +75,7 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         self._auth_registry = auth_registry
 
         self._project_dynamic = None
+        self._auth_registry_dynamic = None
 
     @classmethod
     def from_image(cls, image, name=None):
@@ -294,18 +297,28 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         >>> svc.display
         'quay.io/spruce/dockci'
         """
-        if self.has_base_registry:
-            return self.base_registry_raw
-        elif self.has_auth_registry:
-            return self.auth_registry.base_name
-        else:
-            return 'docker.io'
+        return self._get_base_registry()
 
     @base_registry.setter
     def base_registry(self, value):
-        """
-        Set the base_registry """
+        """ Set the base_registry """
         self._base_registry = value
+
+    def _get_base_registry(self, lookup_allow=None):
+        """ Dynamically get the base_registry from other values """
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if self.has_base_registry:
+            return self.base_registry_raw
+
+        elif lookup_allow['auth_registry']:
+            lookup_allow['base_registry'] = False
+            auth_registry = self._get_auth_registry(lookup_allow)
+            if auth_registry is not None:
+                return auth_registry.base_name
+
+        return 'docker.io'
 
     @property
     def has_base_registry(self):
@@ -323,19 +336,30 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         ``AuthenticatedRegistry`` required for this service. If not given,
         tries to lookup using the registry base name
         """
-        if self.has_auth_registry:
-            return self.auth_registry_raw
-        else:
-            query = AuthenticatedRegistry.query.filter_by(
-                base_name=self.base_registry,
-            )
-            if query.count() > 0:
-                return query.first()
+        return self._get_auth_registry()
 
     @auth_registry.setter
     def auth_registry(self, value):
         """ Set the auth_registry """
         self._auth_registry = value
+
+    def _get_auth_registry(self, lookup_allow=None):
+        """ Dynamically get the auth_registry from other values """
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if self.has_auth_registry:
+            return self.auth_registry_raw
+
+        lookup_allow['auth_registry'] = False
+
+        if lookup_allow['base_registry'] and self._auth_registry_dynamic is None:
+            query = AuthenticatedRegistry.query.filter_by(
+                base_name=self._get_base_registry(lookup_allow),
+            )
+            self._auth_registry_dynamic = query.first()
+
+        return self._auth_registry_dynamic
 
     @property
     def has_auth_registry(self):
@@ -361,25 +385,38 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
         >>> svc.project
         'Fake Project'
         """
-        from dockci.models.project import Project
-
-        if self.has_project:
-            return self.project_raw
-
-        elif self._project_dynamic is None:
-            query = Project.query.filter_by(
-                slug=self.repo,
-                target_registry=self.auth_registry,
-            )
-
-            self._project_dynamic = query.first()
-
-        return self._project_dynamic
+        return self._get_project()
 
     @project.setter
     def project(self, value):
         """ Set the project """
         self._project = value
+
+    def _get_project(self, lookup_allow=None):
+        """ Dynamically get the project from other values """
+        from dockci.models.project import Project
+
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        if self.has_project:
+            return self.project_raw
+
+        lookup_allow['project'] = False
+
+        if self._project_dynamic is None:
+            auth_registry = None
+            if lookup_allow['auth_registry']:
+                auth_registry = self._get_auth_registry(lookup_allow)
+
+            query = Project.query.filter_by(
+                slug=self.repo,
+                target_registry=auth_registry,
+            )
+
+            self._project_dynamic = query.first()
+
+        return self._project_dynamic
 
     @property
     def has_project(self):
