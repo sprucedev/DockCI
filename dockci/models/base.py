@@ -49,6 +49,7 @@ SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 class ServiceBase(object):
     """ Service object for storing utility/provision information """
 
+    # pylint:disable=too-many-arguments
     def __init__(self,
                  name=None,
                  repo=None,

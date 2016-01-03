@@ -16,7 +16,6 @@ from dockci.exceptions import (AlreadyBuiltError,
                                )
 from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase
-from dockci.models.project import Project
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
                          IOFauxDockerLog,
@@ -143,7 +142,7 @@ class InlineProjectStage(JobStageBase):
     def runnable_inline(self, service_job, image_id, handle, faux_log):
         """ Executed for each service job """
         raise NotImplementedError(
-            "You must override the 'get_project_slugs' method"
+            "You must override the 'runnable_inline' method"
         )
 
 
@@ -271,7 +270,7 @@ class ProvisionStage(InlineProjectStage):
                 self.job._provisioned_containers.append({
                     'project_slug': service_project.slug,
                     'config': service_config,
-                    'id': container['Id']
+                    'id': container['Id'],
                 })
                 faux_log.update(progress="Done")
 
