@@ -294,12 +294,11 @@ def docker_ensure_image(client,
         return latest_id
 
 
-class FauxDockerLog(object):
+class FauxDockerLogBase(object):
     """
     A contextual logger to output JSON lines to a handle
     """
-    def __init__(self, handle=None):
-        self.handle = handle
+    def __init__(self):
         self.defaults = {}
 
     @contextmanager
@@ -322,12 +321,30 @@ class FauxDockerLog(object):
         Write a JSON line with kwargs, and defaults combined
         """
         with self.more_defaults(**kwargs):
-            line = ('%s\n' % json.dumps(self.defaults)).encode()
-            if self.handle is None:
-                yield line
-            else:
-                self.handle.write(line)
-                self.handle.flush()
+            return self.handle_line(
+                ('%s\n' % json.dumps(self.defaults)).encode()
+            )
+
+    def handle_line(self, line):
+        """ Handle outputting a line to the user """
+        raise NotImplementedError("Must override handle_line method")
+
+
+class GenFauxDockerLog(FauxDockerLogBase):
+    """ Generator for the faux Docker lines """
+    def handle_line(self, line):
+        yield line
+
+
+class IOFauxDockerLog(FauxDockerLogBase):
+    """ Writes faux Docker lines to a handle """
+    def __init__(self, handle):
+        super(IOFauxDockerLog, self).__init__()
+        self.handle = handle
+
+    def handle_line(self, line):
+        self.handle.write(line)
+        self.handle.flush()
 
 
 def tokengetter_for(oauth_app):
