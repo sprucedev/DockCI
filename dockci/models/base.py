@@ -464,7 +464,7 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
             project = self._get_project(lookup_allow)
             if project is not None:
                 self._job_dynamic = project.latest_job(
-                    passed=True, versioned=True,
+                    passed=True, versioned=True, tag=self.tag_raw,
                 )
 
         return self._job_dynamic

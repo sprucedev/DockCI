@@ -541,6 +541,7 @@ class Job(DB.Model, RepoFsMixin):
                        query=None,
                        passed=None,
                        versioned=None,
+                       tag=None,
                        completed=None,
                        branch=None,
                        ):
@@ -565,6 +566,9 @@ class Job(DB.Model, RepoFsMixin):
 
         if versioned is not None:
             query = filter_on_value(query, not versioned, cls.tag, None)
+
+        if tag is not None:
+            query = query.filter(cls.tag == tag)
 
         if completed is not None:
             query = query.filter(cls.result.in_(('success', 'fail', 'broken')))

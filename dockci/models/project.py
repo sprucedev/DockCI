@@ -110,6 +110,7 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
     def latest_job(self,
                    passed=None,
                    versioned=None,
+                   tag=None,
                    completed=None,
                    branch=None,
                    ):
@@ -121,6 +122,7 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
             query=self.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
             passed=passed,
             versioned=versioned,
+            tag=tag,
             completed=completed,
             branch=branch,
         ).first()
@@ -130,6 +132,7 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
                             commit,
                             passed=None,
                             versioned=None,
+                            tag=None,
                             completed=None,
                             branch=None,
                             ):
@@ -143,6 +146,7 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
             query=self.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
             passed=passed,
             versioned=versioned,
+            tag=tag,
             completed=completed,
             branch=branch,
         )

@@ -188,3 +188,32 @@ class TestServiceBaseJob(object):
 
         DB.session.commit()
         assert svc.job == jobs[2]
+
+    def test_job_image_tag(self):
+        """ Ensure when image tag is used to lookup jobs """
+        svc = ServiceBase(repo='postgres', tag='9.4')
+        project = Project(
+            slug='postgres',
+            name='Test PG',
+            repo='/test/PG',
+            utility=False,
+        )
+        tags = ['9.4', '9.5']
+        jobs = [
+            Job(
+                project=project,
+                result='success',
+                tag=tags[idx],
+                repo_fs='',
+                commit='',
+            )
+            for idx in range(2)
+        ]
+
+        DB.session.add(project)
+
+        for job in jobs:
+            DB.session.add(job)
+
+        DB.session.commit()
+        assert svc.job == jobs[0]
