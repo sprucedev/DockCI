@@ -92,8 +92,6 @@ class ServiceBase(object):
         Examples:
 
         >>> svc = ServiceBase.from_image('registry/dockci')
-        >>> svc.base_registry
-        'docker.io'
 
         >>> svc.repo
         'registry/dockci'
@@ -114,8 +112,6 @@ class ServiceBase(object):
         'other'
 
         >>> svc = ServiceBase.from_image('dockci', 'DockCI App')
-        >>> svc.base_registry
-        'docker.io'
 
         >>> svc.repo
         'dockci'
@@ -127,6 +123,7 @@ class ServiceBase(object):
         'DockCI App'
 
         >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other')
+
         >>> svc.base_registry
         'registry:5000'
 
@@ -353,7 +350,7 @@ class ServiceBase(object):
         if False:  # help pylint understand our return value
             return AuthenticatedRegistry()
 
-        if self.has_auth_registry:
+        if self.auth_registry_raw is not None:
             return self.auth_registry_raw
 
         lookup_allow['auth_registry'] = False
@@ -367,12 +364,26 @@ class ServiceBase(object):
             )
             self._auth_registry_dynamic = query.first()
 
+        if (
+            lookup_allow['project'] and
+            self._auth_registry_dynamic is None
+        ):
+            project = self._get_project()
+            if project is not None:
+                self._auth_registry_dynamic = project.target_registry
+
         return self._auth_registry_dynamic
 
     @property
     def has_auth_registry(self):
-        """ Whether or not an authenticated registry was explicitly given """
-        return self.auth_registry_raw is not None
+        """ Whether or not an authenticated registry was reliably given """
+        project = self.project
+        return (
+            self.auth_registry_raw is not None or (
+                project is not None and
+                project.target_registry is not None
+            )
+        )
 
     @property
     def project_raw(self):
@@ -416,16 +427,12 @@ class ServiceBase(object):
         lookup_allow['project'] = False
 
         if self._project_dynamic is None:
-            auth_registry = None
-            if lookup_allow['auth_registry']:
-                auth_registry = self._get_auth_registry(lookup_allow)
+            if self.has_base_registry or self.auth_registry_raw is not None:
+                return None
 
-            query = Project.query.filter_by(
+            self._project_dynamic = Project.query.filter_by(
                 slug=self.repo,
-                target_registry=auth_registry,
-            )
-
-            self._project_dynamic = query.first()
+            ).first()
 
         return self._project_dynamic
 

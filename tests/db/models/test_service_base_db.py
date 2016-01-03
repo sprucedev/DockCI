@@ -8,6 +8,45 @@ from dockci.server import DB
 
 
 @pytest.mark.usefixtures('db')
+class TestServiceBaseRegistry(object):
+    def test_no_project_exists(self):
+        svc = ServiceBase(repo='postgres')
+        assert svc.base_registry == 'docker.io'
+        assert svc.auth_registry == None
+
+    def test_docker_io_exists(self):
+        svc = ServiceBase(repo='postgres')
+        registry = AuthenticatedRegistry(
+            base_name='docker.io',
+            display_name='Docker Hub',
+        )
+        DB.session.add(registry)
+        DB.session.commit()
+
+        assert svc.auth_registry == registry
+
+    def test_project_target(self):
+        svc = ServiceBase(repo='postgres')
+        registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Local',
+        )
+        project = Project(
+            slug='postgres',
+            name='Postgres Test',
+            repo='',
+            utility=False,
+            target_registry=registry
+        )
+        DB.session.add(registry)
+        DB.session.add(project)
+        DB.session.commit()
+
+        assert svc.auth_registry == registry
+
+
+
+@pytest.mark.usefixtures('db')
 class TestServiceBaseProject(object):
     def setup_method(self, _):
         pass
@@ -31,27 +70,8 @@ class TestServiceBaseProject(object):
         assert svc.project == project
 
     def test_project_target_svc_no_registry(self):
-        """ Ensure project is not associated if service has no target """
+        """ Ensure project is associated if service has no target """
         svc = ServiceBase(repo='postgres')
-        registry = AuthenticatedRegistry(
-            base_name='registry:5000',
-            display_name='Test Reg',
-        )
-        project = Project(
-            slug='postgres',
-            name='Test PG',
-            repo='/test/PG',
-            utility=False,
-            target_registry=registry,
-        )
-        DB.session.add(registry)
-        DB.session.add(project)
-        DB.session.commit()
-        assert svc.project == None
-
-    def test_registries_match(self):
-        """ Ensure project is associated if registry base names match """
-        svc = ServiceBase(repo='postgres', base_registry='registry:5000')
         registry = AuthenticatedRegistry(
             base_name='registry:5000',
             display_name='Test Reg',
