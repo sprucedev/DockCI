@@ -228,6 +228,27 @@ class ServiceBase(object):
         return self.repo_raw is not None
 
     @property
+    def app_name(self):
+        """
+        Application name of the service. This is the last part of the repo,
+        without the namespace path
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
+
+        >>> svc.app_name
+        'dockci'
+
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci:latest')
+
+        >>> svc.app_name
+        'dockci'
+        """
+        if self.has_repo:
+            return self.repo.rsplit('/', 1)[-1]
+
+    @property
     def tag_raw(self):
         """ Raw tag given to this service """
         return self._tag
