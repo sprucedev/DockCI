@@ -357,12 +357,13 @@ class ServiceBase(object):
 
         if (
             lookup_allow['base_registry'] and
+            self.has_base_registry and
             self._auth_registry_dynamic is None
         ):
-            query = AuthenticatedRegistry.query.filter_by(
-                base_name=self._get_base_registry(lookup_allow),
-            )
-            self._auth_registry_dynamic = query.first()
+            self._auth_registry_dynamic = \
+                AuthenticatedRegistry.query.filter_by(
+                    base_name=self._get_base_registry(lookup_allow),
+                ).first()
 
         if (
             lookup_allow['project'] and
@@ -371,6 +372,12 @@ class ServiceBase(object):
             project = self._get_project()
             if project is not None:
                 self._auth_registry_dynamic = project.target_registry
+
+        if self._auth_registry_dynamic is None:
+            self._auth_registry_dynamic = \
+                AuthenticatedRegistry.query.filter_by(
+                    base_name='docker.io',
+                ).first()
 
         return self._auth_registry_dynamic
 

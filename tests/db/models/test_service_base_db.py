@@ -189,6 +189,31 @@ class TestServiceBaseRegistry(object):
         assert svc.auth_registry == registry
         assert svc.image == 'registry:5000/postgres'
 
+    def test_registry_docker_io_exists(self):
+        svc = ServiceBase(repo='postgres')
+        proj_registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Local',
+        )
+        hub_registry = AuthenticatedRegistry(
+            base_name='docker.io',
+            display_name='Docker Hub',
+        )
+        project = Project(
+            slug='postgres',
+            name='Postgres Test',
+            repo='',
+            utility=False,
+            target_registry=proj_registry
+        )
+        DB.session.add(proj_registry)
+        DB.session.add(hub_registry)
+        DB.session.add(project)
+        DB.session.commit()
+
+        assert svc.auth_registry == proj_registry
+        assert svc.image == 'registry:5000/postgres'
+
 
 @pytest.mark.usefixtures('db')
 class TestServiceBaseProject(object):
