@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 from dockci.models.auth import AuthenticatedRegistry
@@ -6,6 +8,148 @@ from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import DB
 
+
+BASIC_ATTR_TESTS = [
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='DockCI - quay.io/spruce/dockci:special',
+            display_full='DockCI - quay.io/spruce/dockci:special',
+            slug='quay_io_spruce_dockci_special',
+            name='DockCI',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='DockCI - spruce/dockci:special',
+            display_full='DockCI - docker.io/spruce/dockci:special',
+            slug='spruce_dockci_special',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='spruce/dockci:special',
+            display_full='spruce/dockci - docker.io/spruce/dockci:special',
+            slug='spruce_dockci_special',
+            name='spruce/dockci',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='quay.io/spruce/dockci:special',
+            display_full='spruce/dockci - quay.io/spruce/dockci:special',
+            slug='quay_io_spruce_dockci_special',
+            name='spruce/dockci',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            repo='spruce/dockci',
+        ),
+        exp=dict(
+            display='spruce/dockci',
+            display_full='spruce/dockci - docker.io/spruce/dockci:latest',
+            slug='spruce_dockci',
+            name='spruce/dockci',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            base_registry='quay.io',
+            repo='spruce/dockci',
+        ),
+        exp=dict(
+            display='quay.io/spruce/dockci',
+            display_full='spruce/dockci - quay.io/spruce/dockci:latest',
+            slug='quay_io_spruce_dockci',
+            name='spruce/dockci',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            repo='spruce/dockci',
+        ),
+        exp=dict(
+            display='DockCI - spruce/dockci',
+            display_full='DockCI - docker.io/spruce/dockci:latest',
+            slug='spruce_dockci',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest'
+        ),
+        exp=dict(
+            display='DockCI - docker.io/spruce/dockci:latest',
+            display_full='DockCI - docker.io/spruce/dockci:latest',
+            slug='docker_io_spruce_dockci_latest',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    )
+]
+BASIC_ATTR_TESTS = list(itertools.chain.from_iterable(
+    [
+        (kwargs_vals['kwargs'], attr_name, exp_value)
+        for attr_name, exp_value in kwargs_vals['exp'].items()
+    ]
+    for kwargs_vals in BASIC_ATTR_TESTS
+))
+
+@pytest.mark.usefixtures('db')
+class TestServiceBaseAttrs(object):
+    @pytest.mark.parametrize('kwargs,attr_name,exp', BASIC_ATTR_TESTS)
+    def test_basic(self, kwargs, attr_name, exp):
+        """ Test defaults and generation for many basic attributes """
+        assert getattr(ServiceBase(**kwargs), attr_name) == exp
 
 @pytest.mark.usefixtures('db')
 class TestServiceBaseRegistry(object):
@@ -43,7 +187,7 @@ class TestServiceBaseRegistry(object):
         DB.session.commit()
 
         assert svc.auth_registry == registry
-
+        assert svc.image == 'registry:5000/postgres'
 
 
 @pytest.mark.usefixtures('db')

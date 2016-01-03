@@ -157,7 +157,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
         >>> svc.name
         'spruce/dockci'
 
@@ -172,7 +172,7 @@ class ServiceBase(object):
         True
 
         >>> svc.display
-        'Test Name - spruce/dockci'
+        'Test Name - quay.io/spruce/dockci'
         """
         if self.has_name:
             return self.name_raw
@@ -201,7 +201,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase(tag='special')
+        >>> svc = ServiceBase(base_registry='quay.io', tag='special')
         >>> svc.has_repo
         False
 
@@ -213,7 +213,7 @@ class ServiceBase(object):
         True
 
         >>> svc.display
-        'spruce/dockci:special'
+        'quay.io/spruce/dockci:special'
         """
         return self.repo_raw
 
@@ -239,7 +239,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
         >>> svc.tag
         'latest'
 
@@ -254,7 +254,7 @@ class ServiceBase(object):
         True
 
         >>> svc.display
-        'spruce/dockci:special'
+        'quay.io/spruce/dockci:special'
         """
         if self.has_tag:
             return self.tag_raw
@@ -506,11 +506,8 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
-        >>> svc.image
-        'spruce/dockci'
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
 
-        >>> svc.base_registry = 'quay.io'
         >>> svc.image
         'quay.io/spruce/dockci'
 
@@ -531,11 +528,8 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
-        >>> svc.repo_full
-        'spruce/dockci'
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
 
-        >>> svc.base_registry = 'quay.io'
         >>> svc.repo_full
         'quay.io/spruce/dockci'
 
@@ -560,8 +554,11 @@ class ServiceBase(object):
 
         if name and (full or self.has_name):
             string = "%s - " % self.name
-        if full or self.has_base_registry:
-            string += '%s/' % self.base_registry
+        if full or self.has_base_registry or self.has_auth_registry:
+            if self.has_auth_registry:
+                string += '%s/' % self.auth_registry.base_name
+            else:
+                string += '%s/' % self.base_registry
         if full or self.has_repo:
             string += self.repo
         if tag and (full or self.has_tag):
