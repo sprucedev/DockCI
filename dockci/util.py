@@ -252,42 +252,51 @@ def setup_templates(app):
 
 
 def docker_ensure_image(client,
-                        image_id,
-                        pull_repo,
-                        pull_tag,
+                        service,
                         insecure_registry=False,
                         handle=None):
     """
-    Ensure that an image id exists, pulling from repo/tag if not available. If
-    handle is given (a handle to write to), the pull output will be streamed
-    through.
+    Ensure that an image for the service exists, pulling from repo/tag if not
+    available. If handle is given (a handle to write to), the pull output will
+    be streamed through.
 
     Returns the image id (might be different, if repo/tag is used and doesn't
     match the ID pulled down... This is bad, but no way around it)
     """
     try:
-        return client.inspect_image(image_id)['Id']
+        return client.inspect_image(service.image)['Id']
 
     except docker.errors.APIError:
         if handle:
-            docker_data = client.pull(pull_repo,
-                                      pull_tag,
+            docker_data = client.pull(service.repo_full,
+                                      service.tag,
                                       insecure_registry=insecure_registry,
                                       stream=True,
                                       )
 
         else:
-            docker_data = client.pull(pull_repo,
-                                      pull_tag,
+            docker_data = client.pull(service.repo_full,
+                                      service.tag,
                                       insecure_registry=insecure_registry,
                                       ).split('\n')
 
         latest_id = None
         for line in docker_data:
-            if handle:
-                handle.write(line.encode())
+            line_bytes = line_str = line
+            try:
+                line_bytes = line.encode()
+            except AttributeError:
+                pass
 
-            data = json.loads(line)
+            try:
+                line_str = line.decode()
+            except AttributeError:
+                pass
+
+            if handle:
+                handle.write(line_bytes())
+
+            data = json.loads(line_str)
             if 'id' in data:
                 latest_id = data['id']
 
