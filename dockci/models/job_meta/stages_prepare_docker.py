@@ -19,7 +19,7 @@ from dockci.models.job_meta.stages import JobStageBase
 from dockci.models.project import Project
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
-                         FauxDockerLog,
+                         IOFauxDockerLog,
                          path_contained,
                          )
 
@@ -72,7 +72,7 @@ class InlineProjectStage(JobStageBase):
         Resolve project containers, and pass control to ``runnable_inline``
         """
         all_okay = True
-        faux_log = FauxDockerLog(handle)
+        faux_log = IOFauxDockerLog(handle)
         for project_slug, service_project in self.get_projects().items():
 
             # pylint:disable=no-member
