@@ -84,25 +84,23 @@ class InlineProjectStage(JobStageBase):
                     faux_log.update()
 
                     service_project = service.project
+                    service_job = service.job
+
                     if service_project is None:
                         faux_log.update(error="No project found")
+
+                    elif service_job is None:
+                        faux_log.update(
+                            error="No successful, versioned job for %s" % (
+                                service_project.name
+                            ),
+                        )
+
+                    if service_project is None or service_job is None:
                         all_okay = False
                         continue
 
-                    else:
-                        service_job = service_project.latest_job(
-                            passed=True, versioned=True,
-                        )
-                        if not service_job:
-                            faux_log.update(
-                                error="No successful, versioned job for %s" % (
-                                    service_project.name
-                                ),
-                            )
-                            all_okay = False
-                            continue
-
-                        service.tag = service_job.tag
+                    service.tag = service_job.tag
 
                 defaults = {'status': "Pulling container image %s" % (
                     service.display,
