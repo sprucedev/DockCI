@@ -354,7 +354,10 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
 
         lookup_allow['auth_registry'] = False
 
-        if lookup_allow['base_registry'] and self._auth_registry_dynamic is None:
+        if (
+            lookup_allow['base_registry'] and
+            self._auth_registry_dynamic is None
+        ):
             query = AuthenticatedRegistry.query.filter_by(
                 base_name=self._get_base_registry(lookup_allow),
             )
