@@ -500,6 +500,9 @@ class ServiceBase(object):
         Examples:
 
         >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.image
+        'spruce/dockci'
+
         >>> svc.base_registry = 'quay.io'
         >>> svc.image
         'quay.io/spruce/dockci'
@@ -515,11 +518,36 @@ class ServiceBase(object):
         return self._display(full=False, name=False)
 
     @property
+    def repo_full(self):
+        """
+        Similar to the ``repo`` property, but includes the registry
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc.repo_full
+        'spruce/dockci'
+
+        >>> svc.base_registry = 'quay.io'
+        >>> svc.repo_full
+        'quay.io/spruce/dockci'
+
+        >>> svc.tag = 'latest'
+        >>> svc.repo_full
+        'quay.io/spruce/dockci'
+
+        >>> svc.name = 'Test Name'
+        >>> svc.repo_full
+        'quay.io/spruce/dockci'
+        """
+        return self._display(full=False, name=False, tag=False)
+
+    @property
     def slug(self):
         """ Get a slug for the service """
         return SLUG_REPLACE_RE.sub("_", self.image)
 
-    def _display(self, full, name=True):
+    def _display(self, full, name=True, tag=True):
         """ Used for the display properties """
         string = ""
 
@@ -529,7 +557,7 @@ class ServiceBase(object):
             string += '%s/' % self.base_registry
         if full or self.has_repo:
             string += self.repo
-        if full or self.has_tag:
+        if tag and (full or self.has_tag):
             string += ":%s" % self.tag
 
         if string == '':
