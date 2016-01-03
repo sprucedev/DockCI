@@ -54,7 +54,6 @@ OAUTH_APPS_SCOPE_SERIALIZERS = {
 
 def get_db_uri():
     """ Try to get the DB URI from multiple sources """
-    raise Exception(os.environ)
     if 'DOCKCI_DB_URI' in os.environ:
         return os.environ['DOCKCI_DB_URI']
     elif (
@@ -103,13 +102,8 @@ def app_init():
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
-    print(APP.config)
-    print(APP.config.get('SQLALCHEMY_DATABASE_URI', None))
     if APP.config.get('SQLALCHEMY_DATABASE_URI', None) is None:
-        print("SETTING")
         APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
-
-    print(print(APP.config.get('SQLALCHEMY_DATABASE_URI', None)))
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
@@ -121,8 +115,6 @@ def app_init():
         SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
 
     MAIL.init_app(APP)
-
-    print('DB INIT')
     DB.init_app(APP)
 
     app_init_oauth()
