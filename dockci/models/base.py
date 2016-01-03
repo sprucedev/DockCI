@@ -51,6 +51,7 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
                  repo=None,
                  tag=None,
                  project=None,
+                 job=None,
                  base_registry=None,
                  auth_registry=None,
                  ):
@@ -59,10 +60,15 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
             assert auth_registry.base_name == base_registry, (
                 "AuthenticatedRegistry.base_name doesn't match base_registry")
 
+        if project is not None and job is not None:
+            assert job.project == project, (
+                "Job %s isn't for project %s" % job, project)
+
         self._name = name
         self._repo = repo
         self._tag = tag
         self._project = project
+        self._job = job
         self._base_registry = base_registry
         self._auth_registry = auth_registry
 
@@ -379,6 +385,41 @@ class ServiceBase(object):  # pylint:disable=too-many-public-methods
     def has_project(self):
         """ Whether or not a project was explicitly given """
         return self.project_raw is not None
+
+    @property
+    def job_raw(self):
+        """ Raw job given to this service """
+        return self._job
+
+    @property
+    def job(self):
+        """
+        ``Job`` associated with this service. If not given, tries to lookup
+        by using the service project, and matching the tag
+
+        >>> svc = ServiceBase(repo='postgres')
+        >>> job = 'Fake Job'
+        >>> svc.job = job
+        >>> svc.job
+        'Fake Job'
+        """
+        if self.has_job:
+            return self.job_raw
+
+        else:
+            project = self.project
+            if project is not None:
+                pass
+
+    @job.setter
+    def job(self, value):
+        """ Set the job """
+        self._job = value
+
+    @property
+    def has_job(self):
+        """ Whether or not a job was explicitly given """
+        return self.job_raw is not None
 
     @property
     def display(self):

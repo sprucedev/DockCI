@@ -85,3 +85,14 @@ class TestServiceBaseProject(object):
         DB.session.add(project)
         DB.session.commit()
         assert svc.project == None
+
+
+@pytest.mark.usefixtures('db')
+class TestServiceBaseJob(object):
+    def setup_method(self, _):
+        pass
+
+    def test_no_project_exists(self):
+        """ Ensure when no project exists, None is returned """
+        svc = ServiceBase(repo='postgres')
+        assert svc.job == None
