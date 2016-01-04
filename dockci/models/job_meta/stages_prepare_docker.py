@@ -28,7 +28,7 @@ class InlineProjectStage(JobStageBase):
     def get_services(self):
         """ Get the services associated with the projects in this stage """
         raise NotImplementedError(
-            "You must override the 'get_service_slugs' method"
+            "You must override the 'get_services' method"
         )
 
     def id_for_service(self, slug):
