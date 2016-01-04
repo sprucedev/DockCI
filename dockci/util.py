@@ -251,6 +251,32 @@ def setup_templates(app):
         return isinstance(val, (tuple, list))
 
 
+def bytes_str(value):
+    """
+    Turn bytes, or string value into both bytes and string
+
+    Examples:
+
+    >>> bytes_str('myval')
+    (b'myval', 'myval')
+
+    >>> bytes_str(b'myval')
+    (b'myval', 'myval')
+    """
+    v_bytes = v_str = value
+    try:
+        v_bytes = value.encode()
+    except AttributeError:
+        pass
+
+    try:
+        v_str = value.decode()
+    except AttributeError:
+        pass
+
+    return v_bytes, v_str
+
+
 def docker_ensure_image(client,
                         service,
                         insecure_registry=False,
@@ -282,16 +308,7 @@ def docker_ensure_image(client,
 
         latest_id = None
         for line in docker_data:
-            line_bytes = line_str = line
-            try:
-                line_bytes = line.encode()
-            except AttributeError:
-                pass
-
-            try:
-                line_str = line.decode()
-            except AttributeError:
-                pass
+            line_bytes, line_str = bytes_str(line)
 
             if handle:
                 handle.write(line_bytes)
