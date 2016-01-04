@@ -120,7 +120,8 @@ class ServiceBase(object):
         'registry/dockci'
 
 
-        >>> svc = ServiceBase.from_image('registry/spruce/dockci', use_db=False)
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci', \
+                                         use_db=False)
         >>> svc.base_registry
         'registry'
 
@@ -130,7 +131,8 @@ class ServiceBase(object):
         >>> svc.tag
         'latest'
 
-        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other', use_db=False)
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other', \
+                                         use_db=False)
         >>> svc.tag
         'other'
 
@@ -145,7 +147,8 @@ class ServiceBase(object):
         >>> svc.name
         'DockCI App'
 
-        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other', use_db=False)
+        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other', \
+                                         use_db=False)
 
         >>> svc.base_registry
         'registry:5000'
@@ -153,7 +156,9 @@ class ServiceBase(object):
         >>> svc.tag
         'other'
 
-        >>> svc = ServiceBase.from_image('dockci', meta={'config': 'fake'}, use_db=False)
+        >>> svc = ServiceBase.from_image('dockci', \
+                                         meta={'config': 'fake'}, \
+                                         use_db=False)
         >>> svc.meta
         {'config': 'fake'}
         """
@@ -234,7 +239,9 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase(base_registry='quay.io', tag='special', use_db=False)
+        >>> svc = ServiceBase(base_registry='quay.io', \
+                              tag='special', \
+                              use_db=False)
         >>> svc.has_repo
         False
 
