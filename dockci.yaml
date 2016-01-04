@@ -22,7 +22,7 @@ utilities:
       - from: /work/bower_components
         to: util
 services:
-  postgres:
+  'postgres:9.4':
     alias: postgres
     environment:
       POSTGRES_USER: dockcitest
