@@ -214,7 +214,7 @@ class ServiceBase(object):
 
     @property
     def has_name(self):
-        """ Whether or not a name was explicitly given """
+        """ Whether or not a name was reliably given """
         return self.name_raw is not None
 
     @property
@@ -252,7 +252,7 @@ class ServiceBase(object):
 
     @property
     def has_repo(self):
-        """ Whether or not a repository was explicitly given """
+        """ Whether or not a repository was reliably given """
         return self.repo_raw is not None
 
     @property
@@ -317,7 +317,7 @@ class ServiceBase(object):
 
     @property
     def has_tag(self):
-        """ Whether or not a tag was explicitly given """
+        """ Whether or not a tag was reliably given """
         return self.tag_raw is not None
 
     @property
@@ -370,7 +370,7 @@ class ServiceBase(object):
 
     @property
     def has_base_registry(self):
-        """ Whether or not a registry base name was explicitly given """
+        """ Whether or not a registry base name was reliably given """
         return self.base_registry_raw is not None
 
     @property
@@ -494,7 +494,7 @@ class ServiceBase(object):
 
     @property
     def has_project(self):
-        """ Whether or not a project was explicitly given """
+        """ Whether or not a project was reliably given """
         return self.project_raw is not None
 
     @property
@@ -542,7 +542,7 @@ class ServiceBase(object):
 
     @property
     def has_job(self):
-        """ Whether or not a job was explicitly given """
+        """ Whether or not a job was reliably given """
         return self.job_raw is not None
 
     @property
