@@ -74,14 +74,6 @@ class ServiceBase(object):
                  use_db=True,
                  ):
 
-        if base_registry is not None and auth_registry is not None:
-            assert auth_registry.base_name == base_registry, (
-                "AuthenticatedRegistry.base_name doesn't match base_registry")
-
-        if project is not None and job is not None:
-            assert job.project == project, (
-                "Job %s isn't for project %s" % job, project)
-
         if meta is None:
             meta = {}
 
@@ -89,18 +81,25 @@ class ServiceBase(object):
 
         self.use_db = use_db
 
-        self._name = name
-        self._repo = repo
-        self._tag = tag
-        self._project = project
-        self._job = job
-        self._base_registry = base_registry
-        self._auth_registry = auth_registry
-
         self._auth_registry_dynamic = None
         self._project_dynamic = None
         self._job_dynamic = None
-        self._auth_registry_dynamic = None
+
+        self._name = None
+        self._repo = None
+        self._tag = None
+        self._base_registry = None
+        self._auth_registry = None
+        self._project = None
+        self._job = None
+
+        self.name = name
+        self.repo = repo
+        self.tag = tag
+        self.base_registry = base_registry
+        self.auth_registry = auth_registry
+        self.project = project
+        self.job = job
 
     @classmethod
     def from_image(cls, image, name=None, meta=None, use_db=True):
@@ -366,6 +365,16 @@ class ServiceBase(object):
     @base_registry.setter
     def base_registry(self, value):
         """ Set the base_registry """
+        if (
+            value is not None and
+            self.has_auth_registry and
+            self.auth_registry.base_name != value
+        ):
+            raise ValueError(
+                "Existing auth_registry value '%s' doesn't match" % (
+                    self.auth_registry.base_name)
+            )
+
         self._base_registry = value
 
     def _get_base_registry(self, lookup_allow=None):
@@ -405,6 +414,26 @@ class ServiceBase(object):
     @auth_registry.setter
     def auth_registry(self, value):
         """ Set the auth_registry """
+        if (
+            value is not None and
+            self.has_base_registry and
+            self.base_registry != value
+        ):
+            raise ValueError(
+                "Existing base_registry value '%s' doesn't match" % (
+                    self.base_registry)
+            )
+        if value is not None and self.has_project:
+            project = self.project
+            if (
+                self.project.target_registry is not None and
+                self.project.target_registry != value
+            ):
+                raise ValueError(
+                    "Existing project target_registry value "
+                    "'%s' doesn't match" % project.target_registry
+                )
+
         self._auth_registry = value
 
     def _get_auth_registry(self, lookup_allow=None):
@@ -470,18 +499,31 @@ class ServiceBase(object):
         by matching the repository with the project slug. When a lookup occurs,
         and a registry is given to the service, the ``Project`` must have the
         same authenticated registry set
-
-        >>> svc = ServiceBase(repo='postgres')
-        >>> project = 'Fake Project'
-        >>> svc.project = project
-        >>> svc.project
-        'Fake Project'
         """
         return self._get_project()
 
     @project.setter
     def project(self, value):
         """ Set the project """
+        if value is not None and value.target_registry is not None:
+            if (
+                self.has_base_registry and
+                self.base_registry != value.target_registry.base_name
+            ):
+                raise ValueError(
+                    ("Existing base_registry value '%s' doesn't match project "
+                     "target_registry") % self.base_registry
+                )
+
+            if (
+                self.has_auth_registry and
+                self.auth_registry != value.target_registry
+            ):
+                raise ValueError(
+                    ("Existing auth_registry value '%s' doesn't match project "
+                     "target_registry") % self.auth_registry
+                )
+
         self._project = value
 
     def _get_project(self, lookup_allow=None):
@@ -536,6 +578,15 @@ class ServiceBase(object):
     @job.setter
     def job(self, value):
         """ Set the job """
+        if (
+            value is not None and
+            self.has_project and
+            value.project != self.project
+        ):
+            raise ValueError(
+                ("Existing project value '%s' doesn't match "
+                 "job project") % self.project
+            )
         self._job = value
 
     def _get_job(self, lookup_allow=None):
