@@ -25,40 +25,11 @@ from dockci.util import (built_docker_image_id,
 
 class InlineProjectStage(JobStageBase):
     """ Stage to run project containers inline in another project job """
-    _projects = None
-
-    def get_project_slugs(self):
-        """ Get all project slugs that relate to this inline stage """
-        raise NotImplementedError(
-            "You must override the 'get_project_slugs' method"
-        )
-
-    def get_projects(self):
-        """
-        Get all the project model objects that relate to this inline stage
-        """
-        if self._projects is None:
-            self._projects = {
-                slug: Project.query.filter_by(slug=slug).first()
-                for slug in self.get_project_slugs()
-            }
-
-        return self._projects
-
     def get_services(self):
         """ Get the services associated with the projects in this stage """
-        return [
-            ServiceBase(
-                name=project.name,
-                repo=project.slug,
-                auth_registry=project.target_registry,
-            )
-            for project in self.get_projects().values()
-            if (
-                project is not None and
-                project.target_registry is not None
-            )
-        ]
+        raise NotImplementedError(
+            "You must override the 'get_service_slugs' method"
+        )
 
     def id_for_service(self, slug):
         """ Get the event series ID for a given service's slug """
@@ -109,9 +80,7 @@ class InlineProjectStage(JobStageBase):
                     try:
                         image_id = docker_ensure_image(
                             self.job.docker_client,
-                            service_job.image_id,
-                            service_job.docker_image_name,
-                            service_job.tag,
+                            service,
                             insecure_registry=(
                                 service_job.project.target_registry.insecure
                             ),
@@ -131,7 +100,7 @@ class InlineProjectStage(JobStageBase):
                     faux_log.update(progress="Done")
 
                 all_okay &= self.runnable_inline(
-                    service_job,
+                    service,
                     image_id,
                     handle,
                     faux_log,
@@ -139,8 +108,8 @@ class InlineProjectStage(JobStageBase):
 
         return 0 if all_okay else 1
 
-    def runnable_inline(self, service_job, image_id, handle, faux_log):
-        """ Executed for each service job """
+    def runnable_inline(self, service, image_id, handle, faux_log):
+        """ Executed for each service """
         raise NotImplementedError(
             "You must override the 'runnable_inline' method"
         )
@@ -239,19 +208,21 @@ class ProvisionStage(InlineProjectStage):
 
     slug = 'docker_provision'
 
-    def get_project_slugs(self):
-        return set(self.job.job_config.services.keys())
+    def get_services(self):
+        return [
+            ServiceBase.from_image(image,
+                                   name=conf.get('alias', None),
+                                   meta={'config': conf},
+                                   )
+            for image, conf in self.job.job_config.services.items()
+        ]
 
-    def runnable_inline(self, service_job, image_id, handle, faux_log):
-        service_project = service_job.project
-        service_config = self.job.job_config.services[service_project.slug]
-
-        defaults = {'status': "Starting service %s %s" % (
-            service_project.name,
-            service_job.tag,
-        )}
+    def runnable_inline(self, service, image_id, handle, faux_log):
+        defaults = {'status': "Starting service %s" % service.display}
         with faux_log.more_defaults(**defaults):
             faux_log.update()
+
+            service_config = service.meta['config']
 
             service_kwargs = {
                 key: value for key, value in service_config.items()
@@ -268,7 +239,7 @@ class ProvisionStage(InlineProjectStage):
                 # Store the provisioning info
                 # pylint:disable=protected-access
                 self.job._provisioned_containers.append({
-                    'project_slug': service_project.slug,
+                    'service': service,
                     'config': service_config,
                     'id': container['Id'],
                 })
@@ -289,8 +260,12 @@ class UtilStage(InlineProjectStage):
         self.slug = "utility_%s" % slug_suffix
         self.config = config
 
-    def get_project_slugs(self):
-        return (self.config['name'],)
+    def get_services(self):
+        return [
+            ServiceBase.from_image(self.config['name'],
+                                   meta={'config': self.config},
+                                   )
+        ]
 
     def id_for_service(self, slug):
         return slug
@@ -529,25 +504,25 @@ class UtilStage(InlineProjectStage):
 
         return success
 
-    def runnable_inline(self, service_job, base_image_id, handle, faux_log):
+    def runnable_inline(self, service, base_image_id, handle, faux_log):
         """
         Inline runner for utility projects. Adds files, runs the container,
         retrieves output, and cleans up
 
         Args:
-          service_job (dockci.models.job.Job): External Job model that this
-            stage uses the image from
-          base_image_id (str): Image ID of the versioned job to use
+          service (dockci.models.base.ServiceBase): Service that this stage
+            uses the image from
+          base_image_id (str): Image ID of the utility base
           handle: Stream handle for raw output
           faux_log: The faux docker log object
 
         Returns:
           bool: True on all success, False on at least 1 failure
         """
-        utility_project = service_job.project
+        service_id = self.id_for_service(service.slug)
 
         defaults = {
-            'id': "%s-input" % self.id_for_service(utility_project.slug),
+            'id': "%s-input" % service_id,
             'status': "Adding files",
         }
         with faux_log.more_defaults(**defaults):
@@ -558,12 +533,9 @@ class UtilStage(InlineProjectStage):
 
         container_id = None
         success = True
-        cleanup_id = "%s-cleanup" % self.id_for_service(utility_project.slug)
+        cleanup_id = "%s-cleanup" % service_id
         try:
-            defaults = {'status': "Starting %s utility %s" % (
-                utility_project.name,
-                service_job.tag,
-            )}
+            defaults = {'status': "Starting utility %s" % service.display}
             with faux_log.more_defaults(**defaults):
                 faux_log.update()
                 container_id, success = self.run_util(
@@ -579,16 +551,13 @@ class UtilStage(InlineProjectStage):
 
                 if exit_code != 0:
                     faux_log.update(
-                        id="%s-exit" % self.id_for_service(
-                            utility_project.slug,
-                        ),
+                        id="%s-exit" % service_id,
                         error="Exit code was %d" % exit_code
                     )
                     success = False
 
             if success:
-                files_id = (
-                    "%s-output" % self.id_for_service(utility_project.slug))
+                files_id = "%s-output" % service_id
                 defaults = {'status': "Getting files"}
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()

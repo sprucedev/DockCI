@@ -58,6 +58,7 @@ class ServiceBase(object):
                  job=None,
                  base_registry=None,
                  auth_registry=None,
+                 meta=None,
                  ):
 
         if base_registry is not None and auth_registry is not None:
@@ -67,6 +68,11 @@ class ServiceBase(object):
         if project is not None and job is not None:
             assert job.project == project, (
                 "Job %s isn't for project %s" % job, project)
+
+        if meta is None:
+            meta = {}
+
+        self.meta = meta
 
         self._name = name
         self._repo = repo
@@ -81,7 +87,7 @@ class ServiceBase(object):
         self._auth_registry_dynamic = None
 
     @classmethod
-    def from_image(cls, image, name=None):
+    def from_image(cls, image, name=None, meta=None):
         """
         Given an image name such as ``quay.io/thatpanda/dockci:latest``,
         creates a ``ServiceBase`` object.
@@ -144,7 +150,12 @@ class ServiceBase(object):
 
         repo = tag_parts[0]
 
-        return cls(base_registry=base_registry, repo=repo, tag=tag, name=name)
+        return cls(base_registry=base_registry,
+                   repo=repo,
+                   tag=tag,
+                   name=name,
+                   meta=meta,
+                   )
 
     @property
     def name_raw(self):
