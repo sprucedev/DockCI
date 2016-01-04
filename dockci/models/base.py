@@ -45,6 +45,8 @@ class RepoFsMixin(object):
 SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 
 
+# TODO all these disabled pylint things should be reviewed later on. How would
+#      we better split this up?
 # pylint:disable=too-many-public-methods,too-many-instance-attributes
 class ServiceBase(object):
     """ Service object for storing utility/provision information """
