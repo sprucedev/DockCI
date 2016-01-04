@@ -371,8 +371,8 @@ class ServiceBase(object):
             self.auth_registry.base_name != value
         ):
             raise ValueError(
-                "Existing auth_registry value '%s' doesn't match" % (
-                    self.auth_registry.base_name)
+                ("Existing auth_registry value '%s' doesn't match new "
+                 "base_registry value") % self.auth_registry.base_name
             )
 
         self._base_registry = value
@@ -420,8 +420,8 @@ class ServiceBase(object):
             self.base_registry != value
         ):
             raise ValueError(
-                "Existing base_registry value '%s' doesn't match" % (
-                    self.base_registry)
+                ("Existing base_registry value '%s' doesn't match new "
+                 "auth_registry value") % self.base_registry
             )
         if value is not None and self.has_project:
             project = self.project
@@ -430,8 +430,8 @@ class ServiceBase(object):
                 self.project.target_registry != value
             ):
                 raise ValueError(
-                    "Existing project target_registry value "
-                    "'%s' doesn't match" % project.target_registry
+                    ("Existing project target_registry value '%s' doesn't "
+                     "match new auth_registry value") % project.target_registry
                 )
 
         self._auth_registry = value
@@ -511,8 +511,8 @@ class ServiceBase(object):
                 self.base_registry != value.target_registry.base_name
             ):
                 raise ValueError(
-                    ("Existing base_registry value '%s' doesn't match project "
-                     "target_registry") % self.base_registry
+                    ("Existing base_registry value '%s' doesn't match new "
+                     "project target_registry value") % self.base_registry
                 )
 
             if (
@@ -520,9 +520,19 @@ class ServiceBase(object):
                 self.auth_registry != value.target_registry
             ):
                 raise ValueError(
-                    ("Existing auth_registry value '%s' doesn't match project "
-                     "target_registry") % self.auth_registry
+                    ("Existing auth_registry value '%s' doesn't match new "
+                     "project target_registry value") % self.auth_registry
                 )
+
+        if (
+            value is not None and
+            self.has_job and
+            value != self.job.project
+        ):
+            raise ValueError(
+                ("Existing job project value '%s' doesn't match new "
+                 "project value") % self.job.project
+            )
 
         self._project = value
 
@@ -584,8 +594,8 @@ class ServiceBase(object):
             value.project != self.project
         ):
             raise ValueError(
-                ("Existing project value '%s' doesn't match "
-                 "job project") % self.project
+                ("Existing project value '%s' doesn't match new "
+                 "job project value") % self.project
             )
         self._job = value
 
