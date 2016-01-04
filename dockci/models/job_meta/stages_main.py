@@ -117,8 +117,7 @@ class BuildStage(DockerStage):
         """ Dockerfile used to build """
         return self.job.job_config.dockerfile
 
-    @property
-    def external_services(self):
+    def get_services(self):
         """ Services for registries required by Dockerfile FROM """
         with self.workdir.join(self.dockerfile).open() as dockerfile_handle:
             for line in dockerfile_handle:
@@ -210,11 +209,11 @@ class TestStage(DockerStage):
                 if isinstance(service_info['config'], dict):
                     service_info['alias'] = service_info['config'].get(
                         'alias',
-                        service_info['project_slug']
+                        service_info['service'].app_name
                     )
 
                 else:
-                    service_info['alias'] = service_info['project_slug']
+                    service_info['alias'] = service_info['service'].app_name
 
             return (service_info['name'], service_info['alias'])
 

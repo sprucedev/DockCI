@@ -20,8 +20,7 @@ class PushStage(DockerStage):
 
     slug = 'docker_push'
 
-    @property
-    def external_services(self):
+    def get_services(self):
         """ Return target registry, if this is a push candidate """
         if self.job.push_candidate:
             return [ServiceBase(

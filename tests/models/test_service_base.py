@@ -1,196 +1,20 @@
-import itertools
+import re
 
 import pytest
 
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.base import ServiceBase
+from dockci.models.job import Job
+from dockci.models.project import Project
 
 
-BASIC_ATTR_TESTS = [
-    dict(
-        kwargs=dict(
-            name='DockCI',
-            base_registry='quay.io',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-        exp=dict(
-            display='DockCI - quay.io/spruce/dockci:special',
-            display_full='DockCI - quay.io/spruce/dockci:special',
-            slug='quay_io_spruce_dockci_special',
-            name='DockCI',
-            base_registry='quay.io',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            name='DockCI',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-        exp=dict(
-            display='DockCI - spruce/dockci:special',
-            display_full='DockCI - docker.io/spruce/dockci:special',
-            slug='spruce_dockci_special',
-            name='DockCI',
-            base_registry='docker.io',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            repo='spruce/dockci',
-            tag='special',
-        ),
-        exp=dict(
-            display='spruce/dockci:special',
-            display_full='spruce/dockci - docker.io/spruce/dockci:special',
-            slug='spruce_dockci_special',
-            name='spruce/dockci',
-            base_registry='docker.io',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            base_registry='quay.io',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-        exp=dict(
-            display='quay.io/spruce/dockci:special',
-            display_full='spruce/dockci - quay.io/spruce/dockci:special',
-            slug='quay_io_spruce_dockci_special',
-            name='spruce/dockci',
-            base_registry='quay.io',
-            repo='spruce/dockci',
-            tag='special',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            repo='spruce/dockci',
-        ),
-        exp=dict(
-            display='spruce/dockci',
-            display_full='spruce/dockci - docker.io/spruce/dockci:latest',
-            slug='spruce_dockci',
-            name='spruce/dockci',
-            base_registry='docker.io',
-            repo='spruce/dockci',
-            tag='latest',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            base_registry='quay.io',
-            repo='spruce/dockci',
-        ),
-        exp=dict(
-            display='quay.io/spruce/dockci',
-            display_full='spruce/dockci - quay.io/spruce/dockci:latest',
-            slug='quay_io_spruce_dockci',
-            name='spruce/dockci',
-            base_registry='quay.io',
-            repo='spruce/dockci',
-            tag='latest',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            name='DockCI',
-            repo='spruce/dockci',
-        ),
-        exp=dict(
-            display='DockCI - spruce/dockci',
-            display_full='DockCI - docker.io/spruce/dockci:latest',
-            slug='spruce_dockci',
-            name='DockCI',
-            base_registry='docker.io',
-            repo='spruce/dockci',
-            tag='latest',
-        ),
-    ),
-    dict(
-        kwargs=dict(
-            name='DockCI',
-            base_registry='docker.io',
-            repo='spruce/dockci',
-            tag='latest'
-        ),
-        exp=dict(
-            display='DockCI - docker.io/spruce/dockci:latest',
-            display_full='DockCI - docker.io/spruce/dockci:latest',
-            slug='docker_io_spruce_dockci_latest',
-            name='DockCI',
-            base_registry='docker.io',
-            repo='spruce/dockci',
-            tag='latest',
-        ),
-    )
-]
-BASIC_ATTR_TESTS = list(itertools.chain.from_iterable(
-    [
-        (kwargs_vals['kwargs'], attr_name, exp_value)
-        for attr_name, exp_value in kwargs_vals['exp'].items()
-    ]
-    for kwargs_vals in BASIC_ATTR_TESTS
-))
+VALUE_ERROR_MESSAGE_RE = re.compile(
+    r"Existing .+ value '[^']+' doesn't match new ([^ ]+)(.*)? value"
+)
 
 
 class TestServiceBase(object):
     """ Test the ``ServiceBase`` class """
-
-    @pytest.mark.parametrize('kwargs,attr_name,exp', BASIC_ATTR_TESTS)
-    def test_basic(self, kwargs, attr_name, exp):
-        """ Test defaults and generation for many basic attributes """
-        assert getattr(ServiceBase(**kwargs), attr_name) == exp
-
-    @pytest.mark.parametrize(
-        'base_registry,exp_filter,query_count,query_first,exp', [
-            ('quay.io', 'quay.io', 0, None, None),
-            ('quay.io', 'quay.io', 1, 'testval', 'testval'),
-            ('quay.io', 'quay.io', 2, 'testval', 'testval'),
-            ('docker.io', 'docker.io', 0, None, None),
-            ('docker.io', 'docker.io', 1, 'testval', 'testval'),
-
-            (None, 'docker.io', 0, None, None),
-            (None, 'docker.io', 1, 'testval', 'testval'),
-        ]
-    )
-    def test_auth_registry_gen(self,
-                               mocker,
-                               base_registry,
-                               exp_filter,
-                               query_count,
-                               query_first,
-                               exp):
-        """ Test that auth registry is looked up correctly when not given """
-        class MockResult(object):
-            filter_by_called = False
-
-            def filter_by(self, **kwargs):
-                self.filter_by_called = True
-                assert kwargs == {'base_name': exp_filter}
-                return self
-
-            def count(self):
-                return query_count
-
-            def first(self):
-                return query_first
-
-        mock_result = MockResult()
-        filter_mock = mocker.patch.object(
-            AuthenticatedRegistry, 'query', new=mock_result, create=True,
-        )
-
-        assert ServiceBase(base_registry=base_registry).auth_registry == exp
-        assert mock_result.filter_by_called
 
     def test_auth_registry_given(self):
         """ Test that auth registry is passed right through when given """
@@ -204,3 +28,116 @@ class TestServiceBase(object):
         assert ServiceBase(
             auth_registry=MockAuthRegistry(),
         ).base_registry == 'testval'
+
+    def _test_value_error_in_attr(self, name, value, **kwargs):
+        """ Tests that ValueError is raised in both init, and setter """
+        # Raises in setter
+        svc = ServiceBase(use_db=False, **kwargs)
+        with pytest.raises(ValueError) as exc_info:
+            setattr(svc, name, value)
+
+        exc_message, = exc_info.value.args
+        message_match = VALUE_ERROR_MESSAGE_RE.match(exc_message)
+        assert message_match
+        assert message_match.groups()[0] == name
+
+        # Raises in init
+        kwargs[name] = value
+        with pytest.raises(ValueError) as exc_info:
+            ServiceBase(use_db=False, **kwargs)
+
+    def test_value_error_base_reg_auth_reg(self):
+        """
+        Test the ``ValueError`` raised setting ``base_registry`` with
+        non-matching ``auth_registry``
+        """
+        self._test_value_error_in_attr(
+            'base_registry', 'quay.io',
+            auth_registry=AuthenticatedRegistry(base_name='docker.io'),
+        )
+
+    def test_value_error_base_reg_project(self):
+        """
+        Test the ``ValueError`` raised setting ``base_registry`` with
+        non-matching ``project.target_registry``
+        """
+        project = Project(
+            target_registry=AuthenticatedRegistry(base_name='docker.io'),
+        )
+
+        self._test_value_error_in_attr(
+            'base_registry', 'quay.io',
+            project=project,
+        )
+
+    def test_value_error_auth_reg_base_reg(self):
+        """
+        Test the ``ValueError`` raised setting ``auth_registry`` with
+        non-matching ``base_registry_registry``
+        """
+        self._test_value_error_in_attr(
+            'auth_registry', AuthenticatedRegistry(base_name='quay.io'),
+            base_registry='docker.io',
+        )
+
+    def test_value_error_project_base_reg(self):
+        """
+        Test the ``ValueError`` raised setting ``project.target_registry`` with
+        non-matching ``base_registry``
+        """
+        project = Project(
+            target_registry=AuthenticatedRegistry(base_name='quay.io'),
+        )
+
+        self._test_value_error_in_attr(
+            'project', project,
+            base_registry='docker.io',
+        )
+
+    def test_value_error_project_auth_reg(self):
+        """
+        Test the ``ValueError`` raised setting ``project.target_registry`` with
+        non-matching ``auth_registry``
+        """
+        project = Project(
+            target_registry=AuthenticatedRegistry(base_name='quay.io'),
+        )
+
+        self._test_value_error_in_attr(
+            'project', project,
+            auth_registry=AuthenticatedRegistry(base_name='docker.io'),
+        )
+
+    def test_value_error_auth_reg_project(self):
+        """
+        Test the ``ValueError`` raised setting ``auth_registry`` with
+        non-matching ``project.target_registry``
+        """
+        project = Project(
+            target_registry=AuthenticatedRegistry(base_name='docker.io'),
+        )
+
+        self._test_value_error_in_attr(
+            'auth_registry', AuthenticatedRegistry(base_name='quay.io'),
+            project=project,
+        )
+
+    def test_value_error_job_project(self):
+        """
+        Test the ``ValueError`` raised setting ``job`` with non-matching
+        ``project``
+        """
+        self._test_value_error_in_attr(
+            'job', Job(project=Project()),
+            project=Project(),
+        )
+
+    def test_value_error_project_job(self):
+        """
+        Test the ``ValueError`` raised setting ``project`` with non-matching
+        ``job``
+        """
+        self._test_value_error_in_attr(
+            'project', Project(),
+            job=Job(project=Project()),
+        )

@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 from dockci.models.auth import AuthenticatedRegistry
@@ -5,6 +7,235 @@ from dockci.models.base import ServiceBase
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import DB
+
+
+BASIC_ATTR_TESTS = [
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='DockCI - quay.io/spruce/dockci:special',
+            display_full='DockCI - quay.io/spruce/dockci:special',
+            slug='quay_io_spruce_dockci_special',
+            app_name='dockci',
+            name='DockCI',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='DockCI - spruce/dockci:special',
+            display_full='DockCI - docker.io/spruce/dockci:special',
+            slug='spruce_dockci_special',
+            app_name='dockci',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='spruce/dockci:special',
+            display_full='spruce/dockci - docker.io/spruce/dockci:special',
+            slug='spruce_dockci_special',
+            app_name='dockci',
+            name='spruce/dockci',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+        exp=dict(
+            display='quay.io/spruce/dockci:special',
+            display_full='spruce/dockci - quay.io/spruce/dockci:special',
+            slug='quay_io_spruce_dockci_special',
+            app_name='dockci',
+            name='spruce/dockci',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='special',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            repo='spruce/dockci',
+        ),
+        exp=dict(
+            display='spruce/dockci',
+            display_full='spruce/dockci - docker.io/spruce/dockci:latest',
+            slug='spruce_dockci',
+            app_name='dockci',
+            name='spruce/dockci',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            base_registry='quay.io',
+            repo='spruce/dockci',
+        ),
+        exp=dict(
+            display='quay.io/spruce/dockci',
+            display_full='spruce/dockci - quay.io/spruce/dockci:latest',
+            slug='quay_io_spruce_dockci',
+            app_name='dockci',
+            name='spruce/dockci',
+            base_registry='quay.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            repo='spruce/dockci',
+        ),
+        exp=dict(
+            display='DockCI - spruce/dockci',
+            display_full='DockCI - docker.io/spruce/dockci:latest',
+            slug='spruce_dockci',
+            app_name='dockci',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest'
+        ),
+        exp=dict(
+            display='DockCI - docker.io/spruce/dockci:latest',
+            display_full='DockCI - docker.io/spruce/dockci:latest',
+            slug='docker_io_spruce_dockci_latest',
+            app_name='dockci',
+            name='DockCI',
+            base_registry='docker.io',
+            repo='spruce/dockci',
+            tag='latest',
+        ),
+    ),
+    dict(
+        kwargs=dict(
+            repo='dockci',
+        ),
+        exp=dict(
+            display='dockci',
+            display_full='dockci - docker.io/dockci:latest',
+            slug='dockci',
+            app_name='dockci',
+            name='dockci',
+            base_registry='docker.io',
+            repo='dockci',
+            tag='latest',
+        ),
+    ),
+]
+BASIC_ATTR_TESTS = list(itertools.chain.from_iterable(
+    [
+        (kwargs_vals['kwargs'], attr_name, exp_value)
+        for attr_name, exp_value in kwargs_vals['exp'].items()
+    ]
+    for kwargs_vals in BASIC_ATTR_TESTS
+))
+
+@pytest.mark.usefixtures('db')
+class TestServiceBaseAttrs(object):
+    @pytest.mark.parametrize('kwargs,attr_name,exp', BASIC_ATTR_TESTS)
+    def test_basic(self, kwargs, attr_name, exp):
+        """ Test defaults and generation for many basic attributes """
+        assert getattr(ServiceBase(**kwargs), attr_name) == exp
+
+@pytest.mark.usefixtures('db')
+class TestServiceBaseRegistry(object):
+    def test_no_project_exists(self):
+        svc = ServiceBase(repo='postgres')
+        assert svc.base_registry == 'docker.io'
+        assert svc.auth_registry == None
+
+    def test_docker_io_exists(self):
+        svc = ServiceBase(repo='postgres')
+        registry = AuthenticatedRegistry(
+            base_name='docker.io',
+            display_name='Docker Hub',
+        )
+        DB.session.add(registry)
+        DB.session.commit()
+
+        assert svc.auth_registry == registry
+
+    def test_project_target(self):
+        svc = ServiceBase(repo='postgres')
+        registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Local',
+        )
+        project = Project(
+            slug='postgres',
+            name='Postgres Test',
+            repo='',
+            utility=False,
+            target_registry=registry
+        )
+        DB.session.add(registry)
+        DB.session.add(project)
+        DB.session.commit()
+
+        assert svc.auth_registry == registry
+        assert svc.image == 'registry:5000/postgres'
+
+    def test_registry_docker_io_exists(self):
+        svc = ServiceBase(repo='postgres')
+        proj_registry = AuthenticatedRegistry(
+            base_name='registry:5000',
+            display_name='Local',
+        )
+        hub_registry = AuthenticatedRegistry(
+            base_name='docker.io',
+            display_name='Docker Hub',
+        )
+        project = Project(
+            slug='postgres',
+            name='Postgres Test',
+            repo='',
+            utility=False,
+            target_registry=proj_registry
+        )
+        DB.session.add(proj_registry)
+        DB.session.add(hub_registry)
+        DB.session.add(project)
+        DB.session.commit()
+
+        assert svc.auth_registry == proj_registry
+        assert svc.image == 'registry:5000/postgres'
 
 
 @pytest.mark.usefixtures('db')
@@ -31,27 +262,8 @@ class TestServiceBaseProject(object):
         assert svc.project == project
 
     def test_project_target_svc_no_registry(self):
-        """ Ensure project is not associated if service has no target """
+        """ Ensure project is associated if service has no target """
         svc = ServiceBase(repo='postgres')
-        registry = AuthenticatedRegistry(
-            base_name='registry:5000',
-            display_name='Test Reg',
-        )
-        project = Project(
-            slug='postgres',
-            name='Test PG',
-            repo='/test/PG',
-            utility=False,
-            target_registry=registry,
-        )
-        DB.session.add(registry)
-        DB.session.add(project)
-        DB.session.commit()
-        assert svc.project == None
-
-    def test_registries_match(self):
-        """ Ensure project is associated if registry base names match """
-        svc = ServiceBase(repo='postgres', base_registry='registry:5000')
         registry = AuthenticatedRegistry(
             base_name='registry:5000',
             display_name='Test Reg',

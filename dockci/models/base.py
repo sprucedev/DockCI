@@ -45,10 +45,23 @@ class RepoFsMixin(object):
 SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 
 
+# TODO all these disabled pylint things should be reviewed later on. How would
+#      we better split this up?
 # pylint:disable=too-many-public-methods,too-many-instance-attributes
 class ServiceBase(object):
-    """ Service object for storing utility/provision information """
+    """
+    Service object for storing utility/provision information
 
+    Examples:
+
+    Most examples can be seen in their relevant property docs.
+
+    >>> svc = ServiceBase(meta={'config': 'fake'})
+    >>> svc.meta
+    {'config': 'fake'}
+    """
+
+    # pylint:disable=too-many-arguments
     def __init__(self,
                  name=None,
                  repo=None,
@@ -57,30 +70,39 @@ class ServiceBase(object):
                  job=None,
                  base_registry=None,
                  auth_registry=None,
+                 meta=None,
+                 use_db=True,
                  ):
 
-        if base_registry is not None and auth_registry is not None:
-            assert auth_registry.base_name == base_registry, (
-                "AuthenticatedRegistry.base_name doesn't match base_registry")
+        if meta is None:
+            meta = {}
 
-        if project is not None and job is not None:
-            assert job.project == project, (
-                "Job %s isn't for project %s" % job, project)
+        self.meta = meta
 
-        self._name = name
-        self._repo = repo
-        self._tag = tag
-        self._project = project
-        self._job = job
-        self._base_registry = base_registry
-        self._auth_registry = auth_registry
+        self.use_db = use_db
 
+        self._auth_registry_dynamic = None
         self._project_dynamic = None
         self._job_dynamic = None
-        self._auth_registry_dynamic = None
+
+        self._name = None
+        self._repo = None
+        self._tag = None
+        self._base_registry = None
+        self._auth_registry = None
+        self._project = None
+        self._job = None
+
+        self.name = name
+        self.repo = repo
+        self.tag = tag
+        self.base_registry = base_registry
+        self.auth_registry = auth_registry
+        self.project = project
+        self.job = job
 
     @classmethod
-    def from_image(cls, image, name=None):
+    def from_image(cls, image, name=None, meta=None, use_db=True):
         """
         Given an image name such as ``quay.io/thatpanda/dockci:latest``,
         creates a ``ServiceBase`` object.
@@ -91,15 +113,14 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('registry/dockci')
-        >>> svc.base_registry
-        'docker.io'
+        >>> svc = ServiceBase.from_image('registry/dockci', use_db=False)
 
         >>> svc.repo
         'registry/dockci'
 
 
-        >>> svc = ServiceBase.from_image('registry/spruce/dockci')
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci', \
+                                         use_db=False)
         >>> svc.base_registry
         'registry'
 
@@ -109,13 +130,12 @@ class ServiceBase(object):
         >>> svc.tag
         'latest'
 
-        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other')
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other', \
+                                         use_db=False)
         >>> svc.tag
         'other'
 
-        >>> svc = ServiceBase.from_image('dockci', 'DockCI App')
-        >>> svc.base_registry
-        'docker.io'
+        >>> svc = ServiceBase.from_image('dockci', 'DockCI App', use_db=False)
 
         >>> svc.repo
         'dockci'
@@ -126,12 +146,20 @@ class ServiceBase(object):
         >>> svc.name
         'DockCI App'
 
-        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other')
+        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other', \
+                                         use_db=False)
+
         >>> svc.base_registry
         'registry:5000'
 
         >>> svc.tag
         'other'
+
+        >>> svc = ServiceBase.from_image('dockci', \
+                                         meta={'config': 'fake'}, \
+                                         use_db=False)
+        >>> svc.meta
+        {'config': 'fake'}
         """
         path_parts = image.split('/', 2)
         if len(path_parts) != 3:
@@ -146,7 +174,13 @@ class ServiceBase(object):
 
         repo = tag_parts[0]
 
-        return cls(base_registry=base_registry, repo=repo, tag=tag, name=name)
+        return cls(base_registry=base_registry,
+                   repo=repo,
+                   tag=tag,
+                   name=name,
+                   meta=meta,
+                   use_db=use_db,
+                   )
 
     @property
     def name_raw(self):
@@ -160,7 +194,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
         >>> svc.name
         'spruce/dockci'
 
@@ -175,7 +209,7 @@ class ServiceBase(object):
         True
 
         >>> svc.display
-        'Test Name - spruce/dockci'
+        'Test Name - quay.io/spruce/dockci'
         """
         if self.has_name:
             return self.name_raw
@@ -189,7 +223,7 @@ class ServiceBase(object):
 
     @property
     def has_name(self):
-        """ Whether or not a name was explicitly given """
+        """ Whether or not a name was reliably given """
         return self.name_raw is not None
 
     @property
@@ -204,7 +238,9 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase(tag='special')
+        >>> svc = ServiceBase(base_registry='quay.io', \
+                              tag='special', \
+                              use_db=False)
         >>> svc.has_repo
         False
 
@@ -216,7 +252,7 @@ class ServiceBase(object):
         True
 
         >>> svc.display
-        'spruce/dockci:special'
+        'quay.io/spruce/dockci:special'
         """
         return self.repo_raw
 
@@ -227,8 +263,29 @@ class ServiceBase(object):
 
     @property
     def has_repo(self):
-        """ Whether or not a repository was explicitly given """
+        """ Whether or not a repository was reliably given """
         return self.repo_raw is not None
+
+    @property
+    def app_name(self):
+        """
+        Application name of the service. This is the last part of the repo,
+        without the namespace path
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
+
+        >>> svc.app_name
+        'dockci'
+
+        >>> svc = ServiceBase.from_image('quay.io/my/app:test', use_db=False)
+
+        >>> svc.app_name
+        'app'
+        """
+        if self.has_repo:
+            return self.repo.rsplit('/', 1)[-1]
 
     @property
     def tag_raw(self):
@@ -242,7 +299,8 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
+
         >>> svc.tag
         'latest'
 
@@ -257,7 +315,7 @@ class ServiceBase(object):
         True
 
         >>> svc.display
-        'spruce/dockci:special'
+        'quay.io/spruce/dockci:special'
         """
         if self.has_tag:
             return self.tag_raw
@@ -271,7 +329,7 @@ class ServiceBase(object):
 
     @property
     def has_tag(self):
-        """ Whether or not a tag was explicitly given """
+        """ Whether or not a tag was reliably given """
         return self.tag_raw is not None
 
     @property
@@ -288,7 +346,10 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc = ServiceBase.from_image('spruce/dockci', use_db=False)
+
+        >>> svc.base_registry = 'docker.io'
+
         >>> svc.base_registry = 'quay.io'
         >>> svc.base_registry
         'quay.io'
@@ -304,6 +365,16 @@ class ServiceBase(object):
     @base_registry.setter
     def base_registry(self, value):
         """ Set the base_registry """
+        if (
+            value is not None and
+            self.has_auth_registry and
+            self.auth_registry.base_name != value
+        ):
+            raise ValueError(
+                ("Existing auth_registry value '%s' doesn't match new "
+                 "base_registry value") % self.auth_registry.base_name
+            )
+
         self._base_registry = value
 
     def _get_base_registry(self, lookup_allow=None):
@@ -324,7 +395,7 @@ class ServiceBase(object):
 
     @property
     def has_base_registry(self):
-        """ Whether or not a registry base name was explicitly given """
+        """ Whether or not a registry base name was reliably given """
         return self.base_registry_raw is not None
 
     @property
@@ -343,6 +414,26 @@ class ServiceBase(object):
     @auth_registry.setter
     def auth_registry(self, value):
         """ Set the auth_registry """
+        if (
+            value is not None and
+            self.has_base_registry and
+            self.base_registry != value
+        ):
+            raise ValueError(
+                ("Existing base_registry value '%s' doesn't match new "
+                 "auth_registry value") % self.base_registry
+            )
+        if value is not None and self.has_project:
+            project = self.project
+            if (
+                self.project.target_registry is not None and
+                self.project.target_registry != value
+            ):
+                raise ValueError(
+                    ("Existing project target_registry value '%s' doesn't "
+                     "match new auth_registry value") % project.target_registry
+                )
+
         self._auth_registry = value
 
     def _get_auth_registry(self, lookup_allow=None):
@@ -353,26 +444,48 @@ class ServiceBase(object):
         if False:  # help pylint understand our return value
             return AuthenticatedRegistry()
 
-        if self.has_auth_registry:
+        if self.auth_registry_raw is not None:
             return self.auth_registry_raw
 
         lookup_allow['auth_registry'] = False
 
         if (
+            self.use_db and
             lookup_allow['base_registry'] and
+            self.has_base_registry and
             self._auth_registry_dynamic is None
         ):
-            query = AuthenticatedRegistry.query.filter_by(
-                base_name=self._get_base_registry(lookup_allow),
-            )
-            self._auth_registry_dynamic = query.first()
+            self._auth_registry_dynamic = \
+                AuthenticatedRegistry.query.filter_by(
+                    base_name=self._get_base_registry(lookup_allow),
+                ).first()
+
+        if (
+            lookup_allow['project'] and
+            self._auth_registry_dynamic is None
+        ):
+            project = self._get_project()
+            if project is not None:
+                self._auth_registry_dynamic = project.target_registry
+
+        if self._auth_registry_dynamic is None and self.use_db:
+            self._auth_registry_dynamic = \
+                AuthenticatedRegistry.query.filter_by(
+                    base_name='docker.io',
+                ).first()
 
         return self._auth_registry_dynamic
 
     @property
     def has_auth_registry(self):
-        """ Whether or not an authenticated registry was explicitly given """
-        return self.auth_registry_raw is not None
+        """ Whether or not an authenticated registry was reliably given """
+        project = self.project
+        return (
+            self.auth_registry_raw is not None or (
+                project is not None and
+                project.target_registry is not None
+            )
+        )
 
     @property
     def project_raw(self):
@@ -386,18 +499,41 @@ class ServiceBase(object):
         by matching the repository with the project slug. When a lookup occurs,
         and a registry is given to the service, the ``Project`` must have the
         same authenticated registry set
-
-        >>> svc = ServiceBase(repo='postgres')
-        >>> project = 'Fake Project'
-        >>> svc.project = project
-        >>> svc.project
-        'Fake Project'
         """
         return self._get_project()
 
     @project.setter
     def project(self, value):
         """ Set the project """
+        if value is not None and value.target_registry is not None:
+            if (
+                self.has_base_registry and
+                self.base_registry != value.target_registry.base_name
+            ):
+                raise ValueError(
+                    ("Existing base_registry value '%s' doesn't match new "
+                     "project target_registry value") % self.base_registry
+                )
+
+            if (
+                self.has_auth_registry and
+                self.auth_registry != value.target_registry
+            ):
+                raise ValueError(
+                    ("Existing auth_registry value '%s' doesn't match new "
+                     "project target_registry value") % self.auth_registry
+                )
+
+        if (
+            value is not None and
+            self.has_job and
+            value != self.job.project
+        ):
+            raise ValueError(
+                ("Existing job project value '%s' doesn't match new "
+                 "project value") % self.job.project
+            )
+
         self._project = value
 
     def _get_project(self, lookup_allow=None):
@@ -415,23 +551,19 @@ class ServiceBase(object):
 
         lookup_allow['project'] = False
 
-        if self._project_dynamic is None:
-            auth_registry = None
-            if lookup_allow['auth_registry']:
-                auth_registry = self._get_auth_registry(lookup_allow)
+        if self._project_dynamic is None and self.use_db:
+            if self.has_base_registry or self.auth_registry_raw is not None:
+                return None
 
-            query = Project.query.filter_by(
+            self._project_dynamic = Project.query.filter_by(
                 slug=self.repo,
-                target_registry=auth_registry,
-            )
-
-            self._project_dynamic = query.first()
+            ).first()
 
         return self._project_dynamic
 
     @property
     def has_project(self):
-        """ Whether or not a project was explicitly given """
+        """ Whether or not a project was reliably given """
         return self.project_raw is not None
 
     @property
@@ -456,6 +588,15 @@ class ServiceBase(object):
     @job.setter
     def job(self, value):
         """ Set the job """
+        if (
+            value is not None and
+            self.has_project and
+            value.project != self.project
+        ):
+            raise ValueError(
+                ("Existing project value '%s' doesn't match new "
+                 "job project value") % self.project
+            )
         self._job = value
 
     def _get_job(self, lookup_allow=None):
@@ -479,7 +620,7 @@ class ServiceBase(object):
 
     @property
     def has_job(self):
-        """ Whether or not a job was explicitly given """
+        """ Whether or not a job was reliably given """
         return self.job_raw is not None
 
     @property
@@ -493,21 +634,85 @@ class ServiceBase(object):
         return self._display(full=True)
 
     @property
-    def slug(self):
-        """ Get a slug for the service """
-        return SLUG_REPLACE_RE.sub("_", self._display(full=False, name=False))
+    def image(self):
+        """
+        Pullable image for Docker
 
-    def _display(self, full, name=True):
+        Examples:
+
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
+
+        >>> svc.image
+        'quay.io/spruce/dockci'
+
+        >>> svc.tag = 'latest'
+        >>> svc.image
+        'quay.io/spruce/dockci:latest'
+
+        >>> svc.name = 'Test Name'
+        >>> svc.image
+        'quay.io/spruce/dockci:latest'
+        """
+        return self._display(full=False, name=False)
+
+    @property
+    def repo_full(self):
+        """
+        Similar to the ``repo`` property, but includes the registry
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
+
+        >>> svc.repo_full
+        'quay.io/spruce/dockci'
+
+        >>> svc.tag = 'latest'
+        >>> svc.repo_full
+        'quay.io/spruce/dockci'
+
+        >>> svc.name = 'Test Name'
+        >>> svc.repo_full
+        'quay.io/spruce/dockci'
+        """
+        return self._display(full=False, name=False, tag=False)
+
+    @property
+    def slug(self):
+        """
+        Get a slug for the service
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci', use_db=False)
+
+        >>> svc.slug
+        'spruce_dockci'
+
+        >>> svc.tag = 'latest'
+        >>> svc.slug
+        'spruce_dockci_latest'
+
+        >>> svc.base_registry = 'registry:5000'
+        >>> svc.slug
+        'registry_5000_spruce_dockci_latest'
+        """
+        return SLUG_REPLACE_RE.sub("_", self.image)
+
+    def _display(self, full, name=True, tag=True):
         """ Used for the display properties """
         string = ""
 
         if name and (full or self.has_name):
             string = "%s - " % self.name
-        if full or self.has_base_registry:
-            string += '%s/' % self.base_registry
+        if full or self.has_base_registry or self.has_auth_registry:
+            if self.has_auth_registry:
+                string += '%s/' % self.auth_registry.base_name
+            else:
+                string += '%s/' % self.base_registry
         if full or self.has_repo:
             string += self.repo
-        if full or self.has_tag:
+        if tag and (full or self.has_tag):
             string += ":%s" % self.tag
 
         if string == '':
