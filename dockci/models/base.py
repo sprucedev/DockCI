@@ -49,7 +49,17 @@ SLUG_REPLACE_RE = re.compile(r'[^a-zA-Z0-9_]')
 #      we better split this up?
 # pylint:disable=too-many-public-methods,too-many-instance-attributes
 class ServiceBase(object):
-    """ Service object for storing utility/provision information """
+    """
+    Service object for storing utility/provision information
+
+    Examples:
+
+    Most examples can be seen in their relevant property docs.
+
+    >>> svc = ServiceBase(meta={'config': 'fake'})
+    >>> svc.meta
+    {'config': 'fake'}
+    """
 
     # pylint:disable=too-many-arguments
     def __init__(self,
@@ -138,6 +148,10 @@ class ServiceBase(object):
 
         >>> svc.tag
         'other'
+
+        >>> svc = ServiceBase.from_image('dockci', meta={'config': 'fake'})
+        >>> svc.meta
+        {'config': 'fake'}
         """
         path_parts = image.split('/', 2)
         if len(path_parts) != 3:
