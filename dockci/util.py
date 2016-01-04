@@ -294,7 +294,7 @@ def docker_ensure_image(client,
                 pass
 
             if handle:
-                handle.write(line_bytes())
+                handle.write(line_bytes)
 
             data = json.loads(line_str)
             if 'id' in data:
