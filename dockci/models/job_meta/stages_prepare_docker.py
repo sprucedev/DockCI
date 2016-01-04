@@ -56,7 +56,7 @@ class InlineProjectStage(JobStageBase):
                     service_job = service.job
 
                     if service_project is None:
-                        faux_log.update(error="No project found")
+                        faux_log.update(progress="No project found")
 
                     elif service_job is None:
                         faux_log.update(
@@ -64,12 +64,11 @@ class InlineProjectStage(JobStageBase):
                                 service_project.name
                             ),
                         )
-
-                    if service_project is None or service_job is None:
                         all_okay = False
                         continue
 
-                    service.tag = service_job.tag
+                    else:
+                        service.tag = service_job.tag
 
                 defaults = {'status': "Pulling container image %s" % (
                     service.display,
@@ -77,14 +76,20 @@ class InlineProjectStage(JobStageBase):
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
 
+                    auth_registry = service.auth_registry
+                    if auth_registry is not None:
+                        ensure_kwargs = dict(
+                            insecure_registry=service.auth_registry.insecure,
+                        )
+                    else:
+                        ensure_kwargs = {}
+
                     try:
                         image_id = docker_ensure_image(
                             self.job.docker_client,
                             service,
-                            insecure_registry=(
-                                service_job.project.target_registry.insecure
-                            ),
                             handle=handle,
+                            **ensure_kwargs
                         )
 
                     except docker.errors.APIError as ex:

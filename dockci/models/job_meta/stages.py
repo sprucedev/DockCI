@@ -13,6 +13,7 @@ from dockci.exceptions import (AlreadyRunError,
                                DockerUnreachableError,
                                StageFailedError,
                                )
+from dockci.util import bytes_str
 
 
 class JobStageBase(object):
@@ -225,30 +226,27 @@ class DockerStage(JobStageBase):
 
         line = ''
         for line in output:
-            if isinstance(line, bytes):
-                handle.write(line)
-                line = line.decode()
-            else:
-                handle.write(line.encode())
+            line_bytes, line_str = bytes_str(line)
+            handle.write(line_bytes)
 
             # Issues with push not having new lines
-            if line[-1] != '\n':
+            if line_str[-1] != '\n':
                 handle.write(b'\n')
 
             handle.flush()
 
-            self.on_line(line)
+            self.on_line(line_str)
 
             # Automatically handle error lines
             try:
-                line_data = json.loads(line)
+                line_data = json.loads(line_str)
                 if 'error' in line_data or 'errorDetail' in line_data:
                     self.on_line_error(line_data)
 
             except ValueError:
                 pass
 
-        on_done_ret = self.on_done(line)
+        on_done_ret = self.on_done(line_str)
         if on_done_ret is not None:
             return on_done_ret
 
