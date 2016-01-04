@@ -45,7 +45,7 @@ class InlineProjectStage(JobStageBase):
         for service in self.get_services():
 
             # pylint:disable=no-member
-            defaults = {'id': self.id_for_service(service.slug)}
+            defaults = {'id': self.id_for_service(service.app_name)}
             with faux_log.more_defaults(**defaults):
 
                 defaults = {'status': "Finding service %s" % service.display}
@@ -519,7 +519,7 @@ class UtilStage(InlineProjectStage):
         Returns:
           bool: True on all success, False on at least 1 failure
         """
-        service_id = self.id_for_service(service.slug)
+        service_id = self.id_for_service(service.app_name)
 
         defaults = {
             'id': "%s-input" % service_id,
