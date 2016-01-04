@@ -71,6 +71,7 @@ class ServiceBase(object):
                  base_registry=None,
                  auth_registry=None,
                  meta=None,
+                 use_db=True,
                  ):
 
         if base_registry is not None and auth_registry is not None:
@@ -86,6 +87,8 @@ class ServiceBase(object):
 
         self.meta = meta
 
+        self.use_db = use_db
+
         self._name = name
         self._repo = repo
         self._tag = tag
@@ -94,12 +97,13 @@ class ServiceBase(object):
         self._base_registry = base_registry
         self._auth_registry = auth_registry
 
+        self._auth_registry_dynamic = None
         self._project_dynamic = None
         self._job_dynamic = None
         self._auth_registry_dynamic = None
 
     @classmethod
-    def from_image(cls, image, name=None, meta=None):
+    def from_image(cls, image, name=None, meta=None, use_db=True):
         """
         Given an image name such as ``quay.io/thatpanda/dockci:latest``,
         creates a ``ServiceBase`` object.
@@ -110,13 +114,13 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('registry/dockci')
+        >>> svc = ServiceBase.from_image('registry/dockci', use_db=False)
 
         >>> svc.repo
         'registry/dockci'
 
 
-        >>> svc = ServiceBase.from_image('registry/spruce/dockci')
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci', use_db=False)
         >>> svc.base_registry
         'registry'
 
@@ -126,11 +130,11 @@ class ServiceBase(object):
         >>> svc.tag
         'latest'
 
-        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other')
+        >>> svc = ServiceBase.from_image('registry/spruce/dockci:other', use_db=False)
         >>> svc.tag
         'other'
 
-        >>> svc = ServiceBase.from_image('dockci', 'DockCI App')
+        >>> svc = ServiceBase.from_image('dockci', 'DockCI App', use_db=False)
 
         >>> svc.repo
         'dockci'
@@ -141,7 +145,7 @@ class ServiceBase(object):
         >>> svc.name
         'DockCI App'
 
-        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other')
+        >>> svc = ServiceBase.from_image('registry:5000/spruce/dockci:other', use_db=False)
 
         >>> svc.base_registry
         'registry:5000'
@@ -149,7 +153,7 @@ class ServiceBase(object):
         >>> svc.tag
         'other'
 
-        >>> svc = ServiceBase.from_image('dockci', meta={'config': 'fake'})
+        >>> svc = ServiceBase.from_image('dockci', meta={'config': 'fake'}, use_db=False)
         >>> svc.meta
         {'config': 'fake'}
         """
@@ -171,6 +175,7 @@ class ServiceBase(object):
                    tag=tag,
                    name=name,
                    meta=meta,
+                   use_db=use_db,
                    )
 
     @property
@@ -185,7 +190,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
         >>> svc.name
         'spruce/dockci'
 
@@ -229,7 +234,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase(base_registry='quay.io', tag='special')
+        >>> svc = ServiceBase(base_registry='quay.io', tag='special', use_db=False)
         >>> svc.has_repo
         False
 
@@ -263,15 +268,15 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
 
         >>> svc.app_name
         'dockci'
 
-        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci:latest')
+        >>> svc = ServiceBase.from_image('quay.io/my/app:test', use_db=False)
 
         >>> svc.app_name
-        'dockci'
+        'app'
         """
         if self.has_repo:
             return self.repo.rsplit('/', 1)[-1]
@@ -288,7 +293,8 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
+
         >>> svc.tag
         'latest'
 
@@ -334,7 +340,10 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('spruce/dockci')
+        >>> svc = ServiceBase.from_image('spruce/dockci', use_db=False)
+
+        >>> svc.base_registry = 'docker.io'
+
         >>> svc.base_registry = 'quay.io'
         >>> svc.base_registry
         'quay.io'
@@ -405,6 +414,7 @@ class ServiceBase(object):
         lookup_allow['auth_registry'] = False
 
         if (
+            self.use_db and
             lookup_allow['base_registry'] and
             self.has_base_registry and
             self._auth_registry_dynamic is None
@@ -422,7 +432,7 @@ class ServiceBase(object):
             if project is not None:
                 self._auth_registry_dynamic = project.target_registry
 
-        if self._auth_registry_dynamic is None:
+        if self._auth_registry_dynamic is None and self.use_db:
             self._auth_registry_dynamic = \
                 AuthenticatedRegistry.query.filter_by(
                     base_name='docker.io',
@@ -482,7 +492,7 @@ class ServiceBase(object):
 
         lookup_allow['project'] = False
 
-        if self._project_dynamic is None:
+        if self._project_dynamic is None and self.use_db:
             if self.has_base_registry or self.auth_registry_raw is not None:
                 return None
 
@@ -562,7 +572,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
 
         >>> svc.image
         'quay.io/spruce/dockci'
@@ -584,7 +594,7 @@ class ServiceBase(object):
 
         Examples:
 
-        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci')
+        >>> svc = ServiceBase.from_image('quay.io/spruce/dockci', use_db=False)
 
         >>> svc.repo_full
         'quay.io/spruce/dockci'
@@ -601,7 +611,24 @@ class ServiceBase(object):
 
     @property
     def slug(self):
-        """ Get a slug for the service """
+        """
+        Get a slug for the service
+
+        Examples:
+
+        >>> svc = ServiceBase.from_image('spruce/dockci', use_db=False)
+
+        >>> svc.slug
+        'spruce_dockci'
+
+        >>> svc.tag = 'latest'
+        >>> svc.slug
+        'spruce_dockci_latest'
+
+        >>> svc.base_registry = 'registry:5000'
+        >>> svc.slug
+        'registry_5000_spruce_dockci_latest'
+        """
         return SLUG_REPLACE_RE.sub("_", self.image)
 
     def _display(self, full, name=True, tag=True):
