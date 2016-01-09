@@ -1,6 +1,8 @@
+""" Persistent blob storage based on content hash """
+
 import hashlib
 
-import py.path
+import py.path  # pylint:disable=import-error
 
 
 CHUNK_SIZE = 4000
@@ -10,6 +12,9 @@ class FilesystemBlob(object):
     """ On-disk blob data storage used to access data by hash """
 
     def __init__(self, store_dir, etag, split_levels=3, split_size=2):
+        if not isinstance(store_dir, py.path.local):
+            store_dir = py.path.local(store_dir)
+
         self.store_dir = store_dir
         self.etag = etag
         self.split_levels = split_levels
@@ -138,4 +143,3 @@ class FilesystemBlob(object):
             self.etag[idx:idx + self.split_size]
             for idx in self._etag_split_iter
         ] + [self.etag])
-
