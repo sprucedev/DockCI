@@ -28,14 +28,16 @@ class FilesystemBlob(object):
 
         Examples:
 
-        >>> first_path_1 = py.path.local('/tmp/dockci_doctest_a')
-        >>> with first_path_1.open('w') as handle: \
-                handle.write('content')
+        >>> test_path = getfixture('tmpdir')
+
+        >>> first_path_1 = test_path.join('dockci_doctest_a')
+        >>> with first_path_1.open('w') as handle:
+        ...     handle.write('content')
         7
 
-        >>> second_path_1 = py.path.local('/tmp/dockci_doctest_b')
-        >>> with second_path_1.open('w') as handle: \
-                handle.write('more content')
+        >>> second_path_1 = test_path.join('dockci_doctest_b')
+        >>> with second_path_1.open('w') as handle:
+        ...     handle.write('more content')
         12
 
         >>> FilesystemBlob.from_files(None, [first_path_1, second_path_1]).etag
@@ -47,9 +49,9 @@ class FilesystemBlob(object):
         >>> FilesystemBlob.from_files(None, [first_path_2, second_path_1]).etag
         'def71336ff0befa04a2c210810ddbf6cf137fc86'
 
-        >>> dir_path = py.path.local('/tmp/dockci_doctest_dir')
+        >>> dir_path = test_path.join('dockci_doctest_dir')
         >>> dir_path.ensure_dir()
-        local('/tmp/dockci_doctest_dir')
+        local('.../dockci_doctest_dir')
 
         >>> first_path_3 = dir_path.join('dockci_doctest_a')
         >>> first_path_2.move(first_path_3)
@@ -62,15 +64,15 @@ class FilesystemBlob(object):
         >>> FilesystemBlob.from_files(None, [second_path_3, first_path_3]).etag
         'def71336ff0befa04a2c210810ddbf6cf137fc86'
 
-        >>> with first_path_3.open('w') as handle: \
-                handle.write('different content')
+        >>> with first_path_3.open('w') as handle:
+        ...     handle.write('different content')
         17
 
         >>> FilesystemBlob.from_files(None, [second_path_3, first_path_3]).etag
         '1e756fb51dce67082ad0cac701ecfd11cdc9f845'
 
-        >>> with second_path_3.open('w') as handle: \
-                handle.write('more different content')
+        >>> with second_path_3.open('w') as handle:
+        ...     handle.write('more different content')
         22
 
         >>> FilesystemBlob.from_files(None, [second_path_3, first_path_3]).etag
@@ -123,15 +125,15 @@ class FilesystemBlob(object):
         >>> blob.path.strpath
         '/test/ab/cd/ef/abcdefghijkl'
 
-        >>> blob = FilesystemBlob(py.path.local('/test'), \
-                                  'abcdefghijkl', \
-                                  split_levels=4)
+        >>> blob = FilesystemBlob(py.path.local('/test'),
+        ...                       'abcdefghijkl',
+        ...                       split_levels=4)
         >>> blob.path.strpath
         '/test/ab/cd/ef/gh/abcdefghijkl'
 
-        >>> blob = FilesystemBlob(py.path.local('/test'), \
-                                  'abcdefghijkl', \
-                                  split_size=3)
+        >>> blob = FilesystemBlob(py.path.local('/test'),
+        ...                       'abcdefghijkl',
+        ...                       split_size=3)
         >>> blob.path.strpath
         '/test/abc/def/ghi/abcdefghijkl'
 
