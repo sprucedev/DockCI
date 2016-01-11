@@ -34,6 +34,7 @@
 - Significant simplification of image parsing #363
 - If jobs fail before an image is built, doesn't try to clean up #365
 - Services and utilities may be images to pull from a remote registry #383
+- Utility output is cached based on image id, and input content hash #388
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
