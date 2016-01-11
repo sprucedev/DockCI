@@ -192,7 +192,7 @@ class FilesystemBlob(object):
     @property
     def exists(self):
         """ Check if the blob exists already """
-        return self.path.exists
+        return self.path.exists()
 
     def add_data(self, rel_path_str):
         """ Add data to store in the blob """
