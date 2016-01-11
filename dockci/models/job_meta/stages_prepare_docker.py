@@ -15,6 +15,7 @@ from dockci.exceptions import (AlreadyBuiltError,
                                StageFailedError,
                                )
 from dockci.models.base import ServiceBase
+from dockci.models.blob import FilesystemBlob
 from dockci.models.job_meta.stages import JobStageBase
 from dockci.util import (built_docker_image_id,
                          docker_ensure_image,
@@ -572,20 +573,9 @@ class UtilStage(InlineProjectStage):
 
         return success
 
-    def runnable_inline(self, service, base_image_id, handle, faux_log):
+    def generate_data(self, service, base_image_id, handle, faux_log):
         """
-        Inline runner for utility projects. Adds files, runs the container,
-        retrieves output, and cleans up
-
-        Args:
-          service (dockci.models.base.ServiceBase): Service that this stage
-            uses the image from
-          base_image_id (str): Image ID of the utility base
-          handle: Stream handle for raw output
-          faux_log: The faux docker log object
-
-        Returns:
-          bool: True on all success, False on at least 1 failure
+        Adds files, runs the container, retrieves output, and cleans up
         """
         service_id = self.id_for_service(service.app_name)
 
@@ -651,6 +641,55 @@ class UtilStage(InlineProjectStage):
                                              )
 
         return success
+
+    def runnable_inline(self, service, base_image_id, handle, faux_log):
+        """
+        Inline runner for utility projects
+
+        Args:
+          service (dockci.models.base.ServiceBase): Service that this stage
+            uses the image from
+          base_image_id (str): Image ID of the utility base
+          handle: Stream handle for raw output
+          faux_log: The faux docker log object
+
+        Returns:
+          bool: True on all success, False on at least 1 failure
+        """
+        input_files = [parse_util_file(file_data)
+                       for file_data
+                       in self.config.get('input', ())]
+        output_files = [parse_util_file(file_data)
+                        for file_data
+                        in self.config.get('output', ())]
+        blob_store = None
+
+        if input_files:
+            blob_path = self.job.data_dir_path().join('_util_blobs')
+            blob_path.ensure_dir()
+            # TODO add service image to blob metadata to break cache
+            blob_store = FilesystemBlob.from_files(
+                blob_path,
+                self.workdir,
+                [
+                    self.workdir.join(input_data['from'])
+                    for input_data
+                    in input_files
+                ]
+            )
+
+            for output_data in output_files:
+                blob_store.add_data(output_data['to'])
+
+        if blob_store and blob_store.exists:
+            blob_store.extract()
+            return True
+
+        else:
+            ret = self.generate_data(service, base_image_id, handle, faux_log)
+            if blob_store:
+                blob_store.write()
+            return ret
 
     @classmethod
     def slug_suffixes(cls, utility_names):
