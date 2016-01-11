@@ -257,6 +257,58 @@ class ProvisionStage(InlineProjectStage):
         return True
 
 
+def parse_util_file(file_data):
+    """
+    Parse the input/output lines of util config
+
+    Examples:
+
+    >>> files = parse_util_file('/util /work/thing')
+    >>> files['from']
+    '/util'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file({'from': '/util', 'to': '/work/thing'})
+    >>> files['from']
+    '/util'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file('/work/thing')
+    >>> files['from']
+    '/work/thing'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file({'to': '/work/thing'})
+    >>> files['from']
+    '/work/thing'
+    >>> files['to']
+    '/work/thing'
+
+    >>> files = parse_util_file({'from': '/util'})
+    >>> files['from']
+    '/util'
+    >>> files['to']
+    '/util'
+    """
+    if isinstance(file_data, dict):
+        if 'from' not in file_data:
+            return {'from': file_data['to'], 'to': file_data['to']}
+        if 'to' not in file_data:
+            return {'from': file_data['from'], 'to': file_data['from']}
+
+        return file_data
+
+    else:
+        parts = file_data.split(' ')
+        if len(parts) == 1:
+            return {'from': file_data, 'to': file_data}
+        else:
+            return {'from': parts[0], 'to': parts[1]}
+
+
 class UtilStage(InlineProjectStage):
     """ Create, and run a utility stage container """
     def __init__(self, job, workdir, slug_suffix, config):
@@ -288,9 +340,13 @@ class UtilStage(InlineProjectStage):
           str: New image ID with files added
           bool: False if failure
         """
-        success = True
+        input_files = [
+            parse_util_file(input_data)
+            for input_data
+            in self.config.get('input', [])
+        ]
 
-        input_files = self.config.get('input', ())
+        success = True
         if not input_files:
             faux_log.update(progress="Skipped")
             return base_image_id
@@ -300,7 +356,10 @@ class UtilStage(InlineProjectStage):
         with tmp_file.open('w') as h_dockerfile:
             h_dockerfile.write('FROM %s\n' % base_image_id)
             for file_line in input_files:
-                h_dockerfile.write('ADD %s\n' % file_line)
+                h_dockerfile.write('ADD %s %s\n' % (
+                    file_line['from'],
+                    file_line['to'],
+                ))
 
         # Run the build
         rel_workdir = self.workdir.bestrelpath(tmp_file)
@@ -393,7 +452,11 @@ class UtilStage(InlineProjectStage):
         Returns:
           bool: True when all files retrieved as expected, False otherwise
         """
-        output_files = self.config.get('output', [])
+        output_files = [
+            parse_util_file(output_data)
+            for output_data
+            in self.config.get('output', [])
+        ]
         success = True
         if not output_files:
             faux_log.update(id=files_id, progress="Skipped")
