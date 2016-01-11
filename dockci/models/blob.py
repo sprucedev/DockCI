@@ -1,6 +1,7 @@
 """ Persistent blob storage based on content hash """
 
 import hashlib
+import pickle
 
 import py.path  # pylint:disable=import-error
 
@@ -36,6 +37,7 @@ class FilesystemBlob(object):
                    store_dir,
                    root_path,
                    file_paths,
+                   meta=None,
                    **kwargs):
         """
         Create a ``FilesystemBlob`` object from file paths, using their hash as
@@ -59,7 +61,7 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [first_path_1, second_path_1],
         ... ).etag
-        'def71336ff0befa04a2c210810ddbf6cf137fc86'
+        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
 
         >>> first_path_2 = first_path_1.dirpath().join('dockci_doctest_c')
         >>> first_path_1.move(first_path_2)
@@ -68,7 +70,7 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [first_path_2, second_path_1],
         ... ).etag
-        'def71336ff0befa04a2c210810ddbf6cf137fc86'
+        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
 
         >>> dir_path = test_path.join('dockci_doctest_dir')
         >>> dir_path.ensure_dir()
@@ -83,13 +85,13 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [first_path_3, second_path_3],
         ... ).etag
-        'def71336ff0befa04a2c210810ddbf6cf137fc86'
+        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
 
         >>> FilesystemBlob.from_files(
         ...     None, None,
         ...     [second_path_3, first_path_3],
         ... ).etag
-        'def71336ff0befa04a2c210810ddbf6cf137fc86'
+        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
 
         >>> with first_path_3.open('w') as handle:
         ...     handle.write('different content')
@@ -99,7 +101,7 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [second_path_3, first_path_3],
         ... ).etag
-        '1e756fb51dce67082ad0cac701ecfd11cdc9f845'
+        '515d09f5a0e90468d9a671f0970290d387d03feb'
 
         >>> with second_path_3.open('w') as handle:
         ...     handle.write('more different content')
@@ -109,12 +111,26 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [second_path_3, first_path_3],
         ... ).etag
-        'f72eb637bf583da17013d6b95383a4fe54cafe9e'
+        'a8867b42657ba48e2a10eda0d8b500f5e2092fb4'
+
+        >>> FilesystemBlob.from_files(
+        ...     None, None,
+        ...     [second_path_3, first_path_3],
+        ...     meta={'version': '3'}
+        ... ).etag
+        '033c30c051bf82376391abf021420aadabfa86fe'
+
+        >>> FilesystemBlob.from_files(
+        ...     None, None,
+        ...     [second_path_3, first_path_3],
+        ...     meta={'version': '4'}
+        ... ).etag
+        '34cdf67eb087a54f969098b1d21aa390f9af7cfe'
         """
         digests = []
         for file_path in file_paths:
             with file_path.open('rb') as handle:
-                file_hash = hashlib.sha1()
+                file_hash = hashlib.sha1(pickle.dumps(meta))
 
                 chunk = None
                 while chunk is None or len(chunk) == CHUNK_SIZE:
