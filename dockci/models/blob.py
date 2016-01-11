@@ -1,7 +1,9 @@
 """ Persistent blob storage based on content hash """
 
 import hashlib
-import pickle
+import json
+
+from collections import OrderedDict
 
 import py.path  # pylint:disable=import-error
 
@@ -9,6 +11,19 @@ from dockci.util import path_contained
 
 
 CHUNK_SIZE = 4000
+
+
+def _copy_data(from_path, to_path, sources):
+    """
+    Copy data in ``sources`` from a path, to a path preserving directory
+    structure
+    """
+    for from_path_i in sources:
+        rel_path_str = from_path_i.relto(from_path)
+        to_path_i = to_path.join(rel_path_str)
+
+        to_path_i.dirpath().ensure_dir()
+        from_path_i.copy(to_path_i)
 
 
 class FilesystemBlob(object):
@@ -61,7 +76,7 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [first_path_1, second_path_1],
         ... ).etag
-        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
+        'e45315d583e1b7f0a87d890771257d3e4c4b39b8'
 
         >>> first_path_2 = first_path_1.dirpath().join('dockci_doctest_c')
         >>> first_path_1.move(first_path_2)
@@ -70,7 +85,7 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [first_path_2, second_path_1],
         ... ).etag
-        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
+        'e45315d583e1b7f0a87d890771257d3e4c4b39b8'
 
         >>> dir_path = test_path.join('dockci_doctest_dir')
         >>> dir_path.ensure_dir()
@@ -85,13 +100,13 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [first_path_3, second_path_3],
         ... ).etag
-        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
+        'e45315d583e1b7f0a87d890771257d3e4c4b39b8'
 
         >>> FilesystemBlob.from_files(
         ...     None, None,
         ...     [second_path_3, first_path_3],
         ... ).etag
-        '91e980a4a314b2bd90aec0b61b8d05a2016dbd61'
+        'e45315d583e1b7f0a87d890771257d3e4c4b39b8'
 
         >>> with first_path_3.open('w') as handle:
         ...     handle.write('different content')
@@ -101,7 +116,7 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [second_path_3, first_path_3],
         ... ).etag
-        '515d09f5a0e90468d9a671f0970290d387d03feb'
+        'ac4ee46879f69d4563f7c3237d35df8d87517fb4'
 
         >>> with second_path_3.open('w') as handle:
         ...     handle.write('more different content')
@@ -111,26 +126,31 @@ class FilesystemBlob(object):
         ...     None, None,
         ...     [second_path_3, first_path_3],
         ... ).etag
-        'a8867b42657ba48e2a10eda0d8b500f5e2092fb4'
+        '8914666e0bfa9fc23d2fb0058db2aafec335caf0'
 
         >>> FilesystemBlob.from_files(
         ...     None, None,
         ...     [second_path_3, first_path_3],
-        ...     meta={'version': '3'}
+        ...     meta={'version': '3', 'other': ('things', 'here')}
         ... ).etag
-        '033c30c051bf82376391abf021420aadabfa86fe'
+        '204612e03ad9679f1ba0c5857a6059f086c45298'
 
         >>> FilesystemBlob.from_files(
         ...     None, None,
         ...     [second_path_3, first_path_3],
-        ...     meta={'version': '4'}
+        ...     meta={'version': '4', 'other': ('things', 'here')}
         ... ).etag
-        '34cdf67eb087a54f969098b1d21aa390f9af7cfe'
+        '880ebbe5e2277acbe15750062277a2538795f186'
         """
+        if isinstance(meta, dict):
+            meta = OrderedDict([
+                (key, meta[key]) for key in sorted(meta.keys())
+            ])
+
         digests = []
         for file_path in file_paths:
             with file_path.open('rb') as handle:
-                file_hash = hashlib.sha1(pickle.dumps(meta))
+                file_hash = hashlib.sha1(json.dumps(meta).encode())
 
                 chunk = None
                 while chunk is None or len(chunk) == CHUNK_SIZE:
@@ -220,22 +240,10 @@ class FilesystemBlob(object):
     def extract(self):
         """ Extract data from the blob to the ``root_path`` """
         blob_path = self.path
-        self._copy_data(blob_path, self.root_path, blob_path.listdir())
+        _copy_data(blob_path, self.root_path, blob_path.listdir())
 
     def write(self):
         """ Write data to the blob """
         blob_path = self.path
         blob_path.ensure_dir()
-        self._copy_data(self.root_path, blob_path, self.data_paths)
-
-    def _copy_data(self, from_path, to_path, sources):
-        """
-        Copy data in ``sources`` from a path, to a path preserving directory
-        structure
-        """
-        for from_path_i in sources:
-            rel_path_str = from_path_i.relto(from_path)
-            to_path_i = to_path.join(rel_path_str)
-
-            to_path_i.dirpath().ensure_dir()
-            from_path_i.copy(to_path_i)
+        _copy_data(self.root_path, blob_path, self.data_paths)
