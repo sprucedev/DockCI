@@ -667,7 +667,6 @@ class UtilStage(InlineProjectStage):
         if input_files:
             blob_path = self.job.data_dir_path().join('_util_blobs')
             blob_path.ensure_dir()
-            # TODO add service image to blob metadata to break cache
             blob_store = FilesystemBlob.from_files(
                 blob_path,
                 self.workdir,
@@ -675,7 +674,8 @@ class UtilStage(InlineProjectStage):
                     self.workdir.join(input_data['from'])
                     for input_data
                     in input_files
-                ]
+                ],
+                meta={'image': service.image},
             )
 
             for output_data in output_files:
