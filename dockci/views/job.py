@@ -204,6 +204,37 @@ def check_output(project_slug, job_slug, filename):
     return job_id, data_file_path
 
 
+@APP.route('/projects/<project_slug>/jobs/<job_slug>/log_init/<stage>',
+           methods=('GET',))
+def job_log_init_view(project_slug, job_slug, stage):
+    """ View to download initial job log """
+    job_id, data_file_path = check_output(project_slug,
+                                          job_slug,
+                                          '%s.log' % stage)
+    byte_seek = request.args.get('seek', 0, type=int)
+    bytes_count = request.args.get('count', None, type=int)
+
+    def loader():
+        """ Stream the parts of the log that we want """
+        with APP.app_context():
+            job = Job.query.get(job_id)  # Session is closed
+            with data_file_path.open('rb') as handle:
+                handle.seek(byte_seek)
+                bytes_remain = bytes_count
+                while bytes_remain == None or bytes_remain > 0:
+                    data = handle.read(min(1024, bytes_remain))
+
+                    if bytes_remain is not None:
+                        bytes_remain -= len(data)
+
+                    yield data
+
+                    if len(data) == 0:
+                        return
+
+    return Response(loader(), mimetype='text/plain')
+
+
 @APP.route('/projects/<project_slug>/jobs/<job_slug>/output/<filename>',
            methods=('GET',))
 def job_output_view(project_slug, job_slug, filename):
