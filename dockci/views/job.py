@@ -185,12 +185,8 @@ def job_output_json(project_slug, job_slug):
     )
 
 
-@APP.route('/projects/<project_slug>/jobs/<job_slug>/output/<filename>',
-           methods=('GET',))
-def job_output_view(project_slug, job_slug, filename):
-    """
-    View to download some job output
-    """
+def check_output():
+    """ Ensure the job exists, and that the path is not dangerous """
     Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
     job_id = job.id
@@ -204,6 +200,15 @@ def job_output_view(project_slug, job_slug, filename):
 
     if not data_file_path.check(file=True):
         abort(404)
+
+    return job_id, data_file_path
+
+
+@APP.route('/projects/<project_slug>/jobs/<job_slug>/output/<filename>',
+           methods=('GET',))
+def job_output_view(project_slug, job_slug, filename):
+    """ View to download some job output """
+    job_id, data_file_path = check_output(project_slug, job_slug, filename)
 
     def loader():
         """
