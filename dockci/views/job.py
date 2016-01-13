@@ -185,7 +185,7 @@ def job_output_json(project_slug, job_slug):
     )
 
 
-def check_output():
+def check_output(project_slug, job_slug, filename):
     """ Ensure the job exists, and that the path is not dangerous """
     Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
