@@ -123,6 +123,7 @@ class StageIO(FileIO):
         try:
             redis = self.redis
             redis_len_key = self.redis_len_key
+            # TODO expiry
             redis.setnx(redis_len_key, 0)
             redis.incr(redis_len_key, len(data))
 
