@@ -103,7 +103,7 @@ class StageIO(FileIO):
     @property
     def redis_len_key(self):
         """ Key for Redis value storing bytes saved """
-        return 'dockci/{project_slug}/{job_slug}/{stage_slug}_bytes'.format(
+        return 'dockci/{project_slug}/{job_slug}/{stage_slug}/bytes'.format(
             project_slug=self.stage.job.project.slug,
             job_slug=self.stage.job.slug,
             stage_slug=self.stage.slug,
