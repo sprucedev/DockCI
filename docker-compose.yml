@@ -5,6 +5,7 @@ web:
    - "5001:5000"
   links:
    - postgres
+   - redis
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
    - ./data:/code/data
@@ -19,6 +20,8 @@ postgres:
   environment:
     POSTGRES_USER: dockci
     POSTGRES_PASSWORD: letmein
+redis:
+  image: redis
 registry:
   image: registry:2
   ports:

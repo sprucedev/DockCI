@@ -1,7 +1,11 @@
 """ IO for handling stage output/logging """
 
+import logging
+
 from contextlib import contextmanager
 from io import FileIO
+
+import redis
 
 
 class StageIO(FileIO):
@@ -91,12 +95,39 @@ class StageIO(FileIO):
             '%s.log' % self.stage.slug
         )
 
+    @property
+    def redis(self):
+        """ Get a Redis object """
+        return redis.Redis(connection_pool=self.redis_pool)
+
+    @property
+    def redis_len_key(self):
+        """ Key for Redis value storing bytes saved """
+        return 'dockci/{project_slug}/{job_slug}/{stage_slug}_bytes'.format(
+            project_slug=self.stage.job.project.slug,
+            job_slug=self.stage.job.slug,
+            stage_slug=self.stage.slug,
+        )
+
+    @property
+    def bytes_saved(self):
+        """ Number of bytes saved in a live log """
+        return self.redis.get(self.redis_len_key)
+
     def write(self, data):
         """
         Obtain the stage lock, update the byte total, write to RMQ,
         write to file, release the stage lock
         """
         super(StageIO, self).write(data)
+        try:
+            redis = self.redis
+            redis_len_key = self.redis_len_key
+            redis.setnx(redis_len_key, 0)
+            redis.incr(redis_len_key, len(data))
+
+        except Exception:
+            logging.exception("Error incrementing bytes written")
 
     def __repr__(self):
         """

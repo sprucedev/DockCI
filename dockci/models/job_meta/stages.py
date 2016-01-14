@@ -13,6 +13,7 @@ from dockci.exceptions import (AlreadyRunError,
                                DockerUnreachableError,
                                StageFailedError,
                                )
+from dockci.server import get_redis_pool
 from dockci.stage_io import StageIO
 from dockci.util import bytes_str
 
@@ -49,7 +50,7 @@ class JobStageBase(object):
         stage = JobStageTmp(job=self.job, slug=self.slug)
 
         self.job.job_output_path().ensure_dir()
-        with StageIO.open(self, redis_pool='not none') as handle:
+        with StageIO.open(self, redis_pool=get_redis_pool()) as handle:
             self.job.db_session.add(stage)
             self.job.db_session.commit()
 

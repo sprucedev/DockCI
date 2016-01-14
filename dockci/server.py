@@ -8,6 +8,7 @@ import multiprocessing
 import os
 
 import flask
+import redis
 import rollbar
 import rollbar.contrib.flask
 
@@ -102,6 +103,12 @@ def app_init():
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
+    # TODO dynamic user/password
+    APP.config['REDIS_HOST'] = os.environ.get(
+        'REDIS_PORT_6379_ADDR', 'redis')
+    APP.config['REDIS_PORT'] = int(os.environ.get(
+        'REDIS_PORT_6379_PORT', 6379))
+
     if APP.config.get('SQLALCHEMY_DATABASE_URI', None) is None:
         APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 
@@ -122,6 +129,13 @@ def app_init():
     app_init_api()
     app_init_views()
     app_init_workers()
+
+
+def get_redis_pool():
+    """ Create a configured Redis connection pool """
+    return redis.ConnectionPool(host=APP.config['REDIS_HOST'],
+                                port=APP.config['REDIS_PORT'],
+                                )
 
 
 def wrapped_report_exception(app, exception):
