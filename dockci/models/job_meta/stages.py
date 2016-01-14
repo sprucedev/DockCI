@@ -13,6 +13,7 @@ from dockci.exceptions import (AlreadyRunError,
                                DockerUnreachableError,
                                StageFailedError,
                                )
+from dockci.stage_io import StageIO
 from dockci.util import bytes_str
 
 
@@ -28,14 +29,6 @@ class JobStageBase(object):
     def runnable(self, handle):
         """ Executeable portion of the stage """
         raise NotImplementedError("You must override the 'runnable' method")
-
-    def data_file_path(self):
-        """
-        File that stage output is logged to
-        """
-        return self.job.job_output_path().join(
-            '%s.log' % self.slug  # pylint:disable=no-member
-        )
 
     def run(self, expected_rc=0):
         """
@@ -56,7 +49,7 @@ class JobStageBase(object):
         stage = JobStageTmp(job=self.job, slug=self.slug)
 
         self.job.job_output_path().ensure_dir()
-        with self.data_file_path().open('wb') as handle:
+        with StageIO.open(self, redis_pool='not none') as handle:
             self.job.db_session.add(stage)
             self.job.db_session.commit()
 
