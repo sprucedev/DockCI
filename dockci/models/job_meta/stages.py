@@ -13,7 +13,7 @@ from dockci.exceptions import (AlreadyRunError,
                                DockerUnreachableError,
                                StageFailedError,
                                )
-from dockci.server import get_redis_pool
+from dockci.server import pika_conn, redis_pool
 from dockci.stage_io import StageIO
 from dockci.util import bytes_str
 
@@ -50,19 +50,25 @@ class JobStageBase(object):
         stage = JobStageTmp(job=self.job, slug=self.slug)
 
         self.job.job_output_path().ensure_dir()
-        with StageIO.open(self, redis_pool=get_redis_pool()) as handle:
-            self.job.db_session.add(stage)
-            self.job.db_session.commit()
+        with pika_conn() as pika_conn_:
+            with redis_pool() as redis_pool_:
+                with StageIO.open(
+                    self,
+                    redis_pool=redis_pool_,
+                    pika_conn=pika_conn_,
+                ) as handle:
+                    self.job.db_session.add(stage)
+                    self.job.db_session.commit()
 
-            try:
-                self.returncode = self.runnable(handle)
+                    try:
+                        self.returncode = self.runnable(handle)
 
-            except StageFailedError as ex:
-                if not ex.handled:
-                    handle.write(("FAILED: %s\n" % ex).encode())
-                    handle.flush()
+                    except StageFailedError as ex:
+                        if not ex.handled:
+                            handle.write(("FAILED: %s\n" % ex).encode())
+                            handle.flush()
 
-                return False
+                        return False
 
         if expected_rc is None:
             return True

@@ -148,6 +148,17 @@ def get_redis_pool():
                                 )
 
 
+@contextmanager
+def redis_pool():
+    """ Context manager for getting and disconnecting a Redis pool """
+    pool = get_redis_pool()
+    try:
+        yield pool
+
+    finally:
+        pool.disconnect()
+
+
 def get_pika_conn():
     """ Create a connection to RabbitMQ """
     return pika.BlockingConnection(pika.ConnectionParameters(
@@ -158,6 +169,17 @@ def get_pika_conn():
             APP.config['RABBITMQ_PASSWORD'],
         ),
     ))
+
+
+@contextmanager
+def pika_conn():
+    """ Context manager for getting and closing a pika connection """
+    conn = get_pika_conn()
+    try:
+        yield conn
+
+    finally:
+        conn.close()
 
 
 def wrapped_report_exception(app, exception):

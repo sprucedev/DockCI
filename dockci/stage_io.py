@@ -29,26 +29,34 @@ class StageIO(FileIO):
     >>> job = Job(id=0x2a, project=project)
     >>> stage = ExternalStatusStage(job, 'test')
 
-    >>> StageIO(stage, mode='wb', redis_pool=None)
+    >>> StageIO(stage, mode='wb', redis_pool=None, pika_conn='not none')
     Traceback (most recent call last):
       ...
     ValueError: Can't write to a stage stream without Redis
 
-    >>> StageIO(stage, mode='wb', redis_pool='not none')
+    >>> StageIO(stage, mode='wb', redis_pool='not none', pika_conn=None)
+    Traceback (most recent call last):
+      ...
+    ValueError: Can't write to a stage stream without RabbitMQ
+
+    >>> StageIO(stage, mode='wb', redis_pool='not none', pika_conn='not none')
     <StageIO: ...>
 
-    >>> StageIO(stage, mode='rb', redis_pool=None)
+    >>> StageIO(stage, mode='rb', redis_pool=None, pika_conn=None)
     <StageIO: ...>
 
     >>> old_path.chdir()
     local(...)
     """
-    def __init__(self, stage, mode='wb', redis_pool=None):
+    def __init__(self, stage, mode='wb', redis_pool=None, pika_conn=None):
         if 'w' in mode and redis_pool is None:
             raise ValueError("Can't write to a stage stream without Redis")
+        if 'w' in mode and pika_conn is None:
+            raise ValueError("Can't write to a stage stream without RabbitMQ")
 
         self.stage = stage
         self.redis_pool = redis_pool
+        self.pika_conn = pika_conn
 
         super(StageIO, self).__init__(
             self._log_path.strpath,
@@ -57,9 +65,43 @@ class StageIO(FileIO):
 
     @classmethod
     @contextmanager
-    def open(cls, stage, mode='wb', redis_pool=None):
-        """ Context manager for getting a stage log """
-        handle = cls(stage, mode=mode, redis_pool=redis_pool)
+    def open(cls, stage, mode='wb', redis_pool=None, pika_conn=None):
+        """
+        Context manager for getting a stage log
+
+        Examples:
+
+        >>> test_path = getfixture('tmpdir')
+        >>> old_path = test_path.chdir()
+        >>> test_path.join('data', 'testproj', '00002a').ensure_dir()
+        local('.../data/testproj/00002a')
+
+        >>> from dockci.models.project import Project
+        >>> from dockci.models.job import Job
+        >>> from dockci.models.job_meta.stages_main import ExternalStatusStage
+
+        >>> project = Project(slug='testproj')
+        >>> job = Job(id=0x2a, project=project)
+        >>> stage = ExternalStatusStage(job, 'test')
+
+        >>> with StageIO.open(stage, redis_pool='red', pika_conn='pika') as h:
+        ...     h.pika_conn
+        'pika'
+
+        >>> with StageIO.open(stage, redis_pool='red', pika_conn='pika') as h:
+        ...     h.redis_pool
+        'red'
+
+        >>> with StageIO.open(stage, mode='rb') as h:
+        ...     h.mode
+        'rb'
+        """
+        handle = cls(
+            stage,
+            mode=mode,
+            redis_pool=redis_pool,
+            pika_conn=pika_conn,
+        )
         try:
             yield handle
         finally:
@@ -85,7 +127,7 @@ class StageIO(FileIO):
         >>> job = Job(id=0x2a, project=project)
         >>> stage = ExternalStatusStage(job, 'test')
 
-        >>> StageIO(stage, mode='wb', redis_pool='not none')._log_path
+        >>> StageIO(stage, redis_pool='test', pika_conn='test')._log_path
         local('.../testproj/00002a/external_status_test.log')
 
         >>> old_path.chdir()
@@ -95,15 +137,40 @@ class StageIO(FileIO):
             '%s.log' % self.stage.slug
         )
 
+    _redis = None
+
     @property
     def redis(self):
         """ Get a Redis object """
-        return redis.Redis(connection_pool=self.redis_pool)
+        if self._redis is None:
+            self._redis = redis.Redis(connection_pool=self.redis_pool)
+
+        return self._redis
+
+    _pika_channel = None
+
+    @property
+    def pika_channel(self):
+        """ Get the RabbitMQ channel """
+        if self._pika_channel is None:
+            self._pika_channel = self.pika_conn.channel()
+
+        return self._pika_channel
+
 
     @property
     def redis_len_key(self):
         """ Key for Redis value storing bytes saved """
         return 'dockci/{project_slug}/{job_slug}/{stage_slug}/bytes'.format(
+            project_slug=self.stage.job.project.slug,
+            job_slug=self.stage.job.slug,
+            stage_slug=self.stage.slug,
+        )
+
+    @property
+    def rabbit_content_key(self):
+        """ RabbitMQ routing key for content messages """
+        return 'dockci.{project_slug}.{job_slug}.{stage_slug}.content'.format(
             project_slug=self.stage.job.project.slug,
             job_slug=self.stage.job.slug,
             stage_slug=self.stage.slug,
@@ -130,6 +197,16 @@ class StageIO(FileIO):
         except Exception:
             logging.exception("Error incrementing bytes written")
 
+        try:
+            self.pika_channel.basic_publish(
+                exchange='dockci.job',
+                routing_key=self.rabbit_content_key,
+                body=data,
+            )
+
+        except Exception:
+            logging.exception("Error sending to queue")
+
     def __repr__(self):
         """
         Examples:
@@ -147,7 +224,7 @@ class StageIO(FileIO):
         >>> job = Job(id=0x2a, project=project)
         >>> stage = ExternalStatusStage(job, 'test')
 
-        >>> StageIO(stage, mode='wb', redis_pool='not none')
+        >>> StageIO(stage, mode='wb', redis_pool='test', pika_conn='test')
         <StageIO: project=testproj, job=...2a, stage=...test, mode=wb>
         """
         return ('<{klass}: project={project_slug}, job={job_slug}, '
