@@ -1,10 +1,11 @@
 web:
   build: .
-  command: run --debug --collect-static --db-migrate --db-timeout 10 --bind 0.0.0.0:5000
+  command: run --debug --collect-static --db-migrate --timeout 10 --bind 0.0.0.0:5000
   ports:
    - "5001:5000"
   links:
    - postgres
+   - rabbitmq
    - redis
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
@@ -20,6 +21,14 @@ postgres:
   environment:
     POSTGRES_USER: dockci
     POSTGRES_PASSWORD: letmein
+rabbitmq:
+  image: sprucedev/dockci-rabbitmq
+  ports:
+    - "15674:15674"
+    - "5672:5672"
+    - "15672:15672"
+  volumes:
+    - ./rabbitmq.config:/etc/rabbitmq/rabbitmq.config
 redis:
   image: redis
 registry:

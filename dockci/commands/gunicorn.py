@@ -6,11 +6,12 @@ from sys import stderr
 
 from flask_migrate import upgrade as db_upgrade
 from gunicorn.app.base import BaseApplication
+from pika.exceptions import AMQPError
 from py.path import local  # pylint:disable=import-error
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
-from dockci.server import APP, app_init, get_db_uri, MANAGER
+from dockci.server import APP, app_init, get_db_uri, get_pika_conn, MANAGER
 from dockci.util import project_root
 
 
@@ -48,9 +49,9 @@ class GunicornWrapper(BaseApplication):  # pylint:disable=abstract-method
 @MANAGER.option("--db-migrate",
                 default=False, action='store_true',
                 help="Migrate the DB on load")
-@MANAGER.option("--db-timeout",
+@MANAGER.option("--timeout",
                 default=0, type=int,
-                help="Time to wait for the database to be available")
+                help="Time to wait for the resources to be available")
 @MANAGER.option("--collect-static",
                 default=False, action='store_true',
                 help="Collect static dependencies before start")
@@ -64,24 +65,43 @@ def run(**kwargs):
         subprocess.check_call('./_deps_collectstatic.sh',
                               cwd=project_root().strpath)
 
-    if kwargs['db_timeout'] != 0:
+    if kwargs['timeout'] != 0:
         start_time = time.time()
         db_engine = create_engine(
             get_db_uri(),
             connect_args=dict(connect_timeout=2),
         )
         db_conn = None
-        while time.time() - start_time < kwargs['db_timeout']:
+        mq_conn = None
+        while time.time() - start_time < kwargs['timeout']:
             try:
-                db_conn = db_engine.connect()
+                if db_conn is None or db_conn.closed:
+                    db_conn = db_engine.connect()
             except OperationalError:
                 time.sleep(2)
-            else:
-                break
+                continue
+
+            try:
+                if mq_conn is None:
+                    mq_conn = get_pika_conn()
+            except AMQPError:
+                time.sleep(2)
+                continue
+
+            break
 
         if db_conn is None or db_conn.closed:
             stderr.write("Timed out waiting for the database to be ready\n")
             return 1
+
+        if mq_conn is None:
+            stderr.write("Timed out waiting for RabbitMQ to be ready\n")
+            return 1
+
+    # Setup the exchange
+    channel = mq_conn.channel()
+    channel.exchange_declare(exchange='dockci.job', type='topic')
+    mq_conn.close()
 
     if kwargs['db_migrate']:
         db_upgrade(  # doesn't return anything

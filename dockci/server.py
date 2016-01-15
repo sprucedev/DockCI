@@ -7,7 +7,10 @@ import mimetypes
 import multiprocessing
 import os
 
+from contextlib import contextmanager
+
 import flask
+import pika
 import redis
 import rollbar
 import rollbar.contrib.flask
@@ -104,6 +107,13 @@ def app_init():
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
     # TODO dynamic user/password
+    APP.config['RABBITMQ_USER'] = 'guest'
+    APP.config['RABBITMQ_PASSWORD'] = 'guest'
+    APP.config['RABBITMQ_HOST'] = os.environ.get(
+        'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
+    APP.config['RABBITMQ_PORT'] = int(os.environ.get(
+        'RABBITMQ_PORT_5672_TCP_PORT', 5672))
+
     APP.config['REDIS_HOST'] = os.environ.get(
         'REDIS_PORT_6379_ADDR', 'redis')
     APP.config['REDIS_PORT'] = int(os.environ.get(
@@ -136,6 +146,18 @@ def get_redis_pool():
     return redis.ConnectionPool(host=APP.config['REDIS_HOST'],
                                 port=APP.config['REDIS_PORT'],
                                 )
+
+
+def get_pika_conn():
+    """ Create a connection to RabbitMQ """
+    return pika.BlockingConnection(pika.ConnectionParameters(
+        host=APP.config['RABBITMQ_HOST'],
+        port=APP.config['RABBITMQ_PORT'],
+        credentials=pika.credentials.PlainCredentials(
+            APP.config['RABBITMQ_USER'],
+            APP.config['RABBITMQ_PASSWORD'],
+        ),
+    ))
 
 
 def wrapped_report_exception(app, exception):
