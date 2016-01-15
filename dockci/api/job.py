@@ -1,7 +1,11 @@
 """ API relating to Job model objects """
 import sqlalchemy
+import uuid
 
-from flask import abort, request
+import redis
+import redis_lock
+
+from flask import abort, request, url_for
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
@@ -11,7 +15,8 @@ from .fields import NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import API
+from dockci.server import API, pika_conn, redis_pool
+from dockci.stage_io import redis_len_key, redis_lock_name
 from dockci.util import str2bool
 
 
@@ -152,6 +157,50 @@ class ArtifactList(Resource):
         return get_validate_job(project_slug, job_slug).job_output_details
 
 
+class StageStreamDetail(Resource):
+    """ API resource to handle creating stage stream queues """
+    def get(self, project_slug, job_slug):
+        job = get_validate_job(project_slug, job_slug)
+        routing_key = 'dockci.{project_slug}.{job_slug}.*.*'.format(
+            project_slug=project_slug,
+            job_slug=job_slug,
+        )
+
+        with redis_pool() as redis_pool_:
+            with pika_conn() as pika_conn_:
+                channel = pika_conn_.channel()
+                queue_result = channel.queue_declare(
+                    queue=uuid.uuid4().hex,
+                    arguments={'x-expires': 60000},
+                    durable=False,
+                )
+
+                redis_conn = redis.Redis(connection_pool=redis_pool_)
+                with redis_lock.Lock(redis_conn, redis_lock_name(job)):
+                    channel.queue_bind(
+                        exchange='dockci.job',
+                        queue=queue_result.method.queue,
+                        routing_key=routing_key,
+                    )
+
+                    stage = job.job_stages[-1]
+                    bytes_read = redis_conn.get(redis_len_key(stage))
+
+        return {
+            'init_stage': stage.slug,
+            'init_log': "{url}?count={count}".format(
+                url=url_for(
+                    'job_log_init_view',
+                    project_slug=project_slug,
+                    job_slug=job_slug,
+                    stage=stage.slug
+                ),
+                count=bytes_read,
+            ),
+            'live_queue': queue_result.method.queue,
+        }
+
+
 API.add_resource(
     JobList,
     '/projects/<string:project_slug>/jobs',
@@ -171,4 +220,9 @@ API.add_resource(
     ArtifactList,
     '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
     endpoint='artifact_list',
+)
+API.add_resource(
+    StageStreamDetail,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>/stream',
+    endpoint='stage_stream_detail',
 )

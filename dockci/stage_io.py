@@ -6,6 +6,33 @@ from contextlib import contextmanager
 from io import FileIO
 
 import redis
+import redis_lock
+
+
+def redis_len_key(stage):
+    """ Key for Redis value storing bytes saved """
+    return 'dockci/{project_slug}/{job_slug}/{stage_slug}/bytes'.format(
+        project_slug=stage.job.project.slug,
+        job_slug=stage.job.slug,
+        stage_slug=stage.slug,
+    )
+
+
+def redis_lock_name(job):
+    """ Name of the lock for the job """
+    return 'dockci/{project_slug}/{job_slug}/lock'.format(
+        project_slug=job.project.slug,
+        job_slug=job.slug,
+    )
+
+
+def rabbit_content_key(stage):
+    """ RabbitMQ routing key for content messages """
+    return 'dockci.{project_slug}.{job_slug}.{stage_slug}.content'.format(
+        project_slug=stage.job.project.slug,
+        job_slug=stage.job.slug,
+        stage_slug=stage.slug,
+    )
 
 
 class StageIO(FileIO):
@@ -161,20 +188,17 @@ class StageIO(FileIO):
     @property
     def redis_len_key(self):
         """ Key for Redis value storing bytes saved """
-        return 'dockci/{project_slug}/{job_slug}/{stage_slug}/bytes'.format(
-            project_slug=self.stage.job.project.slug,
-            job_slug=self.stage.job.slug,
-            stage_slug=self.stage.slug,
-        )
+        return redis_len_key(self.stage)
+
+    @property
+    def redis_lock_name(self):
+        """ Name of the lock for the job """
+        return redis_lock_name(self.stage.job)
 
     @property
     def rabbit_content_key(self):
         """ RabbitMQ routing key for content messages """
-        return 'dockci.{project_slug}.{job_slug}.{stage_slug}.content'.format(
-            project_slug=self.stage.job.project.slug,
-            job_slug=self.stage.job.slug,
-            stage_slug=self.stage.slug,
-        )
+        return rabbit_content_key(self.stage)
 
     @property
     def bytes_saved(self):
@@ -187,25 +211,31 @@ class StageIO(FileIO):
         write to file, release the stage lock
         """
         super(StageIO, self).write(data)
-        try:
-            redis = self.redis
-            redis_len_key = self.redis_len_key
-            # TODO expiry
-            redis.setnx(redis_len_key, 0)
-            redis.incr(redis_len_key, len(data))
-
-        except Exception:
-            logging.exception("Error incrementing bytes written")
 
         try:
-            self.pika_channel.basic_publish(
-                exchange='dockci.job',
-                routing_key=self.rabbit_content_key,
-                body=data,
-            )
+            redis_conn = self.redis
+            with redis_lock.Lock(redis_conn, self.redis_lock_name):
+                try:
+                    redis_len_key = self.redis_len_key
+                    # TODO expiry
+                    redis_conn.setnx(redis_len_key, 0)
+                    redis_conn.incr(redis_len_key, len(data))
+
+                except Exception:
+                    logging.exception("Error incrementing bytes written")
+
+                try:
+                    self.pika_channel.basic_publish(
+                        exchange='dockci.job',
+                        routing_key=self.rabbit_content_key,
+                        body=data,
+                    )
+
+                except Exception:
+                    logging.exception("Error sending to queue")
 
         except Exception:
-            logging.exception("Error sending to queue")
+            logging.exception("Error writing live logs")
 
     def __repr__(self):
         """
