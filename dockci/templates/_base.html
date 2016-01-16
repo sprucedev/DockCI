@@ -13,9 +13,6 @@
             {%- else -%}glyphicon glyphicon-question-sign text-info
             {%- endif -%}" title="{{ state | title }}"></i>
 {%- endmacro %}
-{% macro git_user(name, email) -%}
-  <span class="git-user"><span class="git-user-name">{{ name }}</span> <small class="git-user-email">&lt;{{ email }}&gt;</small></span>
-{%- endmacro %}
 {% macro project_shield(project) -%}
   <a href="#" data-toggle="modal" data-target="#{{ project.slug }}-shield-dialog">
     <img src="{{ url_for('project_shield_view', slug=project.slug, extension='svg', _external=True) }}" alt="{{ project.name }} | {{ project.shield_text }}" />
@@ -189,7 +186,7 @@
         return this.slice(-str.length) == str;
       };
     }
-    require(['jquery' , 'md5'], function($, md5) {
+    require(['jquery'], function($) {
       $(document).ready(function (){
         // form input fields marked with required cannot be empty
         $('form').submit(function () {
@@ -207,28 +204,6 @@
           })
           return valid
         })
-      })
-
-      // GRAVATARS
-      function gravatarUrl(email, size) {
-        var hash = md5(email.trim().toLowerCase());
-        return 'https://secure.gravatar.com/avatar/' + hash + '?d=mm&s=' + size
-      }
-      $('.git-user-email').each(function(idx, el) {
-        var lineHeight = $(el).height(),
-            emailAddress = $(el).text(),
-            emailStartIdx, emailEndIdx, imageUrl;
-
-        emailStartIdx = emailAddress.startsWith('<') ? 1 : 0;
-        emailEndIdx = emailAddress.endsWith('>') ? -1 : 0;
-        if (emailStartIdx || emailEndIdx) {
-          emailAddress = emailAddress.slice(emailStartIdx,
-                                            emailAddress.length + emailEndIdx)
-        }
-
-        imageUrl =  gravatarUrl(emailAddress, lineHeight + 20);  // 20 is CSS extra
-
-        el.parentElement.style.backgroundImage = "url('" + imageUrl + "')";
       })
     })
   </script>

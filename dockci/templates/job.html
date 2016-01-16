@@ -2,7 +2,9 @@
 {% block title %}{{ job.project.name }} Job Result{% endblock %}
 {% block header %}
   <a href="/projects/{{ job.project.slug }}">{{ job.project.name }}</a> <small>{{ job.create_ts }}</small>
-  <span class="pull-right" id="job-state">{{ job_state_glyph(job.state) }}</span>
+  <span class="pull-right" id="job-state" data-bind="if:job()">
+    <job-state-glyph params="state:job().state"></job-state-glyph>
+  </span>
 {% endblock %}
 {% block content %}
 <style>
@@ -35,6 +37,7 @@
     right: 20px;
   }
 </style>
+<!-- ko if: job() -->
 <div class="btn-group form-group" style="position:absolute; right: 0; z-index: 10" data-toggle="buttons" data-bind="radio: currentTab">
   <label class="btn btn-default" title="Details">
     <input type="radio" name="currentTab" value="details" />
@@ -48,49 +51,60 @@
 </div>
 <div data-bind="visible: currentTab() === 'details'">
   <div class="form-horizontal">
-    <div class="form-group">
+    <div class="form-group" data-bind="visible:job().display_repo">
       <label class="col-sm-2 control-label">Repo</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.display_repo }}</p></div>
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().display_repo"></p></div>
     </div>
-    <div class="form-group">
+    <div class="form-group" data-bind="visible:job().commit">
       <!-- This will update to a full hash after the git_info stage -->
       <label class="col-sm-2 control-label">Commit ref</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.commit }}</p></div>
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().commit"></p></div>
     </div>
-    {% if job.git_branch %}<div class="form-group">
+    <div class="form-group" data-bind="visible:job().git_branch">
       <label class="col-sm-2 control-label">Branch</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.git_branch }}</div>
-    </div>{% endif %}
-    {% if job.git_author_name or job.git_author_email %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().git_branch"></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().show_author">
       <label class="col-sm-2 control-label">Author</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_author_name, job.git_author_email) }}</p></div>
-    </div>{% endif %}
-    {% if (job.git_committer_name or job.git_committer_email) and (job.git_committer_name != job.git_author_name or job.git_committer_email != job.git_author_email) %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static">
+        <git-user params="
+            el: $element
+          , name: job().git_author_name_display
+          , email: job().git_author_email_display
+        "></git-user>
+      </p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().show_committer">
       <label class="col-sm-2 control-label">Committer</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_committer_name, job.git_committer_email) }}</p></div>
-    </div>{% endif %}
-    {% if job.tag %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static">
+        <git-user params="
+            name: job().git_committer_name
+          , email: job().git_committer_email
+        "></git-user>
+      </p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().tag">
       <label class="col-sm-2 control-label">Tag</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.tag }}</p></div>
-    </div>{% endif %}
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().tag"></p></div>
+    </div>
     {% if job.ancestor_job is not none %}<div class="form-group">
       <label class="col-sm-2 control-label">Previous job</label>
       <div class="col-sm-10"><p class="form-control-static">
         <a href="/projects/{{ job.project.slug }}/jobs/{{ job.ancestor_job.slug }}">{{ job.ancestor_job.slug }}</a>
       </p></div>
     </div>{% endif %}
-    {% if job.image_id %}<div class="form-group">
+    <div class="form-group" data-bind="visible:job().image_id">
       <label class="col-sm-2 control-label">Image ID</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.image_id }}</p></div>
-    </div>{% endif %}
-    {% if job.container_id %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().image_id"></p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().container_id">
       <label class="col-sm-2 control-label">Container ID</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.container_id }}</p></div>
-    </div>{% endif %}
-    {% if job.exit_code %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().container_id"></p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().exit_code">
       <label class="col-sm-2 control-label">Exit Code</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.exit_code }}</p></div>
-    </div>{% endif %}
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().exit_code"></p></div>
+    </div>
   </div>
 </div>
 <div data-bind="visible: currentTab() === 'artifacts'">
@@ -110,15 +124,25 @@
 <h2>Job Log</h2>
 <div id="job-stages"></div>
 <div id="auto-scroll" class="btn btn-info btn-fab"><i class="glyphicon glyphicon-chevron-down"></i></div>
+<!-- /ko -->
+<!-- ko ifnot: job() -->
+<loading-bar params="visible:true"></loading-bar>
+<!-- /ko -->
 <script>
   require([
       'jquery'
     , 'knockout'
     , 'md5'
     , 'ansi_up'
+    , 'app/models/job'
+
+    , 'app/components/git_user'
+    , 'app/components/job_state_glyph'
+    , 'app/components/loading_bar'
 
     , 'knockstrap'
-  ], function ($, ko, md5, ansi_up) {
+  ], function ($, ko, md5, ansi_up, JobModel) {
+
     function escapeHTML(html) {
       var fn=function(tag) {
         var charsToReplace = {
@@ -423,6 +447,10 @@
     $(document).ready(function() {
       function ThisPage() {
         this.currentTab = ko.observable('details')
+        this.job        = ko.observable()
+        JobModel.from_url(document.location + '.json', function(job) {
+          this.job(job)
+        }.bind(this))
       }
       ko.applyBindings(new ThisPage())
     })

@@ -169,6 +169,7 @@ def job_output_json(project_slug, job_slug):
                     'result', 'display_repo', 'commit', 'tag',
                     'image_id', 'container_id', 'docker_client_host',
                     'exit_code',
+                    'git_branch',
                     'git_author_name', 'git_author_email',
                     'git_committer_name', 'git_committer_email',
                     'git_changes',
