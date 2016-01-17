@@ -19,6 +19,7 @@
     "knockout": "~3.3.0",
     "knockstrap": "~1.2.1",
     "requirejs": "~2.1.20",
-    "requirejs-text": "~2.0.14"
+    "requirejs-text": "~2.0.14",
+    "stomp.js": "https://github.com/jmesnil/stomp-websocket.git"
   }
 }

@@ -1,4 +1,4 @@
-define(['jquery', 'knockout', '../util'], function ($, ko, util) {
+define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, job_bus) {
     function JobModel(params) {
         this.slug                = ko.observable()
         this.project_slug        = ko.observable()
@@ -57,6 +57,35 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             )
         }.bind(this))
 
+        this.bus = ko.observable()
+
+        this._liveLoadDetail = null
+        this.getLiveLoadDetail = function(callback) {
+            if (this._liveLoadDetail === null) {
+                // TODO POST
+                return $.ajax(
+                    (
+                        '/api/v1' +
+                        '/projects/' + this.project_slug() +
+                        '/jobs/' + this.slug() +
+                        '/stream'
+                    ), {
+                        'dataType': 'json'
+                    }
+                ).done(function(data) {
+                    this._liveLoadDetail = data
+                    callback(data)
+                }.bind(this))
+            } else {
+                callback(this._liveLoadDetail)
+            }
+        }.bind(this)
+        this.getLiveQueueName = function(callback) {
+            this.getLiveLoadDetail(function(data) {
+                callback(data['live_queue'])
+            })
+        }.bind(this)
+
         this.reload_from = function (data) {
             if(typeof(data) === 'undefined') { return }
             finalData = $.extend({
@@ -113,6 +142,10 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
 
             this.exit_code(data['exit_code'])
             this.result(data['result'])
+
+            if (util.isEmpty(this.bus())) {
+                this.bus(job_bus.get(this))
+            }
         }.bind(this)
 
         this.reload = function () {
