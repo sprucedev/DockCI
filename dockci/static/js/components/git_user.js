@@ -12,7 +12,12 @@ define([
             return $(this.el()).height() + 20
         }.bind(this))
         this.gravatarUrl = ko.computed(function () {
-            return util.gravatarUrl(this.email(), this.size())
+            email = this.email()
+            if (!util.isEmpty(email)) {
+                return util.gravatarUrl(this.email(), this.size())
+            } else {
+                return null
+            }
         }.bind(this))
     }
 
