@@ -73,6 +73,7 @@ class JobStageBase(object):
         if expected_rc is None:
             return True
 
+        # TODO start/end status to rabbit
         success = self.returncode == expected_rc
         if not success:
             logging.getLogger('dockci.job.stages').debug(
