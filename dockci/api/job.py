@@ -15,7 +15,7 @@ from .fields import NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import API, pika_conn, redis_pool
+from dockci.server import API, CONFIG, pika_conn, redis_pool
 from dockci.stage_io import redis_len_key, redis_lock_name
 from dockci.util import str2bool
 
@@ -186,7 +186,10 @@ class StageStreamDetail(Resource):
                 channel = pika_conn_.channel()
                 queue_result = channel.queue_declare(
                     queue=uuid.uuid4().hex,
-                    arguments={'x-expires': 60000},
+                    arguments={
+                        'x-expires': CONFIG.live_log_session_timeout,
+                        'x-message-ttl': CONFIG.live_log_message_timeout,
+                    },
                     durable=False,
                 )
 

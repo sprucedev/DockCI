@@ -34,6 +34,7 @@ def config_edit_view():
         'external_url',
         'github_key', 'github_secret',
         'gitlab_key', 'gitlab_secret', 'gitlab_base_url',
+        'live_log_message_timeout', 'live_log_session_timeout',
     )
     all_fields = restart_fields + ()
     blanks = (

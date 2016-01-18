@@ -100,6 +100,15 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     security_registerable = LoadOnAccess(default=True)
     security_recoverable = LoadOnAccess(default=True)
 
+    live_log_message_timeout = LoadOnAccess(
+        default=1000 * 60 * 60,  # 1hr
+        input_transform=int,
+    )
+    live_log_session_timeout = LoadOnAccess(
+        default=1000 * 60,  # 1m
+        input_transform=int,
+    )
+
     @property
     def mail_host_string(self):
         """

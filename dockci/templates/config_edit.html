@@ -149,6 +149,25 @@
       </div>
     </div>
   </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">Performance</div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label for="inputLiveLogSessionTimeout" class="col-sm-2 control-label">Live log session timeout</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputLiveLogSessionTimeout" name="live_log_session_timeout" type="number" value="{{ config.model.live_log_session_timeout or '' }}">
+          <div class="help-block">Number of milliseconds that a live log session can have no connections before being cleaned up (eg 60000 = 60 seconds)</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="inputLiveLogMessageTimeout" class="col-sm-2 control-label">Live log message timeout</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputLiveLogMessageTimeout" name="live_log_message_timeout" type="number" value="{{ config.model.live_log_message_timeout or '' }}">
+          <div class="help-block">Number of milliseconds that a message sent to a live log session has to be delivered before being cleaned up (eg 3600000 = 1 hour)</div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="form-group">
     <div class="col-sm-2">&nbsp;</div>
     <div class="col-sm-10">
