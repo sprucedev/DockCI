@@ -15,7 +15,7 @@ from dockci.exceptions import (AlreadyRunError,
                                )
 from dockci.server import pika_conn, redis_pool
 from dockci.stage_io import StageIO
-from dockci.util import bytes_str
+from dockci.util import bytes_str, rabbit_stage_key
 
 
 class JobStageBase(object):
@@ -30,6 +30,30 @@ class JobStageBase(object):
     def runnable(self, handle):
         """ Executeable portion of the stage """
         raise NotImplementedError("You must override the 'runnable' method")
+
+    pika_conn = None
+    _pika_channel = None
+
+    @property
+    def pika_channel(self):
+        """ Get the RabbitMQ channel """
+        if self._pika_channel is None:
+            self._pika_channel = self.pika_conn.channel()
+
+        return self._pika_channel
+
+    @property
+    def rabbit_status_key(self):
+        """ RabbitMQ routing key for status messages """
+        return rabbit_stage_key(self, 'status')
+
+    def update_status(self, data):
+        """ Update the job's status in the front end """
+        self.pika_channel.basic_publish(
+            exchange='dockci.job',
+            routing_key=self.rabbit_status_key,
+            body=json.dumps(data),
+        )
 
     def run(self, expected_rc=0):
         """
@@ -51,6 +75,8 @@ class JobStageBase(object):
 
         self.job.job_output_path().ensure_dir()
         with pika_conn() as pika_conn_:
+            self.pika_conn = pika_conn_
+            self.update_status({'state': 'starting'})
             with redis_pool() as redis_pool_:
                 with StageIO.open(
                     self,
@@ -70,11 +96,19 @@ class JobStageBase(object):
 
                         return False
 
-        if expected_rc is None:
-            return True
+            if expected_rc is None:
+                self.update_status({'state': 'done', 'success': True})
+                return True
 
-        # TODO start/end status to rabbit
-        success = self.returncode == expected_rc
+            success = self.returncode == expected_rc
+
+            self.update_status(dict(
+                state='done',
+                expected_rc=expected_rc,
+                actual_rc=self.returncode,
+                success=success,
+            ))
+
         if not success:
             logging.getLogger('dockci.job.stages').debug(
                 "Stage '%s' expected return of '%s'. Actually got '%s'",

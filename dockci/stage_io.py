@@ -8,6 +8,8 @@ from io import FileIO
 import redis
 import redis_lock
 
+from dockci.util import rabbit_stage_key
+
 
 def redis_len_key(stage):
     """ Key for Redis value storing bytes saved """
@@ -23,15 +25,6 @@ def redis_lock_name(job):
     return 'dockci/{project_slug}/{job_slug}/lock'.format(
         project_slug=job.project.slug,
         job_slug=job.slug,
-    )
-
-
-def rabbit_content_key(stage):
-    """ RabbitMQ routing key for content messages """
-    return 'dockci.{project_slug}.{job_slug}.{stage_slug}.content'.format(
-        project_slug=stage.job.project.slug,
-        job_slug=stage.job.slug,
-        stage_slug=stage.slug,
     )
 
 
@@ -198,7 +191,7 @@ class StageIO(FileIO):
     @property
     def rabbit_content_key(self):
         """ RabbitMQ routing key for content messages """
-        return rabbit_content_key(self.stage)
+        return rabbit_stage_key(self.stage, 'content')
 
     @property
     def bytes_saved(self):
