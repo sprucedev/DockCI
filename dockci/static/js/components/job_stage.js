@@ -6,6 +6,7 @@ define([
     function JobStageModel(params) {
         this.slug = util.param(params['slug'])
         this.job  = util.param(params['job'])
+        this.success = util.param(params['success'])
 
         this.lines = ko.observableArray([ko.observable('')])
 
@@ -28,7 +29,14 @@ define([
 
         this.consumeLiveContent = function() {
             this.job().bus().subscribe(this.slug(), function(message) {
-                this.updateData(message.body)
+                if (message.headers.destination.endsWith('.content')) {
+                    this.updateData(message.body)
+                } else if (message.headers.destination.endsWith('.status')) {
+                    success = JSON.parse(message.body)['success']
+                    if (!util.isEmpty(success)) {
+                        this.success(success)
+                    }
+                }
             }.bind(this))
         }.bind(this)
 
@@ -76,24 +84,13 @@ define([
             }
         }.bind(this))
     }
-    JobStageModel.sourceQueue = function(project_slug, job_slug, stage_slug) {
-        return [
-              'dockci'
-            , project_slug
-            , job_slug
-            , stage_slug
-        ].join('.')
-    }
-    JobStageModel.sourceQueueContent = function(project_slug, job_slug, stage_slug) {
-        return [
-              JobStageModel.sourceQueue(project_slug, job_slug, stage_slug)
-            , 'content'
-        ].join('.')
-    }
     JobStageModel.contentFilterFor = function(project_slug, job_slug, stage_slug) {
         return function(message) {
-            return message.headers.destination.endsWith(
-                JobStageModel.sourceQueueContent(project_slug, job_slug, stage_slug)
+            parts = message.headers.destination.split('.')
+            return (
+                parts[parts.length - 2] === stage_slug &&
+                parts[parts.length - 3] === job_slug &&
+                parts[parts.length - 4] === project_slug
             )
         }
     }

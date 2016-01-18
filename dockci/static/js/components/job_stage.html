@@ -1,5 +1,11 @@
 <!-- TODO expand/contract -->
-<div class="stage-panel panel panel-info">
+<div class="stage-panel panel" data-bind="
+  css: {
+      'panel-success': success() === true
+    , 'panel-danger': success() === false
+    , 'panel-info': util.isEmpty(success())
+  }
+">
   <div class="panel-heading" data-bind="text:slug"></div>
   <pre class="panel-body stage-log" data-bind="foreach:lines"><div data-bind="text:$data"></div></pre>
 </div>
