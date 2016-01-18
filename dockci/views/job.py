@@ -222,8 +222,13 @@ def job_log_init_view(project_slug, job_slug, stage):
             with data_file_path.open('rb') as handle:
                 handle.seek(byte_seek)
                 bytes_remain = bytes_count
-                while bytes_remain == None or bytes_remain > 0:
-                    data = handle.read(min(1024, bytes_remain))
+                while bytes_remain is None or bytes_remain > 0:
+                    if bytes_remain is not None:
+                        chunk_size = min(1024, bytes_remain)
+                    else:
+                        chunk_size = 1024
+
+                    data = handle.read(chunk_size)
 
                     if bytes_remain is not None:
                         bytes_remain -= len(data)
