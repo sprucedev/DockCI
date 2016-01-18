@@ -64,6 +64,7 @@ define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, j
             return parts[parts.length - 2]
         }
 
+        // Update stage slugs based on live data
         this.bus.subscribe(function(new_bus) {
             new_bus.subscribe(function(message) {
                 stage_slug = stageFromSourceQueue(message.headers.destination)
