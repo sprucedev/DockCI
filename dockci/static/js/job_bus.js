@@ -1,17 +1,26 @@
-define([], function () {
+define(['./util'], function (util) {
     function JobBus(job, getStompClient) {
         this.subscribers = []
         this.job = util.param(job)
 
-        this.subscribe = function(onMessage) {
-            this.subscribers.push(onMessage)
+        this.subscribe = function(onMessage, filter) {
+            this.subscribers.push([onMessage, filter])
         }.bind(this)
 
         this.job().getLiveQueueName(function(queueName) {
             getStompClient(function(stompClient) {
                 stompClient.subscribe("/amq/queue/" + queueName, function(message) {
-                    $(this.subscribers).each(function(idx, func) {
-                        func(message)
+                    $(this.subscribers).each(function(idx, subPair) {
+                        callback = subPair[0]
+                        filter = subPair[1]
+
+                        if (!util.isEmpty(filter)) {
+                            if (!filter(message)) {
+                                return
+                            }
+                        }
+
+                        callback(message)
                     })
                 }.bind(this))
             }.bind(this))
