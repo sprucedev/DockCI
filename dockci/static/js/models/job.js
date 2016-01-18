@@ -179,6 +179,10 @@ define([
                 this.bus(job_bus.get(this))
             }
 
+            // Ensure unique, then create queues, set slugs arr
+            data['job_stage_slugs'] = $(data['job_stage_slugs']).filter(function(idx, val) {
+                return idx <= data['job_stage_slugs'].indexOf(val)
+            })
             $(data['job_stage_slugs']).each(function(idx, stage_slug) {
                 this.createStageQueue(stage_slug)
             }.bind(this))
