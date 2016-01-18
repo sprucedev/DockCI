@@ -9,21 +9,6 @@ define([
 
         this.lines = ko.observableArray([ko.observable('')])
 
-        this.sourceQueue = ko.computed(function() {
-            return [
-                  'dockci'
-                , this.job().project_slug()
-                , this.job().slug()
-                , this.slug()
-            ].join('.')
-        }.bind(this))
-        this.sourceQueueContent = ko.computed(function() {
-            return [
-                  this.sourceQueue()
-                , 'content'
-            ].join('.')
-        }.bind(this))
-
         this.updateData = function(data) {
             message_lines = data.split('\n')
             if (this.lines().length === 1) {
@@ -41,23 +26,10 @@ define([
             }.bind(this))
         }.bind(this)
 
-        this.subscribeBus = function(bus) {
-            bus.subscribe(function(message) {
-                if (message.headers.destination.endsWith(this.sourceQueueContent())) {
-                    this.updateData(message.body)
-                }
+        this.consumeLiveContent = function() {
+            this.job().bus().subscribe(this.slug(), function(message) {
+                this.updateData(message.body)
             }.bind(this))
-        }.bind(this)
-
-        this.queueSubscribeBus = function() {
-            currentBus = this.job().bus()
-            if (typeof(currentBus) === 'undefined') {
-                this.job().bus.subscribe(function(bus) {
-                    this.subscribeBus(bus)
-                })
-            } else {
-                this.subscribeBus(currentBus)
-            }
         }.bind(this)
 
         this.getInitLoadUrl = function(callback) {
@@ -81,7 +53,6 @@ define([
         }.bind(this)
 
         this.initLogBytes = 0
-
         this.getInitLoadUrl(function(init_load_url) {
             if (!util.isEmpty(init_load_url)) {
                 $.ajax({
@@ -98,12 +69,33 @@ define([
                         }.bind(this)
                     }
                 }).complete(function() {
-                    this.queueSubscribeBus()
+                    this.consumeLiveContent()
                 }.bind(this))
             } else {
-                this.queueSubscribeBus()
+                this.consumeLiveContent()
             }
         }.bind(this))
+    }
+    JobStageModel.sourceQueue = function(project_slug, job_slug, stage_slug) {
+        return [
+              'dockci'
+            , project_slug
+            , job_slug
+            , stage_slug
+        ].join('.')
+    }
+    JobStageModel.sourceQueueContent = function(project_slug, job_slug, stage_slug) {
+        return [
+              JobStageModel.sourceQueue(project_slug, job_slug, stage_slug)
+            , 'content'
+        ].join('.')
+    }
+    JobStageModel.contentFilterFor = function(project_slug, job_slug, stage_slug) {
+        return function(message) {
+            return message.headers.destination.endsWith(
+                JobStageModel.sourceQueueContent(project_slug, job_slug, stage_slug)
+            )
+        }
     }
 
     ko.components.register('job-stage', {

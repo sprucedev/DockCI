@@ -1,4 +1,10 @@
-define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, job_bus) {
+define([
+      'jquery'
+    , 'knockout'
+    , '../util'
+    , '../job_bus'
+    , '../components/job_stage'
+], function ($, ko, util, job_bus, JobStageModel) {
     function JobModel(params) {
         this.slug                = ko.observable()
         this.project_slug        = ko.observable()
@@ -64,11 +70,24 @@ define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, j
             return parts[parts.length - 2]
         }
 
+        this.createStageQueue = function(stage_slug) {
+            this.bus().createQueue(
+                stage_slug,
+                JobStageModel.contentFilterFor(
+                      this.project_slug()
+                    , this.slug()
+                    , stage_slug
+                )
+            )
+        }.bind(this)
+
         // Update stage slugs based on live data
         this.bus.subscribe(function(new_bus) {
-            new_bus.subscribe(function(message) {
+            new_bus.createQueue('_job_stages')
+            new_bus.subscribe('_job_stages', function(message) {
                 stage_slug = stageFromSourceQueue(message.headers.destination)
                 if (this.job_stage_slugs.indexOf(stage_slug) === -1) {
+                    this.createStageQueue(stage_slug)
                     this.job_stage_slugs.push(stage_slug)
                 }
             }.bind(this))
@@ -134,8 +153,6 @@ define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, j
             this.slug(data['slug'])
             this.project_slug(data['project_slug'])
 
-            this.job_stage_slugs(data['job_stage_slugs'])
-
             this.create_ts(data['create_ts'])
             this.start_ts(data['start_ts'])
             this.complete_ts(data['complete_ts'])
@@ -161,6 +178,11 @@ define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, j
             if (util.isEmpty(this.bus())) {
                 this.bus(job_bus.get(this))
             }
+
+            $(data['job_stage_slugs']).each(function(idx, stage_slug) {
+                this.createStageQueue(stage_slug)
+            }.bind(this))
+            this.job_stage_slugs(data['job_stage_slugs'])
         }.bind(this)
 
         this.reload = function () {

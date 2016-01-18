@@ -1,27 +1,56 @@
 define(['./util'], function (util) {
     function JobBus(job, getStompClient) {
-        this.subscribers = []
+        this.queues = {}
         this.job = util.param(job)
 
-        this.subscribe = function(onMessage, filter) {
-            this.subscribers.push([onMessage, filter])
+        this.createQueue = function(queueName, filter) {
+            if (typeof(this.queues[queueName]) !== 'undefined') {
+                throw new Error("Queue '" + queueName + "' already defined")
+            }
+            this.queues[queueName] = [null, filter, []]
+        }.bind(this)
+
+        this.subscribe = function(queueName, callback) {
+            queue = this.queues[queueName]
+            if (typeof(queue) === 'undefined') {
+                throw new Error("Queue '" + queueName + "' not defined")
+            }
+
+            if (!util.isEmpty(queue[0])) {
+                throw new Error("Queue '" + queueName + "' already subscribed")
+            }
+            queue[0] = callback
+
+            if (queue[2].length > 0) {
+                message = queue[2].shift()
+                while(typeof(message) !== 'undefined') {
+                    callback(message)
+                    message = queue[2].shift()
+                }
+            }
         }.bind(this)
 
         this.job().getLiveQueueName(function(queueName) {
             getStompClient(function(stompClient) {
                 stompClient.subscribe("/amq/queue/" + queueName, function(message) {
-                    $(this.subscribers).each(function(idx, subPair) {
-                        callback = subPair[0]
-                        filter = subPair[1]
+                    $.each(this.queues, function(key, queueData) {
+                        callback = queueData[0]
+                        filter = queueData[1]
+                        buffer = queueData[2]
 
                         if (!util.isEmpty(filter)) {
                             if (!filter(message)) {
-                                return
+                                return true
                             }
+                        }
+                        if (util.isEmpty(callback)) {
+                            buffer.push(message)
+                            return true
                         }
 
                         callback(message)
-                    })
+                        return true
+                    }.bind(this))
                 }.bind(this))
             }.bind(this))
         }.bind(this))
