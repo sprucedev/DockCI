@@ -8,7 +8,7 @@ define([
         this.job  = util.param(params['job'])
         this.success = util.param(params['success'])
 
-        this.lines = ko.observableArray([ko.observable('')])
+        this.lines = ko.observableArray([ko.observable('')]).extend({'deferred': true})
 
         this.updateData = function(data) {
             message_lines = data.split('\n')
