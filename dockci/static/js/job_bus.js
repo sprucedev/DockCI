@@ -71,7 +71,7 @@ define(['./util'], function (util) {
         this.getStompClient = function(callback) {
             if (this.stompClient === null) {
                 this.stompClientCallbacks.push(callback)
-                url = 'ws://192.168.251.128:15674/ws'
+                url = 'ws://192.168.251.128:15674/ws'  // TODO fix this
                 this.stompClient = Stomp.client(url)
                 this.stompClient.connect('guest', 'guest', function() {
                     $(this.stompClientCallbacks).each(function(idx, callback_inner) {
