@@ -59,6 +59,20 @@ define(['jquery', 'knockout', '../util', '../job_bus'], function ($, ko, util, j
 
         this.bus = ko.observable()
 
+        function stageFromSourceQueue(source_queue) {
+            parts = source_queue.split('.')
+            return parts[parts.length - 2]
+        }
+
+        this.bus.subscribe(function(new_bus) {
+            new_bus.subscribe(function(message) {
+                stage_slug = stageFromSourceQueue(message.headers.destination)
+                if (this.job_stage_slugs.indexOf(stage_slug) === -1) {
+                    this.job_stage_slugs.push(stage_slug)
+                }
+            }.bind(this))
+        }.bind(this))
+
         this._liveLoadDetail = null
         this.getLiveLoadDetail = function(callback) {
             if (this._liveLoadDetail === null) {
