@@ -82,6 +82,7 @@ class JobStageTmp(DB.Model):  # pylint:disable=no-init
     id = DB.Column(DB.Integer(), primary_key=True)
     slug = DB.Column(DB.String(31))
     job_id = DB.Column(DB.Integer, DB.ForeignKey('job.id'), index=True)
+    success = DB.Column(DB.Boolean(), nullable=True)
     job = DB.relationship(
         'Job',
         foreign_keys="JobStageTmp.job_id",

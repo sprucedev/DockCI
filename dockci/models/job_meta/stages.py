@@ -55,6 +55,16 @@ class JobStageBase(object):
             body=json.dumps(data),
         )
 
+    def update_status_complete(self, stage, success):
+        """ Update the job status, and the DB """
+        self.update_status(dict(
+            state='done',
+            success=success,
+        ))
+        stage.success = success
+        self.job.db_session.add(stage)
+        self.job.db_session.commit()
+
     def run(self, expected_rc=0):
         """
         Start the child process, streaming it's output to the associated file,
@@ -94,20 +104,15 @@ class JobStageBase(object):
                             handle.write(("FAILED: %s\n" % ex).encode())
                             handle.flush()
 
+                        self.update_status_complete(stage, False)
                         return False
 
             if expected_rc is None:
-                self.update_status({'state': 'done', 'success': True})
+                self.update_status_complete(stage, True)
                 return True
 
             success = self.returncode == expected_rc
-
-            self.update_status(dict(
-                state='done',
-                expected_rc=expected_rc,
-                actual_rc=self.returncode,
-                success=success,
-            ))
+            self.update_status_complete(stage, success)
 
         if not success:
             logging.getLogger('dockci.job.stages').debug(

@@ -9,7 +9,7 @@ define([
         this.slug                = ko.observable()
         this.project_slug        = ko.observable()
 
-        this.job_stage_slugs     = ko.observableArray()
+        this.job_stage_slugs     = ko.observableArray().extend({'deferred': true})
 
         this.create_ts           = ko.observable()
         this.start_ts            = ko.observable()

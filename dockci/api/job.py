@@ -34,6 +34,11 @@ LIST_FIELDS = {
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
+STAGE_LIST_FIELDS = {
+    'slug': fields.String(),
+    'success': fields.Boolean(),
+}
+
 
 CREATE_FIELDS = {
     'project_detail': RewriteUrl('project_detail', rewrites=dict(
@@ -141,12 +146,21 @@ class JobDetail(BaseDetailResource):
 
 
 class StageList(Resource):
-    """ API resource that handles listing stage slugs for a job """
+    """ API resource that handles listing stages for a job """
+    @marshal_with(STAGE_LIST_FIELDS)
     def get(self, project_slug, job_slug):
         """ List all stage slugs for a job """
+        def match(stage):
+            """ Matches stages against query parameters """
+            return not (
+                'slug' in request.values and
+                request.values['slug'] not in stage.slug
+            )
+
         return [
-            stage.slug for stage in
+            stage for stage in
             get_validate_job(project_slug, job_slug).job_stages
+            if match(stage)
         ]
 
 

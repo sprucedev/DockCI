@@ -79,6 +79,22 @@ define([
                 }).complete(function() {
                     this.consumeLiveContent()
                 }.bind(this))
+
+                $.ajax(
+                      '/api/v1/projects/' + this.job().project_slug() +
+                      '/jobs/' + this.job().slug() + '/stages'
+                    , {
+                          'data': {'slug': this.slug()}
+                        , 'dataType': 'json'
+                    }
+                ).done(function(data) {
+                    $(data).each(function(idx, stage_meta) {
+                        if (!util.isEmpty(stage_meta['success'])) {
+                            this.success(stage_meta['success'])
+                            return false
+                        }
+                    }.bind(this))
+                }.bind(this))
             } else {
                 this.consumeLiveContent()
             }
