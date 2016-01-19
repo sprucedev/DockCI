@@ -94,22 +94,28 @@ define([
         }.bind(this))
 
         this._liveLoadDetail = null
+        this._liveLoadDetailCallbacks = []
         this.getLiveLoadDetail = function(callback) {
             if (this._liveLoadDetail === null) {
-                // TODO POST
-                return $.ajax(
-                    (
-                        '/api/v1' +
-                        '/projects/' + this.project_slug() +
-                        '/jobs/' + this.slug() +
-                        '/stream'
-                    ), {
-                        'dataType': 'json'
-                    }
-                ).done(function(data) {
-                    this._liveLoadDetail = data
-                    callback(data)
-                }.bind(this))
+                this._liveLoadDetailCallbacks.push(callback)
+                if (this._liveLoadDetailCallbacks.length === 1) {
+                    // TODO POST
+                    return $.ajax(
+                        (
+                            '/api/v1' +
+                            '/projects/' + this.project_slug() +
+                            '/jobs/' + this.slug() +
+                            '/stream'
+                        ), {
+                            'dataType': 'json'
+                        }
+                    ).done(function(data) {
+                        this._liveLoadDetail = data
+                        $(this._liveLoadDetailCallbacks).each(function(idx, callback_inner) {
+                            callback_inner(data)
+                        })
+                    }.bind(this))
+                }
             } else {
                 callback(this._liveLoadDetail)
             }

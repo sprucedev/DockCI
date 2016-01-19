@@ -57,30 +57,33 @@ define(['./util'], function (util) {
     }
     function JobBusCont() {
         this.busses = {}
-        this.stompClient = null
-        this.stompClientCallbacks = []
+        this._stompClient = null
+        this._stompClientCallbacks = []
 
         this.get = function(job) {
             bus = this.busses[job.slug()]
             if (typeof(bus) === 'undefined') {
-                bus = new JobBus(job, this.getStompClient)
-                this.busses[job.slug()] = bus
+                this.busses[job.slug()] = bus = new JobBus(job, this.getStompClient)
             }
             return bus
         }.bind(this)
         this.getStompClient = function(callback) {
-            if (this.stompClient === null) {
-                this.stompClientCallbacks.push(callback)
-                url = 'ws://192.168.251.128:15674/ws'  // TODO fix this
-                this.stompClient = Stomp.client(url)
-                this.stompClient.connect('guest', 'guest', function() {
-                    $(this.stompClientCallbacks).each(function(idx, callback_inner) {
-                        callback_inner(this.stompClient)
+            if (this._stompClient === null) {
+                this._stompClientCallbacks.push(callback)
+
+                if (this._stompClientCallbacks.length === 1) {
+                    url = 'ws://192.168.251.128:15674/ws'  // TODO fix this
+                    stompClient = Stomp.client(url)
+                    stompClient.connect('guest', 'guest', function() {
+                        this._stompClient = stompClient
+                        $(this._stompClientCallbacks).each(function(idx, callback_inner) {
+                            callback_inner(this._stompClient)
+                        }.bind(this))
+                        this._stompClientCallbacks = []
                     }.bind(this))
-                    this.stompClientCallbacks = []
-                }.bind(this))
+                }
             } else {
-                callback(this.stompClient)
+                callback(this._stompClient)
             }
         }.bind(this)
     }
