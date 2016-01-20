@@ -126,7 +126,17 @@
 <div id="job-stages" data-bind="foreach:job().job_stage_slugs">
   <job-stage params="slug:$data, job:$parent.job"></job-stage>
 </div>
-<div id="auto-scroll" class="btn btn-info btn-fab"><i class="glyphicon glyphicon-chevron-down"></i></div>
+
+<a id="auto-scroll" class="btn btn-info btn-fab" data-bind="toggle: scrollEnabled">
+  <i class="glyphicon" data-bind="
+    css: {
+        'glyphicon-chevron-down': !scrollEnabled()
+      , 'glyphicon-refresh': scrollEnabled
+      , spin: scrollEnabled
+    }
+  "></i>
+</a>
+
 <!-- /ko -->
 <!-- ko ifnot: job() -->
 <loading-bar params="visible:true"></loading-bar>
@@ -137,6 +147,7 @@
     , 'knockout'
     , 'md5'
     , 'ansi_up'
+    , 'app/util'
     , 'app/models/job'
 
     , 'app/components/git_user'
@@ -145,7 +156,7 @@
     , 'app/components/loading_bar'
 
     , 'knockstrap'
-  ], function ($, ko, md5, ansi_up, JobModel) {
+  ], function ($, ko, md5, ansi_up, util, JobModel) {
 
     // console.dir(Stomp)
     // function do_stomp() {
@@ -468,6 +479,43 @@
       function ThisPage() {
         this.currentTab = ko.observable('details')
         this.job        = ko.observable()
+
+        this.scrollEnabled = ko.observable(false)
+        this.scrollAnimation = null
+
+
+        this.scrollToBottom = function() {
+          if (!this.scrollEnabled()) { return }
+          if (this.scrollAnimation !== null) { this.scrollAnimation.stop(true); }
+          this.scrollAnimation = $("html, body").animate({
+            'scrollTop': $(document).height()
+          }, 100)
+        }.bind(this)
+
+        this.setupScroll = function() {
+          this.job.subscribe(this.onJobSetupScroll)
+          if (!util.isEmpty(this.job())) {
+            this.onJobSetupScroll(this.job())
+          }
+        }.bind(this)
+        this.onJobSetupScroll = function(job) {
+          job.bus.subscribe(this.onBusSetupScroll)
+          if (!util.isEmpty(job.bus())) {
+            this.onBusSetupScroll(job.bus())
+          }
+        }.bind(this)
+        this.onBusSetupScroll = function(bus) {
+          bus.createQueue('_auto_scroll')
+          bus.subscribe('_auto_scroll', function(message) {
+            this.scrollToBottom()
+          }.bind(this))
+        }.bind(this)
+
+        this.scrollEnabled.subscribe(function(newScrollEnabled) {
+          this.scrollToBottom()
+        }.bind(this))
+        this.setupScroll()
+
         JobModel.from_url(document.location + '.json', function(job) {
           this.job(job)
         }.bind(this))
