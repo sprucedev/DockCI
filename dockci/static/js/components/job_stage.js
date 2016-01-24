@@ -2,6 +2,8 @@ define([
       'knockout'
     , '../util'
     , 'text!./job_stage.html'
+
+    , './job_stage_docker_line'
 ], function(ko, util, template) {
     function JobStageModel(params) {
         this.slug = util.param(params['slug'])
@@ -9,6 +11,48 @@ define([
         this.success = util.param(params['success'])
 
         this.lines = ko.observableArray([ko.observable('')]).extend({'deferred': true})
+        this.dockerLines = {}
+
+        this.processLine = function(currentLine, line) {
+            if (this.slug() === 'docker_push') {
+                if (line === '') { return }
+
+                data = JSON.parse(line)
+
+                // TODO malformed JSON
+
+                function componentData(linesArray) {
+                    return {
+                          'component': 'job-stage-docker-line'
+                        , 'params': {
+                            'lines': linesArray
+                        }
+                    }
+                }
+
+                if (util.isEmpty(data['id'])) {
+                    linesArray = ko.observableArray()
+                    this.lines.push(componentData(linesArray))
+
+                } else if (typeof(this.dockerLines[data['id']]) === 'undefined') {
+                    this.dockerLines[data['id']] = ko.observableArray()
+                    linesArray = this.dockerLines[data['id']]
+                    this.lines.push(componentData(linesArray))
+
+                } else {
+                    linesArray = this.dockerLines[data['id']]
+                }
+
+                linesArray.push(data)
+            } else {
+                fullLine = currentLine === null ? line : currentLine() + line
+                if (currentLine === null) {
+                    this.lines.push(ko.observable(fullLine))
+                } else {
+                    currentLine(fullLine)
+                }
+            }
+        }.bind(this)
 
         this.updateData = function(data) {
             message_lines = data.split('\n')
@@ -21,9 +65,9 @@ define([
                 }
             }
             last_line = this.lines()[this.lines().length - 1]
-            last_line(last_line() + message_lines.shift())
+            this.processLine(last_line, message_lines.shift())
             $(message_lines).each(function(idx, message_line) {
-                this.lines.push(ko.observable(message_line))
+                this.processLine(null, message_line)
             }.bind(this))
         }.bind(this)
 

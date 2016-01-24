@@ -7,5 +7,15 @@
   }
 ">
   <div class="panel-heading" data-bind="text:slug"></div>
-  <pre class="panel-body stage-log" data-bind="foreach:lines"><div data-bind="text:$data"></div></pre>
+  <div class="panel-body stage-log" data-bind="foreach:lines">
+    <!-- ko if: typeof($data) === 'string' -->
+      <div class="stage-line-text" data-bind="text:$data"></div>
+    <!-- /ko -->
+    <!-- ko if: typeof($data) !== 'string' -->
+      <!-- ko component: {
+          name: $data['component']
+        , params: $data['params']
+      } --><!-- /ko -->
+    <!-- /ko -->
+  </div>
 </div>
