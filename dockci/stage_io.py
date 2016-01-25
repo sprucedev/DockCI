@@ -8,6 +8,7 @@ from io import FileIO
 import redis
 import redis_lock
 
+from dockci.server import CONFIG
 from dockci.util import rabbit_stage_key
 
 
@@ -210,7 +211,7 @@ class StageIO(FileIO):
             with redis_lock.Lock(
                 redis_conn,
                 self.redis_lock_name,
-                expiry=5,
+                expire=5,
             ):
                 try:
                     redis_len_key = self.redis_len_key
