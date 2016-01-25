@@ -213,12 +213,12 @@ class StageIO(FileIO):
                 expire=5,
             ):
                 try:
-                    redis_len_key = self.redis_len_key
-                    redis_conn.setnx(redis_len_key, 0)
-                    redis_conn.incr(redis_len_key, len(data))
-                    redis_conn.expire(redis_len_key, CONFIG.redis_len_expire)
+                    my_redis_len_key = self.redis_len_key
+                    redis_conn.setnx(my_redis_len_key, 0)
+                    redis_conn.incr(my_redis_len_key, len(data))
+                    redis_conn.expire(my_redis_len_key, CONFIG.redis_len_expire)
 
-                except Exception:
+                except Exception:  # pylint:disable=too-broad-except
                     logging.exception("Error incrementing bytes written")
 
                 try:
@@ -228,10 +228,10 @@ class StageIO(FileIO):
                         body=data,
                     )
 
-                except Exception:
+                except Exception:  # pylint:disable=too-broad-except
                     logging.exception("Error sending to queue")
 
-        except Exception:
+        except Exception:  # pylint:disable=too-broad-except
             logging.exception("Error writing live logs")
 
     def __repr__(self):
