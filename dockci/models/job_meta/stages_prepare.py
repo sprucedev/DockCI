@@ -13,7 +13,9 @@ import py.path  # pylint:disable=import-error
 
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
-from dockci.util import (git_head_ref_name,
+from dockci.stage_io import StageIO
+from dockci.util import (bytes_str,
+                         git_head_ref_name,
                          path_contained,
                          write_all,
                          )
@@ -369,9 +371,10 @@ class TagVersionStage(CommandJobStage):
 
         try:
             # TODO opening file to get this is kinda awful
-            with self.data_file_path().open() as in_handle:
+            with StageIO.open(self, mode='r') as in_handle:
                 last_line = None
                 for line in in_handle:
+                    _, line = bytes_str(line)
                     line = line.strip()
                     if line and self.tag_re.match(line):
                         last_line = line
