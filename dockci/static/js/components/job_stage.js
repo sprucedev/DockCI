@@ -10,7 +10,8 @@ define([
         this.job  = util.param(params['job'])
         this.success = util.param(params['success'])
 
-        this.lines = ko.observableArray([ko.observable('')]).extend({'deferred': true})
+        this.lines = ko.observableArray([]).extend({'deferred': true})
+        this.lastLineType = null
         this.dockerLines = {}
 
         this.visibleOverride = util.param(params['visible'])
@@ -40,10 +41,10 @@ define([
             dockerSlugs = ['docker_push', 'docker_provision']
             data = null
             if (dockerSlugs.indexOf(slug) != -1 || slug.startsWith('utility_')) {
-                if (line === '') { return }
+                if (line === '' && this.lastLineType === 'docker') { return }
                 try {
                     data = JSON.parse(line)
-                } catch(e) { console.error(e) }
+                } catch(e) {}
             }
             if (!util.isEmpty(data)) {
                 function componentData(linesArray) {
@@ -69,25 +70,31 @@ define([
                 }
 
                 linesArray.push(data)
+
+                this.lastLineType = 'docker'
             } else {
-                fullLine = currentLine === null ? line : currentLine() + line
+                newLine = util.isEmpty(currentLine) || this.lastLineType !== 'plain'
+                fullLine = newLine ? line : currentLine() + line
                 if (slug === 'docker_build') {
                     try {
                         fullLine = JSON.parse(fullLine)['stream']
                     } catch(e) {}
                 }
-                if (currentLine === null) {
+
+                if (newLine) {
                     this.lines.push(ko.observable(fullLine))
                 } else {
                     currentLine(fullLine)
                 }
+
+                this.lastLineType = 'plain'
             }
         }.bind(this)
 
         this.updateData = function(data) {
             message_lines = data.split('\n')
             if (this.lines().length === 1) {
-                while (message_lines.indexOf('') === 0) {
+                while (message_lines.length !== 0 && message_lines[0].trim() === '') {
                     message_lines.shift()
                 }
                 if (message_lines.length === 0) {
