@@ -48,6 +48,11 @@ define([
                 linesArray.push(data)
             } else {
                 fullLine = currentLine === null ? line : currentLine() + line
+                if (slug === 'docker_build') {
+                    try {
+                        fullLine = JSON.parse(fullLine)['stream']
+                    } catch(e) {}
+                }
                 if (currentLine === null) {
                     this.lines.push(ko.observable(fullLine))
                 } else {
