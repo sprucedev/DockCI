@@ -173,8 +173,7 @@ class ArtifactList(Resource):
 
 class StageStreamDetail(Resource):
     """ API resource to handle creating stage stream queues """
-    # TODO POST
-    def get(self, project_slug, job_slug):
+    def post(self, project_slug, job_slug):
         job = get_validate_job(project_slug, job_slug)
         routing_key = 'dockci.{project_slug}.{job_slug}.*.*'.format(
             project_slug=project_slug,

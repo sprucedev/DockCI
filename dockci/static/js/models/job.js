@@ -107,7 +107,8 @@ define([
                             '/jobs/' + this.slug() +
                             '/stream'
                         ), {
-                            'dataType': 'json'
+                              'method': 'POST'
+                            , 'dataType': 'json'
                         }
                     ).done(function(data) {
                         this._liveLoadDetail = data
