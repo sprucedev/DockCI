@@ -5,12 +5,12 @@ Views related to job management
 import json
 import logging
 import rollbar
-import select
 
 from flask import (abort,
                    render_template,
                    request,
                    Response,
+                   send_file,
                    url_for,
                    )
 from flask_security import current_user
@@ -189,7 +189,6 @@ def check_output(project_slug, job_slug, filename):
     """ Ensure the job exists, and that the path is not dangerous """
     Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
-    job_id = job.id
 
     job_output_path = job.job_output_path()
     data_file_path = job_output_path.join(filename)
@@ -201,16 +200,14 @@ def check_output(project_slug, job_slug, filename):
     if not data_file_path.check(file=True):
         abort(404)
 
-    return job_id, data_file_path
+    return data_file_path
 
 
 @APP.route('/projects/<project_slug>/jobs/<job_slug>/log_init/<stage>',
            methods=('GET',))
 def job_log_init_view(project_slug, job_slug, stage):
     """ View to download initial job log """
-    job_id, data_file_path = check_output(project_slug,
-                                          job_slug,
-                                          '%s.log' % stage)
+    data_file_path = check_output(project_slug, job_slug, '%s.log' % stage)
     byte_seek = request.args.get('seek', 0, type=int)
     bytes_count = request.args.get('count', None, type=int)
 
@@ -242,5 +239,5 @@ def job_log_init_view(project_slug, job_slug, stage):
            methods=('GET',))
 def job_output_view(project_slug, job_slug, filename):
     """ View to download some job output """
-    job_id, data_file_path = check_output(project_slug, job_slug, filename)
-    flask.send_file(data_file_path.strpath)
+    data_file_path = check_output(project_slug, job_slug, filename)
+    send_file(data_file_path.strpath)
