@@ -178,7 +178,6 @@ class StageIO(FileIO):
 
         return self._pika_channel
 
-
     @property
     def redis_len_key(self):
         """ Key for Redis value storing bytes saved """
