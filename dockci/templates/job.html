@@ -529,6 +529,8 @@
           this.job(job)
         }.bind(this))
       }
+
+      ko.options.deferUpdates = true
       ko.applyBindings(new ThisPage())
     })
   })
