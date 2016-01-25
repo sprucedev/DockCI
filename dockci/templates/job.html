@@ -17,6 +17,17 @@
   }
   .stage-panel .panel-heading {
     transition: all 1s;
+    position: relative;
+  }
+  .stage-panel .panel-heading a {
+    font-weight: bold;
+    display: block;
+    width: 100%;
+  }
+  .stage-panel .panel-contract-marker {
+    position:absolute;
+    top: 10px;
+    right: 10px;
   }
   .stage-panel .panel-body {
     font-family: monospace;
@@ -29,16 +40,6 @@
   }
   .panel-contracted .panel-body {
     display: none;
-  }
-  .stage-panel .expand-toggle:before {
-    /* TODO SASS include mdi icon */
-    content: '-';
-    width: 1em;
-    display: inline-block;
-  }
-  .panel-contracted .expand-toggle:before {
-    /* TODO SASS include mdi icon */
-    content: '+';
   }
   #auto-scroll {
     position: fixed;

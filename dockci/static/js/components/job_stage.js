@@ -13,6 +13,27 @@ define([
         this.lines = ko.observableArray([ko.observable('')]).extend({'deferred': true})
         this.dockerLines = {}
 
+        this.visibleOverride = util.param(params['visible'])
+
+        this.togglePanel = function() {
+            this.visibleOverride(!this.visible())
+            return false
+        }.bind(this)
+        this.visible = ko.computed(function() {
+            if (!util.isEmpty(this.visibleOverride())) {
+                return this.visibleOverride()
+            }
+            if ([
+                  'docker_build',
+                , 'docker_test'
+                , 'error'
+            ].indexOf(params['slug']) != -1) {
+                return true
+            }
+            if (this.success() === false) { return true }
+            return false
+        }.bind(this))
+
         this.processLine = function(currentLine, line) {
             slug = this.slug()
             dockerSlugs = ['docker_push', 'docker_provision']
