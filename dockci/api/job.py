@@ -193,7 +193,11 @@ class StageStreamDetail(Resource):
                 )
 
                 redis_conn = redis.Redis(connection_pool=redis_pool_)
-                with redis_lock.Lock(redis_conn, redis_lock_name(job)):
+                with redis_lock.Lock(
+                    redis_conn,
+                    redis_lock_name(job),
+                    expire=5,
+                ):
                     channel.queue_bind(
                         exchange='dockci.job',
                         queue=queue_result.method.queue,
