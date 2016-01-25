@@ -216,7 +216,8 @@ class StageIO(FileIO):
                     my_redis_len_key = self.redis_len_key
                     redis_conn.setnx(my_redis_len_key, 0)
                     redis_conn.incr(my_redis_len_key, len(data))
-                    redis_conn.expire(my_redis_len_key, CONFIG.redis_len_expire)
+                    redis_conn.expire(my_redis_len_key,
+                                      CONFIG.redis_len_expire)
 
                 except Exception:  # pylint:disable=too-broad-except
                     logging.exception("Error incrementing bytes written")
