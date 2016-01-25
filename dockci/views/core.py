@@ -31,7 +31,7 @@ def config_edit_view():
         'mail_host_string', 'mail_use_tls', 'mail_use_ssl',
         'mail_username', 'mail_password', 'mail_default_sender',
         'security_registerable', 'security_recoverable',
-        'external_url',
+        'external_url', 'external_rabbit_uri',
         'github_key', 'github_secret',
         'gitlab_key', 'gitlab_secret', 'gitlab_base_url',
         'live_log_message_timeout', 'live_log_session_timeout',
@@ -39,7 +39,8 @@ def config_edit_view():
     )
     all_fields = restart_fields + ()
     blanks = (
-        'external_url', 'github_key', 'gitlab_key', 'gitlab_base_url',
+        'external_url', 'external_rabbit_uri',
+        'github_key', 'gitlab_key', 'gitlab_base_url',
         'mail_host_string', 'mail_default_sender', 'mail_username',
     )
 

@@ -72,7 +72,7 @@ define(['./util'], function (util) {
                 this._stompClientCallbacks.push(callback)
 
                 if (this._stompClientCallbacks.length === 1) {
-                    url = 'ws://192.168.251.128:15674/ws'  // TODO fix this
+                    url = dockci.rabbitmqServer
                     stompClient = Stomp.client(url)
                     stompClient.connect(
                           dockci.rabbitmqUser

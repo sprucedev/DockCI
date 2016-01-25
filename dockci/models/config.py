@@ -89,6 +89,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                                        "dockci@%s" % socket.gethostname())
 
     external_url = LoadOnAccess(generate=lambda _: default_external_url())
+    external_rabbit_uri = LoadOnAccess(default=lambda _: None)
 
     github_key = LoadOnAccess(default=lambda _: None)
     github_secret = LoadOnAccess(default=lambda _: None)
