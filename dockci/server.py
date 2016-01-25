@@ -106,13 +106,19 @@ def app_init():
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
-    # TODO dynamic user/password
-    APP.config['RABBITMQ_USER'] = 'guest'
-    APP.config['RABBITMQ_PASSWORD'] = 'guest'
+    APP.config['RABBITMQ_USER'] = os.environ.get(
+        'RABBITMQ_ENV_BACKEND_USER', 'guest')
+    APP.config['RABBITMQ_PASSWORD'] = os.environ.get(
+        'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
     APP.config['RABBITMQ_HOST'] = os.environ.get(
         'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
     APP.config['RABBITMQ_PORT'] = int(os.environ.get(
         'RABBITMQ_PORT_5672_TCP_PORT', 5672))
+
+    APP.config['RABBITMQ_USER_FE'] = os.environ.get(
+        'RABBITMQ_ENV_FRONTEND_USER', 'guest')
+    APP.config['RABBITMQ_PASSWORD_FE'] = os.environ.get(
+        'RABBITMQ_ENV_FRONTEND_PASSWORD', 'guest')
 
     APP.config['REDIS_HOST'] = os.environ.get(
         'REDIS_PORT_6379_ADDR', 'redis')

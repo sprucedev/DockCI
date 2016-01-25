@@ -74,13 +74,17 @@ define(['./util'], function (util) {
                 if (this._stompClientCallbacks.length === 1) {
                     url = 'ws://192.168.251.128:15674/ws'  // TODO fix this
                     stompClient = Stomp.client(url)
-                    stompClient.connect('guest', 'guest', function() {
-                        this._stompClient = stompClient
-                        $(this._stompClientCallbacks).each(function(idx, callback_inner) {
-                            callback_inner(this._stompClient)
-                        }.bind(this))
-                        this._stompClientCallbacks = []
-                    }.bind(this))
+                    stompClient.connect(
+                          dockci.rabbitmqUser
+                        , dockci.rabbitmqPassword
+                        , function() {
+                            this._stompClient = stompClient
+                            $(this._stompClientCallbacks).each(function(idx, callback_inner) {
+                                callback_inner(this._stompClient)
+                            }.bind(this))
+                            this._stompClientCallbacks = []
+                        }.bind(this)
+                    )
                 }
             } else {
                 callback(this._stompClient)

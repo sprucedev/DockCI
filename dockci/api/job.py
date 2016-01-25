@@ -185,7 +185,7 @@ class StageStreamDetail(Resource):
             with pika_conn() as pika_conn_:
                 channel = pika_conn_.channel()
                 queue_result = channel.queue_declare(
-                    queue=uuid.uuid4().hex,
+                    queue='dockci.job.%s' % uuid.uuid4().hex,
                     arguments={
                         'x-expires': CONFIG.live_log_session_timeout,
                         'x-message-ttl': CONFIG.live_log_message_timeout,

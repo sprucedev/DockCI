@@ -1,6 +1,6 @@
 web:
   build: .
-  command: run --debug --collect-static --db-migrate --timeout 10 --bind 0.0.0.0:5000
+  command: run --debug --collect-static --db-migrate --timeout 15 --bind 0.0.0.0:5000
   ports:
    - "5001:5000"
   links:
@@ -27,8 +27,11 @@ rabbitmq:
     - "15674:15674"
     - "5672:5672"
     - "15672:15672"
-  volumes:
-    - ./rabbitmq.config:/etc/rabbitmq/rabbitmq.config
+  environment:
+    FRONTEND_USER: dockcife
+    FRONTEND_PASSWORD: letmein
+    BACKEND_USER: dockcibe
+    BACKEND_PASSWORD: changeme
 redis:
   image: redis
 registry:
