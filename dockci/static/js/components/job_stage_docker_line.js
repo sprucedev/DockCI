@@ -4,13 +4,18 @@ define([
     , '../util'
     , 'text!./job_stage_docker_line.html'
 ], function(ko, _, util, template) {
+    ignore_progress_re = RegExp('\[=*>\]')
     function JobStageDockerLine(params) {
         this.lines = params['lines']
         this.id = ko.observable()
         this.status = ko.observable()
+        this.progress = ko.observable()
         this.progressDetail = ko.observable()
 
-        this.hasProgress = ko.computed(function() {
+        this.showProgressText = ko.computed(function() {
+            return util.isEmpty(this.progressDetail())
+        }.bind(this))
+        this.hasProgressBar = ko.computed(function() {
             progressDetail = this.progressDetail()
             if (
                 util.isEmpty(progressDetail) ||
@@ -21,7 +26,7 @@ define([
             return true
         }.bind(this))
         this.percentComplete = ko.computed(function() {
-            if (!this.hasProgress()) { return null }
+            if (!this.hasProgressBar()) { return null }
 
             progressDetail = this.progressDetail()
 
@@ -35,7 +40,7 @@ define([
 
         this.parseLines = function(lines) {
             newValues = {}
-            keys = ['id', 'status', 'progressDetail']
+            keys = ['id', 'status', 'progress', 'progressDetail']
 
             $(lines).each(function(idx, data) {
                 $(keys).each(function(idx,  key) {

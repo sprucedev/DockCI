@@ -14,7 +14,9 @@ define([
         this.dockerLines = {}
 
         this.processLine = function(currentLine, line) {
-            if (this.slug() === 'docker_push') {
+            slug = this.slug()
+            dockerSlugs = ['docker_push', 'docker_provision']
+            if (dockerSlugs.indexOf(slug) != -1 || slug.startsWith('utility_')) {
                 if (line === '') { return }
 
                 data = JSON.parse(line)
