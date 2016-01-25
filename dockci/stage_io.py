@@ -207,7 +207,11 @@ class StageIO(FileIO):
 
         try:
             redis_conn = self.redis
-            with redis_lock.Lock(redis_conn, self.redis_lock_name):
+            with redis_lock.Lock(
+                redis_conn,
+                self.redis_lock_name,
+                expiry=5,
+            ):
                 try:
                     redis_len_key = self.redis_len_key
                     # TODO expiry
