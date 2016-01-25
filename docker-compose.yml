@@ -24,9 +24,9 @@ postgres:
 rabbitmq:
   image: sprucedev/dockci-rabbitmq
   ports:
-    - "15674:15674"
-    - "5672:5672"
-    - "15672:15672"
+    - "15674:15674"  # Web STOMP
+    - "5672"         # AMQP
+    - "15672"        # Management interface
   environment:
     FRONTEND_USER: dockcife
     FRONTEND_PASSWORD: letmein
