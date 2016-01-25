@@ -4,7 +4,6 @@ Views related to job management
 
 import json
 import logging
-import mimetypes
 import rollbar
 import select
 
@@ -217,26 +216,24 @@ def job_log_init_view(project_slug, job_slug, stage):
 
     def loader():
         """ Stream the parts of the log that we want """
-        with APP.app_context():
-            job = Job.query.get(job_id)  # Session is closed
-            with data_file_path.open('rb') as handle:
-                handle.seek(byte_seek)
-                bytes_remain = bytes_count
-                while bytes_remain is None or bytes_remain > 0:
-                    if bytes_remain is not None:
-                        chunk_size = min(1024, bytes_remain)
-                    else:
-                        chunk_size = 1024
+        with data_file_path.open('rb') as handle:
+            handle.seek(byte_seek)
+            bytes_remain = bytes_count
+            while bytes_remain is None or bytes_remain > 0:
+                if bytes_remain is not None:
+                    chunk_size = min(1024, bytes_remain)
+                else:
+                    chunk_size = 1024
 
-                    data = handle.read(chunk_size)
+                data = handle.read(chunk_size)
 
-                    if bytes_remain is not None:
-                        bytes_remain -= len(data)
+                if bytes_remain is not None:
+                    bytes_remain -= len(data)
 
-                    yield data
+                yield data
 
-                    if len(data) == 0:
-                        return
+                if len(data) == 0:
+                    return
 
     return Response(loader(), mimetype='text/plain')
 
@@ -246,31 +243,4 @@ def job_log_init_view(project_slug, job_slug, stage):
 def job_output_view(project_slug, job_slug, filename):
     """ View to download some job output """
     job_id, data_file_path = check_output(project_slug, job_slug, filename)
-
-    def loader():
-        """
-        Generator to stream the log file
-        """
-        with APP.app_context():
-            job = Job.query.get(job_id)  # Session is closed
-            with data_file_path.open('rb') as handle:
-                while True:
-                    data = handle.read(1024)
-                    yield data
-
-                    DB.session.refresh(job)
-                    is_live_log = (
-                        job.state == 'running' and
-                        filename == "%s.log" % job.job_stages[-1].slug
-                    )
-                    if is_live_log:
-                        select.select((handle,), (), (), 2)
-
-                    elif len(data) == 0:
-                        return
-
-    mimetype, _ = mimetypes.guess_type(filename)
-    if mimetype is None:
-        mimetype = 'application/octet-stream'
-
-    return Response(loader(), mimetype=mimetype)
+    flask.send_file(data_file_path.strpath)
