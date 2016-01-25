@@ -1,5 +1,10 @@
-<i class="glyphicon" data-bind="css: {
-    'glyphicon-thumbs-up text-success': state() === 'success'
-  , 'glyphicon-thumbs-down text-warning': state() === 'fail'
-  , 'glyphicon-warning-sign text-danger': state() === 'broken'
-}"></i>
+<i class="glyphicon" data-bind="
+    attr: { title: state }
+  , css: {
+        'glyphicon-thumbs-up text-success': state() === 'success'
+      , 'glyphicon-thumbs-down text-warning': state() === 'fail'
+      , 'glyphicon-warning-sign text-danger': state() === 'broken'
+      , 'glyphicon-play text-info': state() === 'running'
+      , 'glyphicon-time': state() === 'queued'
+    }
+"></i>

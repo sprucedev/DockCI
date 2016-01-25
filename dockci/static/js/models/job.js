@@ -34,7 +34,11 @@ define([
         this.result              = ko.observable()
 
         this.state = ko.computed(function() {
-            return this.result()  // TODO running, etc
+            result = this.result()
+            start_ts = this.start_ts()
+            if (!util.isEmpty(result)) { return result }
+            if (!util.isEmpty(start_ts)) { return 'running' }
+            return 'queued'
         }.bind(this))
 
         this.git_author_email_display = ko.computed(function() {
