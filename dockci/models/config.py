@@ -108,6 +108,10 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
         default=1000 * 60,  # 1m
         input_transform=int,
     )
+    redis_len_expire = LoadOnAccess(
+        default=60 * 60,  # 1hr
+        input_transform=int,
+    )
 
     @property
     def mail_host_string(self):

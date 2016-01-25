@@ -167,6 +167,14 @@
         </div>
       </div>
     </div>
+    <div class="form-group">
+        <label for="inputRedisLenExpire" class="col-sm-2 control-label">Live log write timeout</label>
+        <div class="col-sm-10">
+          <input class="form-control" id="inputRedisLenExpire" name="redis_len_expire" type="number" value="{{ config.model.redis_len_expire or '' }}">
+          <div class="help-block">Number of seconds before live log write cache is expired (eg 3600 = 60 minutes; if this expires, live logs will stop working for the job)</div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="form-group">
     <div class="col-sm-2">&nbsp;</div>

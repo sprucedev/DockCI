@@ -214,9 +214,9 @@ class StageIO(FileIO):
             ):
                 try:
                     redis_len_key = self.redis_len_key
-                    # TODO expiry
                     redis_conn.setnx(redis_len_key, 0)
                     redis_conn.incr(redis_len_key, len(data))
+                    redis_conn.expire(redis_len_key, CONFIG.redis_len_expire)
 
                 except Exception:
                     logging.exception("Error incrementing bytes written")
