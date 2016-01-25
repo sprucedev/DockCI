@@ -38,13 +38,14 @@ define([
         this.processLine = function(currentLine, line) {
             slug = this.slug()
             dockerSlugs = ['docker_push', 'docker_provision']
+            data = null
             if (dockerSlugs.indexOf(slug) != -1 || slug.startsWith('utility_')) {
                 if (line === '') { return }
-
-                data = JSON.parse(line)
-
-                // TODO malformed JSON
-
+                try {
+                    data = JSON.parse(line)
+                } catch(e) { console.error(e) }
+            }
+            if (!util.isEmpty(data)) {
                 function componentData(linesArray) {
                     return {
                           'component': 'job-stage-docker-line'
