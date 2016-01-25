@@ -16,7 +16,7 @@
   <!-- ko if: visible -->
   <div class="panel-body stage-log" data-bind="foreach:lines">
     <!-- ko if: typeof($data) === 'string' -->
-      <div class="stage-line-text" data-bind="text:$data"></div>
+      <div class="stage-line-text" data-bind="html:ansi_up.ansi_to_html(_.escape($data) || '&nbsp;')"></div>
     <!-- /ko -->
     <!-- ko if: typeof($data) !== 'string' -->
       <!-- ko component: {
