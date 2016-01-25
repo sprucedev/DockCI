@@ -4,7 +4,6 @@ define([
     , '../util'
     , 'text!./job_stage_docker_line.html'
 ], function(ko, _, util, template) {
-    ignore_progress_re = RegExp('\[=*>\]')
     function JobStageDockerLine(params) {
         this.lines = params['lines']
         this.id = ko.observable()
