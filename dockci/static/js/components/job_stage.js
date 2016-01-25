@@ -31,6 +31,7 @@ define([
                 return true
             }
             if (this.success() === false) { return true }
+            if (util.isEmpty(this.success())) { return true }
             return false
         }.bind(this))
 
