@@ -32,9 +32,8 @@ class InlineProjectStage(JobStageBase):
             "You must override the 'get_services' method"
         )
 
-    def id_for_service(self, slug):
+    def id_for_service(self, slug):  # pylint:disable=no-self-use
         """ Get the event series ID for a given service's slug """
-        # pylint:disable=no-member
         return slug
 
     def runnable(self, handle):
