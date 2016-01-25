@@ -126,7 +126,7 @@ class StageIO(FileIO):
         try:
             yield handle
         finally:
-            handle.close()
+            handle.close()  # pylint:disable=no-member
 
     @property
     def _log_path(self):
