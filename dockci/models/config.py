@@ -89,6 +89,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                                        "dockci@%s" % socket.gethostname())
 
     external_url = LoadOnAccess(generate=lambda _: default_external_url())
+    external_rabbit_uri = LoadOnAccess(default=lambda _: None)
 
     github_key = LoadOnAccess(default=lambda _: None)
     github_secret = LoadOnAccess(default=lambda _: None)
@@ -99,6 +100,19 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     security_password_salt = LoadOnAccess(generate=lambda _: uuid4().hex)
     security_registerable = LoadOnAccess(default=True)
     security_recoverable = LoadOnAccess(default=True)
+
+    live_log_message_timeout = LoadOnAccess(
+        default=1000 * 60 * 60,  # 1hr
+        input_transform=int,
+    )
+    live_log_session_timeout = LoadOnAccess(
+        default=1000 * 60,  # 1m
+        input_transform=int,
+    )
+    redis_len_expire = LoadOnAccess(
+        default=60 * 60,  # 1hr
+        input_transform=int,
+    )
 
     @property
     def mail_host_string(self):

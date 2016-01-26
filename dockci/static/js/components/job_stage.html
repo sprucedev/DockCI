@@ -1,0 +1,28 @@
+<div class="stage-panel panel" data-bind="
+  css: {
+      'panel-success': success() === true
+    , 'panel-danger': success() === false
+    , 'panel-info': util.isEmpty(success())
+  }
+">
+  <div class="panel-heading">
+    <a href="#" data-bind="click:togglePanel">
+      <span data-bind="text:slug"></span>
+      <span class="panel-contract-marker glyphicon glyphicon-chevron-down" data-bind="visible:!visible()"></span>
+      <span class="panel-contract-marker glyphicon glyphicon-chevron-up" data-bind="visible:visible"></span>
+    </a>
+  </div>
+  <!-- ko if: visible -->
+  <div class="panel-body stage-log" data-bind="foreach:lines">
+    <!-- ko if: typeof($data) === 'string' -->
+      <div class="stage-line-text" data-bind="html:ansi_up.ansi_to_html(_.escape($data) || '&nbsp;')"></div>
+    <!-- /ko -->
+    <!-- ko if: typeof($data) !== 'string' -->
+      <!-- ko component: {
+          name: $data['component']
+        , params: $data['params']
+      } --><!-- /ko -->
+    <!-- /ko -->
+  </div>
+  <!-- /ko -->
+</div>

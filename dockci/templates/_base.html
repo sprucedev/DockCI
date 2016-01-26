@@ -13,9 +13,6 @@
             {%- else -%}glyphicon glyphicon-question-sign text-info
             {%- endif -%}" title="{{ state | title }}"></i>
 {%- endmacro %}
-{% macro git_user(name, email) -%}
-  <span class="git-user"><span class="git-user-name">{{ name }}</span> <small class="git-user-email">&lt;{{ email }}&gt;</small></span>
-{%- endmacro %}
 {% macro project_shield(project) -%}
   <a href="#" data-toggle="modal" data-target="#{{ project.slug }}-shield-dialog">
     <img src="{{ url_for('project_shield_view', slug=project.slug, extension='svg', _external=True) }}" alt="{{ project.name }} | {{ project.shield_text }}" />
@@ -118,6 +115,9 @@
     dockci.gitlabDefault = dockci.gitlabEnabled && {{ 'true' if (current_user.is_authenticated() and current_user.oauth_tokens.filter_by(service='gitlab').count()) else 'false' }}
     dockci.githubEnabled = {{ 'true' if (current_user.is_authenticated() and config.model.github_key and config.model.github_secret) else 'false' }}
     dockci.githubDefault = !dockci.gitlabDefault && dockci.githubEnabled && {{ 'true' if (current_user.is_authenticated() and current_user.oauth_tokens.filter_by(service='github').count()) else 'false' }}
+    dockci.rabbitmqServer = {{ '"%s"' % config.model.external_rabbit_uri if config.model.external_rabbit_uri else 'default_rabbitmq_server()' | safe }}
+    dockci.rabbitmqUser = '{{ config.RABBITMQ_USER_FE }}'
+    dockci.rabbitmqPassword = '{{ config.RABBITMQ_PASSWORD_FE }}'
     function error_message_for(status, error) {
       if (error == '') {
         if (status == 0) {
@@ -128,6 +128,9 @@
           return 'Unknown error'
         }
       }
+    }
+    function default_rabbitmq_server() {
+      return "ws://" + document.location.hostname + ":15674/ws"
     }
   </script>
 </head>
@@ -189,7 +192,7 @@
         return this.slice(-str.length) == str;
       };
     }
-    require(['jquery' , 'md5'], function($, md5) {
+    require(['jquery'], function($) {
       $(document).ready(function (){
         // form input fields marked with required cannot be empty
         $('form').submit(function () {
@@ -207,28 +210,6 @@
           })
           return valid
         })
-      })
-
-      // GRAVATARS
-      function gravatarUrl(email, size) {
-        var hash = md5(email.trim().toLowerCase());
-        return 'https://secure.gravatar.com/avatar/' + hash + '?d=mm&s=' + size
-      }
-      $('.git-user-email').each(function(idx, el) {
-        var lineHeight = $(el).height(),
-            emailAddress = $(el).text(),
-            emailStartIdx, emailEndIdx, imageUrl;
-
-        emailStartIdx = emailAddress.startsWith('<') ? 1 : 0;
-        emailEndIdx = emailAddress.endsWith('>') ? -1 : 0;
-        if (emailStartIdx || emailEndIdx) {
-          emailAddress = emailAddress.slice(emailStartIdx,
-                                            emailAddress.length + emailEndIdx)
-        }
-
-        imageUrl =  gravatarUrl(emailAddress, lineHeight + 20);  // 20 is CSS extra
-
-        el.parentElement.style.backgroundImage = "url('" + imageUrl + "')";
       })
     })
   </script>

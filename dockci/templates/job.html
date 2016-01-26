@@ -1,8 +1,11 @@
 {% extends "_base.html" %}
 {% block title %}{{ job.project.name }} Job Result{% endblock %}
+{% block prescript %}<script src="/static/lib/js/stomp.js"></script>{% endblock %}
 {% block header %}
   <a href="/projects/{{ job.project.slug }}">{{ job.project.name }}</a> <small>{{ job.create_ts }}</small>
-  <span class="pull-right" id="job-state">{{ job_state_glyph(job.state) }}</span>
+  <span class="pull-right" id="job-state" data-bind="if:job()">
+    <job-state-glyph params="state:job().state"></job-state-glyph>
+  </span>
 {% endblock %}
 {% block content %}
 <style>
@@ -14,20 +17,29 @@
   }
   .stage-panel .panel-heading {
     transition: all 1s;
+    position: relative;
+  }
+  .stage-panel .panel-heading a {
+    font-weight: bold;
+    display: block;
+    width: 100%;
+  }
+  .stage-panel .panel-contract-marker {
+    position:absolute;
+    top: 10px;
+    right: 10px;
+  }
+  .stage-panel .panel-body {
+    font-family: monospace;
+    background-color: #eef3f3;
+    color: #333;
+    overflow: auto;
+  }
+  .stage-line-text {
+    white-space: pre-wrap;
   }
   .panel-contracted .panel-body {
     display: none;
-    overflow: scroll;
-  }
-  .stage-panel .expand-toggle:before {
-    /* TODO SASS include mdi icon */
-    content: '-';
-    width: 1em;
-    display: inline-block;
-  }
-  .panel-contracted .expand-toggle:before {
-    /* TODO SASS include mdi icon */
-    content: '+';
   }
   #auto-scroll {
     position: fixed;
@@ -35,6 +47,7 @@
     right: 20px;
   }
 </style>
+<!-- ko if: job() -->
 <div class="btn-group form-group" style="position:absolute; right: 0; z-index: 10" data-toggle="buttons" data-bind="radio: currentTab">
   <label class="btn btn-default" title="Details">
     <input type="radio" name="currentTab" value="details" />
@@ -48,49 +61,60 @@
 </div>
 <div data-bind="visible: currentTab() === 'details'">
   <div class="form-horizontal">
-    <div class="form-group">
+    <div class="form-group" data-bind="visible:job().display_repo">
       <label class="col-sm-2 control-label">Repo</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.display_repo }}</p></div>
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().display_repo"></p></div>
     </div>
-    <div class="form-group">
+    <div class="form-group" data-bind="visible:job().commit">
       <!-- This will update to a full hash after the git_info stage -->
       <label class="col-sm-2 control-label">Commit ref</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.commit }}</p></div>
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().commit"></p></div>
     </div>
-    {% if job.git_branch %}<div class="form-group">
+    <div class="form-group" data-bind="visible:job().git_branch">
       <label class="col-sm-2 control-label">Branch</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.git_branch }}</div>
-    </div>{% endif %}
-    {% if job.git_author_name or job.git_author_email %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().git_branch"></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().show_author">
       <label class="col-sm-2 control-label">Author</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_author_name, job.git_author_email) }}</p></div>
-    </div>{% endif %}
-    {% if (job.git_committer_name or job.git_committer_email) and (job.git_committer_name != job.git_author_name or job.git_committer_email != job.git_author_email) %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static">
+        <git-user params="
+            el: $element
+          , name: job().git_author_name_display
+          , email: job().git_author_email_display
+        "></git-user>
+      </p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().show_committer">
       <label class="col-sm-2 control-label">Committer</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ git_user(job.git_committer_name, job.git_committer_email) }}</p></div>
-    </div>{% endif %}
-    {% if job.tag %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static">
+        <git-user params="
+            name: job().git_committer_name
+          , email: job().git_committer_email
+        "></git-user>
+      </p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().tag">
       <label class="col-sm-2 control-label">Tag</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.tag }}</p></div>
-    </div>{% endif %}
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().tag"></p></div>
+    </div>
     {% if job.ancestor_job is not none %}<div class="form-group">
       <label class="col-sm-2 control-label">Previous job</label>
       <div class="col-sm-10"><p class="form-control-static">
         <a href="/projects/{{ job.project.slug }}/jobs/{{ job.ancestor_job.slug }}">{{ job.ancestor_job.slug }}</a>
       </p></div>
     </div>{% endif %}
-    {% if job.image_id %}<div class="form-group">
+    <div class="form-group" data-bind="visible:job().image_id">
       <label class="col-sm-2 control-label">Image ID</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.image_id }}</p></div>
-    </div>{% endif %}
-    {% if job.container_id %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().image_id"></p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().container_id">
       <label class="col-sm-2 control-label">Container ID</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.container_id }}</p></div>
-    </div>{% endif %}
-    {% if job.exit_code %}<div class="form-group">
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().container_id"></p></div>
+    </div>
+    <div class="form-group" data-bind="visible:job().exit_code">
       <label class="col-sm-2 control-label">Exit Code</label>
-      <div class="col-sm-10"><p class="form-control-static">{{ job.exit_code }}</p></div>
-    </div>{% endif %}
+      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().exit_code"></p></div>
+    </div>
   </div>
 </div>
 <div data-bind="visible: currentTab() === 'artifacts'">
@@ -108,322 +132,87 @@
   </div>
 </div>
 <h2>Job Log</h2>
-<div id="job-stages"></div>
-<div id="auto-scroll" class="btn btn-info btn-fab"><i class="glyphicon glyphicon-chevron-down"></i></div>
+<div id="job-stages" data-bind="foreach:job().job_stage_slugs">
+  <job-stage params="slug:$data, job:$parent.job"></job-stage>
+</div>
+
+<a id="auto-scroll" class="btn btn-info btn-fab" data-bind="toggle: scrollEnabled">
+  <i class="glyphicon" data-bind="
+    css: {
+        'glyphicon-chevron-down': !scrollEnabled()
+      , 'glyphicon-refresh': scrollEnabled
+      , spin: scrollEnabled
+    }
+  "></i>
+</a>
+
+<!-- /ko -->
+<!-- ko ifnot: job() -->
+<loading-bar params="visible:true"></loading-bar>
+<!-- /ko -->
 <script>
   require([
       'jquery'
     , 'knockout'
     , 'md5'
     , 'ansi_up'
+    , 'app/util'
+    , 'app/models/job'
+
+    , 'app/components/git_user'
+    , 'app/components/job_stage'
+    , 'app/components/job_state_glyph'
+    , 'app/components/loading_bar'
 
     , 'knockstrap'
-  ], function ($, ko, md5, ansi_up) {
-    function escapeHTML(html) {
-      var fn=function(tag) {
-        var charsToReplace = {
-            '&': '&amp;'
-          , '<': '&lt;'
-          , '>': '&gt;'
-          , '"': '&#34;'
-        }
-        return charsToReplace[tag] || tag
-      }
-      return html.replace(/[&<>"]/g, fn)
-    }
-    function dockciJob() {
-      var stageAjaxQueue = {},
-          importantPanels = ['docker_build', 'docker_test', 'error'],
-          dockerStages = ['docker_provision', 'docker_build', 'docker_push', /^utility_.*/],
-          lenientDockerStages = [/^utility_.*/],
-          scrollEnabled = false, scrollAnimation = null, maxScroll = 0;
-
-      // Turn panel slugs into classes
-      $.each(importantPanels, function(idx, slug) {
-        importantPanels[idx] = 'stage-panel-' + md5(slug);
-      })
-
-      function getExistingStageEl(slug) {
-        var existing = $('.stage-panel-' + md5(slug));
-
-        if (existing.length > 0) {
-          return existing;
-        }
-      }
-      function createNewStageEl(idx, slug) {
-        var created = $('<div></div>')
-          .addClass('stage-panel panel panel-info stage-panel-' + md5(slug))
-          .append(
-            $('<div></div>')
-              .addClass('panel-heading')
-              .text(slug)
-              .append(
-                $('<i></i>').addClass('expand-toggle pull-right').hide()
-              )
-              .append(
-                $('<i></i>').addClass('loading glyphicon glyphicon-refresh spin pull-right')
-              )
-              .click(function(ev) {
-                $(ev.currentTarget).parent().toggleClass('panel-contracted');
-              })
-          )
-          .append(
-            $('<pre></pre>').addClass('panel-body stage-log')
-          );
-
-        // Contract unimportant panels
-        $('.stage-panel').each(function(idx, el) {
-          var isImportant = false,
-              allImportant = importantPanels.concat(['panel-danger']);
-          el = $(el)
-          $.each(allImportant, function(s_idx, panelClass) {
-            if (el.hasClass(panelClass)) {
-              isImportant = true
-              return false
-            }
-          })
-          if (!isImportant) {
-            el.addClass('panel-contracted');
-          }
-        })
-
-        $('#job-stages').append(created);
-
-        return created
-      }
-      function scrollToBottom() {
-        if (!scrollEnabled) { return; }
-
-        if (maxScroll < $(document).height()) {
-            maxScroll = $(document).height();
-            if (scrollAnimation !== null) { scrollAnimation.stop(true); }
-            scrollAnimation = $("html, body").animate({
-              scrollTop: maxScroll
-            }, 100);
-        }
-      }
-      function dockerIdText(lineId) {
-        stageSlug = dockerStages.find(function(el) {
-          return lineId.indexOf(el + '_') === 0;
-        })
-        if (typeof(stageSlug) !== 'undefined') {
-          return lineId.substr(stageSlug.length + 1);
-        }
-        return lineId;
-      }
-      function dockerJobLine(panelEl, logEl, obj, lenient) {
-        var idRow, objLine, errorMessage, idHash, handled=false,
-            isObj = typeof(obj) === 'object';
-
-        if (isObj && ('errorDetail' in obj || 'error' in obj)) {
-          handled = true
-          if ('errorDetail' in obj) {
-              errorMessage = obj['errorDetail']['message'];
-          } else {
-              errorMessage = obj['error'];
-          }
-          logEl.append(
-            '<div class="docker-log-error alert alert-danger">' +
-            ansi_up.ansi_to_html(escapeHTML(errorMessage)) +
-            '</div>'
-          );
-          panelEl.removeClass('panel-info panel-contracted')
-          panelEl.addClass('panel-danger');
-
-        }
-
-        if (isObj && 'stream' in obj) {
-          handled = true
-          lineEl = $('.docker-log-stream:last', logEl);
-          if (lineEl.length === 0) {
-            lineEl = $('<div class="docker-log-stream"></div>');
-            logEl.append(lineEl);
-          }
-
-          lineEl.html(lineEl.html() + ansi_up.ansi_to_html(escapeHTML(obj['stream'])));
-
-          if (obj['stream'].endsWith('\n')) {
-            logEl.append('<div class="docker-log-stream"></div>');
-          }
-
-        } else if (isObj && 'id' in obj) {
-          handled = true
-          idHash = md5(obj['id']);
-          idRow = $('.docker-log-' + idHash, logEl);
-          if (idRow.length < 1) {
-            idRow = $('<div class="docker-log-' + idHash + '"></div>');
-            logEl.append(idRow);
-          }
-
-          messageComps = [dockerIdText(obj['id'])]
-          if ('status' in obj) { messageComps.push(ansi_up.ansi_to_html(escapeHTML(obj['status']))) }
-          if ('progress' in obj) { messageComps.push(ansi_up.ansi_to_html(escapeHTML(obj['progress']))) }
-
-          idRow.html(messageComps.join(' | '))
-        } else if (isObj && 'status' in obj) {
-          handled = true
-          logEl.append(
-            '<div class="docker-log-status">' +
-            ansi_up.ansi_to_html(escapeHTML(obj['status'])) +
-            '</div>'
-          );
-        }
-
-        if (!handled) {
-          if (isObj) {
-            objLine = JSON.stringify(obj);
-          } else {
-            objLine = obj;
-          }
-          objLine = escapeHTML(objLine)
-          if (lenient) {
-            logEl.append('<div>' + objLine + '</div>');
-          } else {
-            logEl.append('<div style="color: red">' + objLine + '</div>');
-          }
-        }
-      }
-      function testMatches(matchList, search) {
-        var idx = 0
-        for (idx = 0; idx < matchList.length; idx++) {
-          if (matchList[idx] instanceof RegExp) {
-            return matchList[idx].test(search)
-          }
-        }
-        return false
-      }
-      function isDockerStage(stageSlug) {
-        if (dockerStages.indexOf(stageSlug) !== -1) { return true }
-        return testMatches(dockerStages, stageSlug)
-      }
-      function isLenientDockerStage(stageSlug) {
-        return testMatches(lenientDockerStages, stageSlug)
-      }
-      function processNextStage() {
-        var sortedQueueIndexes = Object.keys(stageAjaxQueue).sort(),
-            incompleteLineBuffer = "", processedChars = 0,
-            lenient, stageData;
-
-        if (sortedQueueIndexes.length === 0) {
-          return
-        }
-
-        stageData = stageAjaxQueue[sortedQueueIndexes[0]]
-        delete stageAjaxQueue[sortedQueueIndexes[0]]
-
-        lenient = isLenientDockerStage(stageData['slug'])
-
-        $.ajax({
-          url: '/projects/{{ job.project.slug }}/jobs/{{ job.slug }}/output/' + stageData['slug'] + '.log',
-          xhrFields: {
-            onprogress: function(e) {
-              var logEl = $('.panel-body', stageData['stageEl']),
-                  responseText = e.target.responseText,
-                  responseLines;
-
-              totalLength = responseText.length;
-              responseText = responseText.substr(processedChars,
-                                                 responseText.length);
-              processedChars = totalLength;
-              responseLines = responseText.split('\n');
-
-              if (isDockerStage(stageData['slug'])) {
-                // Combine the first line with the previous incomplete line
-                responseLines[0] = incompleteLineBuffer + responseLines[0];
-
-                // Last value is always incomplete
-                incompleteLineBuffer = responseLines.pop();
-
-                $.each(responseLines, function(idx, value) {
-                  if (value === '') { return; }
-                  try {
-                    value = $.parseJSON(value);
-                  } catch (err) {}
-
-                  dockerJobLine(stageData['stageEl'], logEl, value, lenient);
-                }, '');
-              } else {
-                lastLine = $('div:last', logEl)
-                if (lastLine.length !== 0) {
-                  lineCompletion = responseLines.shift();
-                  lastLine.text(lastLine.text() + lineCompletion);
-                }
-                $.each(responseLines, function(idx, value) {
-                  content = ansi_up.ansi_to_html(escapeHTML(value));
-                  if (content === '') {
-                      content = '&nbsp;';
-                  }
-                  logEl.append($('<div>' + content + '</div>'));
-                })
-              }
-
-              scrollToBottom();
-            }
-          },
-          complete: function(jqXHR, textStatus) {
-            $('i.loading', stageData['stageEl']).hide();
-            $('i.expand-toggle', stageData['stageEl']).show();
-            processNextStage();
-            refreshJobInfo();
-          },
-          success: function(jqXHR, textStatus) {
-            var panelClass = 'panel-success';
-            if (stageData['slug'] == 'error') {
-              panelClass = 'panel-danger';
-            }
-
-            stageData['stageEl'].removeClass('panel-info');
-            stageData['stageEl'].addClass(panelClass);
-          },
-          error: function(jqXHR, textStatus, errorText) {
-            var stagePanelHeadingEl = $('.panel-heading', stageData['stageEl'])
-            stagePanelHeadingEl.text(stageData['slug'] + ' - ' + errorText);
-            stageData['stageEl'].removeClass('panel-info');
-            stageData['stageEl'].addClass('panel-danger');
-          }
-        })
-      }
-      function queueStageLoad(idx, stageEl, slug) {
-        stageAjaxQueue[idx] = {'stageEl': stageEl,
-                               'slug':    slug
-                               }
-        if (Object.keys(stageAjaxQueue).length == 1) {
-          processNextStage()
-        }
-      }
-
-      function refreshJobInfo() {
-        $.ajax({
-          url: '/projects/{{ job.project.slug }}/jobs/{{ job.slug }}.json',
-          dataType: 'json',
-          success: function(data, textStatus, jqXHR) {
-            var stageEl;
-            $.each(data.job_stage_slugs, function(idx, slug) {
-              if (! getExistingStageEl(slug)) {
-                stageEl = createNewStageEl(idx, slug);
-                queueStageLoad(idx, stageEl, slug);
-              }
-            })
-          }
-        });
-      }
-
-      $('#auto-scroll').click(function() {
-        var icon = $('i', this)
-        scrollEnabled = ! scrollEnabled;
-        scrollToBottom();
-        icon.toggleClass('glyphicon-refresh spin', scrollEnabled);
-        icon.toggleClass('glyphicon-chevron-down', !scrollEnabled);
-      });
-
-      refreshJobInfo()
-    };
-    dockciJob();
-
+  ], function ($, ko, md5, ansi_up, util, JobModel) {
     $(document).ready(function() {
       function ThisPage() {
         this.currentTab = ko.observable('details')
+        this.job        = ko.observable()
+
+        this.scrollEnabled = ko.observable(false)
+        this.scrollAnimation = null
+
+
+        this.scrollToBottom = function() {
+          if (!this.scrollEnabled()) { return }
+          if (this.scrollAnimation !== null) { this.scrollAnimation.stop(true); }
+          this.scrollAnimation = $("html, body").animate({
+            'scrollTop': $(document).height()
+          }, 100)
+        }.bind(this)
+
+        this.setupScroll = function() {
+          this.job.subscribe(this.onJobSetupScroll)
+          if (!util.isEmpty(this.job())) {
+            this.onJobSetupScroll(this.job())
+          }
+        }.bind(this)
+        this.onJobSetupScroll = function(job) {
+          job.bus.subscribe(this.onBusSetupScroll)
+          if (!util.isEmpty(job.bus())) {
+            this.onBusSetupScroll(job.bus())
+          }
+        }.bind(this)
+        this.onBusSetupScroll = function(bus) {
+          bus.createQueue('_auto_scroll')
+          bus.subscribe('_auto_scroll', function(message) {
+            this.scrollToBottom()
+          }.bind(this))
+        }.bind(this)
+
+        this.scrollEnabled.subscribe(function(newScrollEnabled) {
+          this.scrollToBottom()
+        }.bind(this))
+        this.setupScroll()
+
+        JobModel.from_url(document.location + '.json', function(job) {
+          this.job(job)
+        }.bind(this))
       }
+
+      ko.options.deferUpdates = true
       ko.applyBindings(new ThisPage())
     })
   })

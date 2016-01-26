@@ -16,9 +16,14 @@
     "bootstrap-material-design": "~0.2.1",
     "blueimp-md5": "~1.1.0",
     "uri.js": "~1.16.1",
-    "knockout": "~3.3.0",
+    "knockout": "~3.4.0",
     "knockstrap": "~1.2.1",
     "requirejs": "~2.1.20",
-    "requirejs-text": "~2.0.14"
+    "requirejs-text": "~2.0.14",
+    "stomp.js": "https://github.com/jmesnil/stomp-websocket.git",
+    "lodash": "~4.0.0"
+  },
+  "resolutions": {
+    "knockout": "~3.4.0"
   }
 }

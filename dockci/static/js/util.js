@@ -1,7 +1,8 @@
 define([
       'knockout'
+    , 'md5'
     , './models/message'
-], function (ko, MessageModel) {
+], function (ko, md5, MessageModel) {
     util = {}
     util.ajax_fail = function(messages_ob) {
         return function (jqXHR, textStatus, errorThrown) {
@@ -34,6 +35,19 @@ define([
     }
     util._paramDef = function(def) {
         return typeof(def) === 'function' ? def() : def
+    }
+
+    util.isEmpty = function(value) {
+        return (
+            typeof(value) === 'undefined' ||
+            value === null ||
+            value === ''
+        )
+    }
+
+    util.gravatarUrl = function(email, size) {
+        var hash = md5(email.trim().toLowerCase());
+        return 'https://secure.gravatar.com/avatar/' + hash + '?d=mm&s=' + size
     }
 
     // MODIFIED FROM http://www.knockmeout.net/2011/04/pausing-notifications-in-knockoutjs.html

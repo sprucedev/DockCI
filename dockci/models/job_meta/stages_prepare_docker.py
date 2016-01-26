@@ -32,10 +32,9 @@ class InlineProjectStage(JobStageBase):
             "You must override the 'get_services' method"
         )
 
-    def id_for_service(self, slug):
+    def id_for_service(self, slug):  # pylint:disable=no-self-use
         """ Get the event series ID for a given service's slug """
-        # pylint:disable=no-member
-        return '%s_%s' % (self.slug, slug)
+        return slug
 
     def runnable(self, handle):
         """
@@ -324,9 +323,6 @@ class UtilStage(InlineProjectStage):
                                    meta={'config': self.config},
                                    )
         ]
-
-    def id_for_service(self, slug):
-        return slug
 
     def add_files(self, base_image_id, faux_log):
         """

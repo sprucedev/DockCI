@@ -73,7 +73,13 @@
       <td>{{ job.git_branch if job.git_branch else '' }}</td>
       <td>{{ job.tag if job.tag else '' }}</td>
       <td>{{ job.commit }}</td>
-      <td>{{ git_user(job.git_author_name, job.git_author_email) if job.git_author_name or job.git_author_email else ''}}</td>
+      <td>{% if job.git_author_name or job.git_author_email %}
+        <git-user params="
+            el: $element
+          , name: '{{ job.git_author_name }}'
+          , email: '{{ job.git_author_email }}'
+        "></git-user>
+      {% endif %}</td>
       <td>{{ job_state_glyph(job.state) }}</td>
     </tr>
   {%- endfor %}
@@ -114,6 +120,7 @@
     , 'knockout'
     , 'app/models/project'
 
+    , 'app/components/git_user'
     , 'app/components/header_button'
     , 'app/components/project_edit_dialog'
     , 'app/components/project_delete_dialog'

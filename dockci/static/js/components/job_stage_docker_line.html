@@ -1,0 +1,18 @@
+<div>
+  <strong style="width: 120px; float:left; text-overflow: ellipsis; overflow: hidden" data-bind="text:id"></strong>
+  <div style="float:left" data-bind="text:status"></div>
+  <!-- ko if: hasProgressBar() -->
+  <div style="float:right; width: 400px" data-bind="
+    progress: {
+        value: percentComplete
+      , type: 'info'
+      , text: status
+      , textHidden: false
+      , striped: percentComplete() >= 100
+      , animated: true
+    }
+  "></div>
+  <!-- /ko -->
+  <div style="float:right" data-bind="text:progress, visible: showProgressText()"></div>
+</div>
+<div class="clearfix"></div>

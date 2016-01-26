@@ -682,3 +682,13 @@ def unique_model_conflicts(klass, **fields):
         for field_name, query in queries.items()
         if query.count() > 0
     }
+
+
+def rabbit_stage_key(stage, mtype):
+    """ RabbitMQ routing key for messages """
+    return 'dockci.{project_slug}.{job_slug}.{stage_slug}.{mtype}'.format(
+        project_slug=stage.job.project.slug,
+        job_slug=stage.job.slug,
+        stage_slug=stage.slug,
+        mtype=mtype,
+    )

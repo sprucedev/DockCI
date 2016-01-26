@@ -1,7 +1,11 @@
 """ API relating to Job model objects """
 import sqlalchemy
+import uuid
 
-from flask import abort, request
+import redis
+import redis_lock
+
+from flask import abort, request, url_for
 from flask_restful import fields, marshal_with, Resource
 from flask_security import login_required
 
@@ -11,7 +15,8 @@ from .fields import NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import API
+from dockci.server import API, CONFIG, pika_conn, redis_pool
+from dockci.stage_io import redis_len_key, redis_lock_name
 from dockci.util import str2bool
 
 
@@ -28,6 +33,11 @@ LIST_FIELDS = {
     )),
 }
 LIST_FIELDS.update(BASIC_FIELDS)
+
+STAGE_LIST_FIELDS = {
+    'slug': fields.String(),
+    'success': fields.Boolean(),
+}
 
 
 CREATE_FIELDS = {
@@ -136,12 +146,21 @@ class JobDetail(BaseDetailResource):
 
 
 class StageList(Resource):
-    """ API resource that handles listing stage slugs for a job """
+    """ API resource that handles listing stages for a job """
+    @marshal_with(STAGE_LIST_FIELDS)
     def get(self, project_slug, job_slug):
         """ List all stage slugs for a job """
+        def match(stage):
+            """ Matches stages against query parameters """
+            return not (
+                'slug' in request.values and
+                request.values['slug'] not in stage.slug
+            )
+
         return [
-            stage.slug for stage in
+            stage for stage in
             get_validate_job(project_slug, job_slug).job_stages
+            if match(stage)
         ]
 
 
@@ -150,6 +169,58 @@ class ArtifactList(Resource):
     def get(self, project_slug, job_slug):
         """ List output details for a job """
         return get_validate_job(project_slug, job_slug).job_output_details
+
+
+class StageStreamDetail(Resource):
+    """ API resource to handle creating stage stream queues """
+    def post(self, project_slug, job_slug):
+        """ Create a new stream queue for a job """
+        job = get_validate_job(project_slug, job_slug)
+        routing_key = 'dockci.{project_slug}.{job_slug}.*.*'.format(
+            project_slug=project_slug,
+            job_slug=job_slug,
+        )
+
+        with redis_pool() as redis_pool_:
+            with pika_conn() as pika_conn_:
+                channel = pika_conn_.channel()
+                queue_result = channel.queue_declare(
+                    queue='dockci.job.%s' % uuid.uuid4().hex,
+                    arguments={
+                        'x-expires': CONFIG.live_log_session_timeout,
+                        'x-message-ttl': CONFIG.live_log_message_timeout,
+                    },
+                    durable=False,
+                )
+
+                redis_conn = redis.Redis(connection_pool=redis_pool_)
+                with redis_lock.Lock(
+                    redis_conn,
+                    redis_lock_name(job),
+                    expire=5,
+                ):
+                    channel.queue_bind(
+                        exchange='dockci.job',
+                        queue=queue_result.method.queue,
+                        routing_key=routing_key,
+                    )
+
+                    stage = job.job_stages[-1]
+                    bytes_read = redis_conn.get(redis_len_key(stage))
+
+        return {
+            'init_stage': stage.slug,
+            'init_log': "{url}?count={count}".format(
+                url=url_for(
+                    'job_log_init_view',
+                    project_slug=project_slug,
+                    job_slug=job_slug,
+                    stage=stage.slug
+                ),
+                count=bytes_read,
+            ),
+            'live_queue': queue_result.method.queue,
+        }
 
 
 API.add_resource(
@@ -171,4 +242,9 @@ API.add_resource(
     ArtifactList,
     '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
     endpoint='artifact_list',
+)
+API.add_resource(
+    StageStreamDetail,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>/stream',
+    endpoint='stage_stream_detail',
 )

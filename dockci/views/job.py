@@ -4,14 +4,13 @@ Views related to job management
 
 import json
 import logging
-import mimetypes
 import rollbar
-import select
 
 from flask import (abort,
                    render_template,
                    request,
                    Response,
+                   send_file,
                    url_for,
                    )
 from flask_security import current_user
@@ -169,6 +168,7 @@ def job_output_json(project_slug, job_slug):
                     'result', 'display_repo', 'commit', 'tag',
                     'image_id', 'container_id', 'docker_client_host',
                     'exit_code',
+                    'git_branch',
                     'git_author_name', 'git_author_email',
                     'git_committer_name', 'git_committer_email',
                     'git_changes',
@@ -185,15 +185,10 @@ def job_output_json(project_slug, job_slug):
     )
 
 
-@APP.route('/projects/<project_slug>/jobs/<job_slug>/output/<filename>',
-           methods=('GET',))
-def job_output_view(project_slug, job_slug, filename):
-    """
-    View to download some job output
-    """
+def check_output(project_slug, job_slug, filename):
+    """ Ensure the job exists, and that the path is not dangerous """
     Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
-    job_id = job.id
 
     job_output_path = job.job_output_path()
     data_file_path = job_output_path.join(filename)
@@ -205,30 +200,44 @@ def job_output_view(project_slug, job_slug, filename):
     if not data_file_path.check(file=True):
         abort(404)
 
+    return data_file_path
+
+
+@APP.route('/projects/<project_slug>/jobs/<job_slug>/log_init/<stage>',
+           methods=('GET',))
+def job_log_init_view(project_slug, job_slug, stage):
+    """ View to download initial job log """
+    data_file_path = check_output(project_slug, job_slug, '%s.log' % stage)
+    byte_seek = request.args.get('seek', 0, type=int)
+    bytes_count = request.args.get('count', None, type=int)
+
     def loader():
-        """
-        Generator to stream the log file
-        """
-        with APP.app_context():
-            job = Job.query.get(job_id)  # Session is closed
-            with data_file_path.open('rb') as handle:
-                while True:
-                    data = handle.read(1024)
-                    yield data
+        """ Stream the parts of the log that we want """
+        with data_file_path.open('rb') as handle:
+            handle.seek(byte_seek)
+            bytes_remain = bytes_count
+            while bytes_remain is None or bytes_remain > 0:
+                if bytes_remain is not None:
+                    chunk_size = min(1024, bytes_remain)
+                else:
+                    chunk_size = 1024
 
-                    DB.session.refresh(job)
-                    is_live_log = (
-                        job.state == 'running' and
-                        filename == "%s.log" % job.job_stages[-1].slug
-                    )
-                    if is_live_log:
-                        select.select((handle,), (), (), 2)
+                data = handle.read(chunk_size)
 
-                    elif len(data) == 0:
-                        return
+                if bytes_remain is not None:
+                    bytes_remain -= len(data)
 
-    mimetype, _ = mimetypes.guess_type(filename)
-    if mimetype is None:
-        mimetype = 'application/octet-stream'
+                yield data
 
-    return Response(loader(), mimetype=mimetype)
+                if len(data) == 0:
+                    return
+
+    return Response(loader(), mimetype='text/plain')
+
+
+@APP.route('/projects/<project_slug>/jobs/<job_slug>/output/<filename>',
+           methods=('GET',))
+def job_output_view(project_slug, job_slug, filename):
+    """ View to download some job output """
+    data_file_path = check_output(project_slug, job_slug, filename)
+    send_file(data_file_path.strpath)

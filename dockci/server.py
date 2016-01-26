@@ -7,7 +7,11 @@ import mimetypes
 import multiprocessing
 import os
 
+from contextlib import contextmanager
+
 import flask
+import pika
+import redis
 import rollbar
 import rollbar.contrib.flask
 
@@ -102,6 +106,25 @@ def app_init():
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
 
+    APP.config['RABBITMQ_USER'] = os.environ.get(
+        'RABBITMQ_ENV_BACKEND_USER', 'guest')
+    APP.config['RABBITMQ_PASSWORD'] = os.environ.get(
+        'RABBITMQ_ENV_BACKEND_PASSWORD', 'guest')
+    APP.config['RABBITMQ_HOST'] = os.environ.get(
+        'RABBITMQ_PORT_5672_TCP_ADDR', 'localhost')
+    APP.config['RABBITMQ_PORT'] = int(os.environ.get(
+        'RABBITMQ_PORT_5672_TCP_PORT', 5672))
+
+    APP.config['RABBITMQ_USER_FE'] = os.environ.get(
+        'RABBITMQ_ENV_FRONTEND_USER', 'guest')
+    APP.config['RABBITMQ_PASSWORD_FE'] = os.environ.get(
+        'RABBITMQ_ENV_FRONTEND_PASSWORD', 'guest')
+
+    APP.config['REDIS_HOST'] = os.environ.get(
+        'REDIS_PORT_6379_ADDR', 'redis')
+    APP.config['REDIS_PORT'] = int(os.environ.get(
+        'REDIS_PORT_6379_PORT', 6379))
+
     if APP.config.get('SQLALCHEMY_DATABASE_URI', None) is None:
         APP.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
 
@@ -122,6 +145,47 @@ def app_init():
     app_init_api()
     app_init_views()
     app_init_workers()
+
+
+def get_redis_pool():
+    """ Create a configured Redis connection pool """
+    return redis.ConnectionPool(host=APP.config['REDIS_HOST'],
+                                port=APP.config['REDIS_PORT'],
+                                )
+
+
+@contextmanager
+def redis_pool():
+    """ Context manager for getting and disconnecting a Redis pool """
+    pool = get_redis_pool()
+    try:
+        yield pool
+
+    finally:
+        pool.disconnect()
+
+
+def get_pika_conn():
+    """ Create a connection to RabbitMQ """
+    return pika.BlockingConnection(pika.ConnectionParameters(
+        host=APP.config['RABBITMQ_HOST'],
+        port=APP.config['RABBITMQ_PORT'],
+        credentials=pika.credentials.PlainCredentials(
+            APP.config['RABBITMQ_USER'],
+            APP.config['RABBITMQ_PASSWORD'],
+        ),
+    ))
+
+
+@contextmanager
+def pika_conn():
+    """ Context manager for getting and closing a pika connection """
+    conn = get_pika_conn()
+    try:
+        yield conn
+
+    finally:
+        conn.close()
 
 
 def wrapped_report_exception(app, exception):
