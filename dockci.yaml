@@ -1,4 +1,5 @@
 dockerfile: dockci.Dockerfile
+repo_name: thatpanda/dockci
 utilities:
   - name: python3-4-wheels-debian
     input:
