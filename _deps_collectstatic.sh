@@ -25,3 +25,4 @@ cp bower_components/requirejs-text/text.js dockci/static/lib/js
 cp bower_components/uri.js/src/jquery.URI.min.js dockci/static/lib/js/jquery.URI.js
 cp bower_components/uri.js/src/URI.min.js dockci/static/lib/js/URI.js
 cp bower_components/stomp.js/lib/stomp.js dockci/static/lib/js/stomp.js
+cp bower_components/lodash/dist/lodash.js dockci/static/lib/js/lodash.js

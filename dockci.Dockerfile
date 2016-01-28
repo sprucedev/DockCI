@@ -11,8 +11,8 @@ ENV LANG en_AU.UTF-8
 RUN mkdir -p /code/data
 WORKDIR /code
 
-ADD util/bower_components /code/bower_components
 ADD _deps_collectstatic.sh /code/_deps_collectstatic.sh
+ADD util/bower_components /code/bower_components
 RUN ./_deps_collectstatic.sh
 
 ADD requirements.txt /code/requirements.txt
