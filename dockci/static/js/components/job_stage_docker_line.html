@@ -1,12 +1,12 @@
 <div>
   <strong style="width: 120px; float:left; text-overflow: ellipsis; overflow: hidden" data-bind="text:id"></strong>
-  <div style="float:left" data-bind="text:status"></div>
+  <div style="float:left" data-bind="text:message"></div>
   <!-- ko if: hasProgressBar() -->
   <div style="float:right; width: 400px" data-bind="
     progress: {
         value: percentComplete
       , type: 'info'
-      , text: status
+      , text: message
       , textHidden: false
       , striped: percentComplete() >= 100
       , animated: true

@@ -10,6 +10,15 @@ define([
         this.status = ko.observable()
         this.progress = ko.observable()
         this.progressDetail = ko.observable()
+        this.error = ko.observable()
+
+        this.message = ko.computed(function() {
+            if (util.isEmpty(this.error())) {
+                return this.status()
+            } else {
+                return this.error()
+            }
+        }.bind(this))
 
         this.showProgressText = ko.computed(function() {
             return util.isEmpty(this.progressDetail())
@@ -39,7 +48,7 @@ define([
 
         this.parseLines = function(lines) {
             newValues = {}
-            keys = ['id', 'status', 'progress', 'progressDetail']
+            keys = ['id', 'status', 'progress', 'progressDetail', 'error']
 
             $(lines).each(function(idx, data) {
                 $(keys).each(function(idx,  key) {
