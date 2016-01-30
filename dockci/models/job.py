@@ -761,6 +761,25 @@ class Job(DB.Model, RepoFsMixin):
 
     @classmethod
     def _pushable_messages_join(cls, messages):
+        """
+        Join messages with commas, 'and', or nothing if just 1
+
+        Examples:
+
+        >>> Job._pushable_messages_join(['pikachu'])
+        'pikachu'
+
+        >>> Job._pushable_messages_join(['pikachu', 'charmander'])
+        'pikachu, and charmander'
+
+        >>> Job._pushable_messages_join(['pikachu', 'charmander', 'squirtle'])
+        'pikachu, charmander, and squirtle'
+
+        >>> Job._pushable_messages_join([
+        ...     'pikachu', 'charmander', 'squirtle', 'bulbasaur'
+        ... ])
+        'pikachu, charmander, squirtle, and bulbasaur'
+        """
         if len(messages) > 1:
             return "%s, and %s" % (
                 ", ".join(messages[0:-1]),
