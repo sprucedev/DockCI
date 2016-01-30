@@ -2,6 +2,9 @@
 DockCI - CI, but with that all important Docker twist
 """
 
+# TODO fewer lines somehow
+# pylint:disable=too-many-lines
+
 import random
 import sys
 import tempfile
@@ -75,6 +78,50 @@ class JobResult(Enum):
     success = 'success'
     fail = 'fail'
     broken = 'broken'
+
+
+PushableReasons = Enum(  # pylint:disable=invalid-name
+    'PushableReasons',
+    """
+    result_success
+    good_exit
+    tag_push
+    branch_push
+    """,
+)
+
+
+UnpushableReasons = Enum(  # pylint:disable=invalid-name
+    'UnpushableReasons',
+    """
+    not_good_state
+    bad_state
+    no_tag
+    no_project
+    no_target_registry
+    no_branch
+    no_branch_pattern
+    no_branch_match
+    """,
+)
+
+
+PUSH_REASON_MESSAGES = {
+    PushableReasons.result_success: "successful job result",
+    PushableReasons.good_exit: "exit code was 0",
+    PushableReasons.tag_push: "commit is tagged",
+    PushableReasons.branch_push: "branch matches rules",
+
+    UnpushableReasons.not_good_state: "job is not in a successful state",
+    UnpushableReasons.bad_state: "job is in a bad state",
+    UnpushableReasons.no_tag: "commit not tagged",
+    UnpushableReasons.no_project: "job doesn't have a project",
+    UnpushableReasons.no_target_registry: "project has no registry target",
+    UnpushableReasons.no_branch: "commit not on a branch",
+    UnpushableReasons.no_branch_pattern: "project has no branch pattern",
+    UnpushableReasons.no_branch_match:
+        "branch name doesn't match branch pattern",
+}
 
 
 class JobStageTmp(DB.Model):  # pylint:disable=no-init
@@ -472,21 +519,114 @@ class Job(DB.Model, RepoFsMixin):
 
     @property
     def is_good_state(self):
-        """ Is the job completed, and in a good state (success) """
-        return (
-            self.result == JobResult.success.value or
-            (self.result is None and self.exit_code == 0)
-        )
+        """
+        Is the job completed, and in a good state (success)
+
+        Examples:
+
+        >>> Job(result=JobResult.success.value).is_good_state
+        True
+
+        >>> Job().is_good_state
+        False
+        """
+        return self._is_good_state_full[0]
+
+    @property
+    def _is_good_state_full(self):
+        """
+        Return the ``bool`` for ``is_good_state``, and a reason tokens
+
+        Examples:
+
+        >>> Job(result=JobResult.success.value)._is_good_state_full
+        (True, {<PushableReasons.result_success...>})
+
+        >>> Job(exit_code=0)._is_good_state_full
+        (True, {<PushableReasons.good_exit...>})
+
+        >>> Job()._is_good_state_full
+        (False, {<UnpushableReasons.not_good_state...>})
+        """
+        if self.result == JobResult.success.value:
+            return True, {PushableReasons.result_success}
+        if self.result is None and self.exit_code == 0:
+            return True, {PushableReasons.good_exit}
+
+        return False, {UnpushableReasons.not_good_state}
 
     @property
     def is_bad_state(self):
-        """ Is the job completed, and in a bad state (failed, broken) """
-        return self.result in (JobResult.fail.value, JobResult.broken.value)
+        """
+        Is the job completed, and in a bad state (failed, broken)
+
+        Examples:
+
+        >>> Job(result=JobResult.fail.value).is_bad_state
+        True
+
+        >>> Job().is_bad_state
+        False
+        """
+        return self._is_bad_state_full[0]
+
+    @property
+    def _is_bad_state_full(self):
+        """
+        Return the ``bool`` for ``is_bad_state``, and a reason tokens
+
+        Examples:
+
+        >>> Job(result=JobResult.fail.value)._is_bad_state_full
+        (True, {<UnpushableReasons.bad_state...>})
+
+        >>> Job(result=JobResult.broken.value)._is_bad_state_full
+        (True, {<UnpushableReasons.bad_state...>})
+
+        >>> Job(result=JobResult.success.value)._is_bad_state_full
+        (False, set())
+
+        >>> Job()._is_bad_state_full
+        (False, set())
+        """
+        bad = self.result in (JobResult.fail.value, JobResult.broken.value)
+        if bad:
+            return bad, {UnpushableReasons.bad_state}
+
+        return bad, set()
 
     @property
     def tag_push_candidate(self):
-        """ Determines if this job has a tag, and target registry """
-        return bool(self.tag and self.project.target_registry)
+        """
+        Determines if this job has a tag, and target registry
+
+        Examples:
+
+        >>> Job().tag_push_candidate
+        False
+        """
+        return self._tag_push_candidate_full[0]
+
+    @property
+    def _tag_push_candidate_full(self):
+        """
+        Return the ``bool`` for ``tag_push_candidate``, and a reason tokens
+
+        Note: more tests in DB test suite
+
+        Examples:
+
+        >>> Job()._tag_push_candidate_full
+        (False, {<UnpushableReasons.no_project...>})
+        """
+        if not self.project:
+            return False, {UnpushableReasons.no_project}
+        if not self.project.target_registry:
+            return False, {UnpushableReasons.no_target_registry}
+        if not self.tag:
+            return False, {UnpushableReasons.no_tag}
+
+        return True, {PushableReasons.tag_push}
 
     @property
     def branch_push_candidate(self):
@@ -494,22 +634,162 @@ class Job(DB.Model, RepoFsMixin):
         Determines if this job has a branch, target registry and the project
         branch pattern matches
         """
-        return bool(
-            self.git_branch and
-            self.project.branch_pattern and
-            self.project.target_registry and
-            self.project.branch_pattern.match(self.git_branch)
-        )
+        return self._branch_push_candidate_full[0]
+
+    @property
+    def _branch_push_candidate_full(self):
+        """
+        Return the ``bool`` for ``branch_push_candidate``, and the reason
+        tokens
+
+        Note: more tests in DB test suite
+
+        Examples:
+
+        >>> Job()._branch_push_candidate_full
+        (False, {<UnpushableReasons.no_project...>})
+        """
+        if not self.project:
+            return False, {UnpushableReasons.no_project}
+        if not self.project.target_registry:
+            return False, {UnpushableReasons.no_target_registry}
+        if not self.git_branch:
+            return False, {UnpushableReasons.no_branch}
+        if not self.project.branch_pattern:
+            return False, {UnpushableReasons.no_branch_pattern}
+        if not self.project.branch_pattern.match(self.git_branch):
+            return False, {UnpushableReasons.no_branch_match}
+
+        return True, {PushableReasons.branch_push}
 
     @property
     def push_candidate(self):
         """ Is the job a push candidate for either tag or branch push """
-        return self.tag_push_candidate or self.branch_push_candidate
+        return self._push_candidate_full[0]
+
+    @property
+    def _push_candidate_full(self):
+        """
+        Return the ``bool`` for ``branch_push_candidate``, and the reason
+        """
+        tag_push, tag_push_reasons = self._tag_push_candidate_full
+        if tag_push:
+            return True, tag_push_reasons
+
+        branch_push, branch_push_reasons = self._branch_push_candidate_full
+        if branch_push:
+            return True, branch_push_reasons
+
+        tag_push_reasons.update(branch_push_reasons)
+        return False, tag_push_reasons
 
     @property
     def pushable(self):
         """ Is the job a push candidate, and in a good state """
-        return self.push_candidate and self.is_good_state
+        return self._pushable_full[0]
+
+    @property
+    def _pushable_full(self):
+        """
+        Return the ``bool`` for ``pushable``, and the reason tokens
+        """
+        push, push_reasons = self._push_candidate_full
+        if not push:
+            return False, push_reasons
+
+        is_good, is_good_reasons = self._is_good_state_full
+        if not is_good:
+            return False, is_good_reasons
+
+        push_reasons.update(is_good_reasons)
+        return True, push_reasons
+
+    @property
+    def pushable_message(self):
+        """ Messages describing why the job is, or isn't pushable """
+        return Job._pushable_message_for(self._pushable_full[1])
+
+    @classmethod
+    def _pushable_message_for(cls, reasons):
+        """
+        Generate messages for a list of reason tokens
+
+        Examples:
+
+        >>> Job._pushable_message_for({PushableReasons.good_exit})
+        'Pushable, because exit code was 0'
+
+        >>> Job._pushable_message_for({UnpushableReasons.not_good_state})
+        'Not pushable, because job is not in a successful state'
+
+        >>> Job._pushable_message_for({
+        ...     PushableReasons.good_exit,
+        ...     PushableReasons.tag_push,
+        ... })
+        'Pushable, because commit is tagged, and exit code was 0'
+
+        >>> Job._pushable_message_for({
+        ...     PushableReasons.good_exit,
+        ...     PushableReasons.tag_push,
+        ...     UnpushableReasons.no_branch_match,
+        ... })  # doctest: +NORMALIZE_WHITESPACE
+        "Not pushable, because branch name doesn't match branch pattern, even
+        though commit is tagged, and exit code was 0"
+
+        >>> Job._pushable_message_for({})
+        'Unknown'
+
+        >>> Job._pushable_message_for({'something dumb'})
+        'Unknown'
+        """
+        p_reasons = sorted([PUSH_REASON_MESSAGES[rea]
+                            for rea in reasons
+                            if rea in PushableReasons])
+        u_reasons = sorted([PUSH_REASON_MESSAGES[rea]
+                            for rea in reasons
+                            if rea in UnpushableReasons])
+
+        if p_reasons and not u_reasons:
+            return "Pushable, because %s" % (
+                cls._pushable_messages_join(p_reasons))
+        if u_reasons and not p_reasons:
+            return "Not pushable, because %s" % (
+                cls._pushable_messages_join(u_reasons))
+        elif p_reasons and u_reasons:
+            return "Not pushable, because %s, even though %s" % (
+                cls._pushable_messages_join(u_reasons),
+                cls._pushable_messages_join(p_reasons))
+
+        return "Unknown"
+
+    @classmethod
+    def _pushable_messages_join(cls, messages):
+        """
+        Join messages with commas, 'and', or nothing if just 1
+
+        Examples:
+
+        >>> Job._pushable_messages_join(['pikachu'])
+        'pikachu'
+
+        >>> Job._pushable_messages_join(['pikachu', 'charmander'])
+        'pikachu, and charmander'
+
+        >>> Job._pushable_messages_join(['pikachu', 'charmander', 'squirtle'])
+        'pikachu, charmander, and squirtle'
+
+        >>> Job._pushable_messages_join([
+        ...     'pikachu', 'charmander', 'squirtle', 'bulbasaur'
+        ... ])
+        'pikachu, charmander, squirtle, and bulbasaur'
+        """
+        if len(messages) > 1:
+            return "%s, and %s" % (
+                ", ".join(messages[0:-1]),
+                messages[-1]
+            )
+        else:
+            return messages[0]
 
     @property
     def external_auth_token(self):

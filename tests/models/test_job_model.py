@@ -5,7 +5,12 @@ from unittest.mock import PropertyMock
 import pytest
 
 from dockci.models.auth import AuthenticatedRegistry
-from dockci.models.job import Job, JobResult
+from dockci.models.job import (Job,
+                               JobResult,
+                               PUSH_REASON_MESSAGES,
+                               PushableReasons,
+                               UnpushableReasons,
+                               )
 from dockci.models.project import Project
 
 
@@ -237,12 +242,15 @@ class TestPushable(object):
     ])
     def test_pushable(self, mocker, tag_pc, branch_pc, good_state, exp):
         """ Test ``Job.pushable`` """
-        mocker.patch('dockci.models.job.Job.is_good_state',
-                     new_callable=PropertyMock(return_value=good_state))
-        mocker.patch('dockci.models.job.Job.tag_push_candidate',
-                     new_callable=PropertyMock(return_value=tag_pc))
-        mocker.patch('dockci.models.job.Job.branch_push_candidate',
-                     new_callable=PropertyMock(return_value=branch_pc))
+        mocker.patch('dockci.models.job.Job._is_good_state_full',
+                     new_callable=PropertyMock(
+                        return_value=(good_state, set())))
+        mocker.patch('dockci.models.job.Job._tag_push_candidate_full',
+                     new_callable=PropertyMock(
+                        return_value=(tag_pc, set())))
+        mocker.patch('dockci.models.job.Job._branch_push_candidate_full',
+                     new_callable=PropertyMock(
+                        return_value=(branch_pc, set())))
         job = Job()
 
         assert job.pushable == exp
@@ -388,3 +396,10 @@ class TestSemver(TestJobBase):
         self.job.tag = tag
         assert self.job.tag_semver_str is None
         assert self.job.tag_semver_str_v is None
+
+
+@pytest.mark.parametrize('source_enum', [PushableReasons, UnpushableReasons])
+def test_push_reason_messages(source_enum):
+    """ Ensure that all push reasons have messages """
+    for member in source_enum:
+        assert member in PUSH_REASON_MESSAGES
