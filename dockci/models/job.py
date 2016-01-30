@@ -2,6 +2,9 @@
 DockCI - CI, but with that all important Docker twist
 """
 
+# TODO fewer lines somehow
+# pylint:disable=too-many-lines
+
 import random
 import sys
 import tempfile
@@ -77,7 +80,7 @@ class JobResult(Enum):
     broken = 'broken'
 
 
-PushableReasons = Enum(
+PushableReasons = Enum(  # pylint:disable=invalid-name
     'PushableReasons',
     """
     result_success
@@ -88,7 +91,7 @@ PushableReasons = Enum(
 )
 
 
-UnpushableReasons = Enum(
+UnpushableReasons = Enum(  # pylint:disable=invalid-name
     'UnpushableReasons',
     """
     not_good_state
@@ -116,7 +119,8 @@ PUSH_REASON_MESSAGES = {
     UnpushableReasons.no_target_registry: "project has no registry target",
     UnpushableReasons.no_branch: "commit not on a branch",
     UnpushableReasons.no_branch_pattern: "project has no branch pattern",
-    UnpushableReasons.no_branch_match: "branch name doesn't match branch pattern",
+    UnpushableReasons.no_branch_match:
+        "branch name doesn't match branch pattern",
 }
 
 
@@ -591,7 +595,6 @@ class Job(DB.Model, RepoFsMixin):
 
         return bad, set()
 
-
     @property
     def tag_push_candidate(self):
         """
@@ -706,7 +709,6 @@ class Job(DB.Model, RepoFsMixin):
         """ Messages describing why the job is, or isn't pushable """
         return Job._pushable_message_for(self._pushable_full[1])
 
-
     @classmethod
     def _pushable_message_for(cls, reasons):
         """
@@ -730,8 +732,9 @@ class Job(DB.Model, RepoFsMixin):
         ...     PushableReasons.good_exit,
         ...     PushableReasons.tag_push,
         ...     UnpushableReasons.no_branch_match,
-        ... })
-        "Not pushable, because branch name doesn't match branch pattern, even though commit is tagged, and exit code was 0"
+        ... })  # doctest: +NORMALIZE_WHITESPACE
+        "Not pushable, because branch name doesn't match branch pattern, even
+        though commit is tagged, and exit code was 0"
 
         >>> Job._pushable_message_for({})
         'Unknown'
