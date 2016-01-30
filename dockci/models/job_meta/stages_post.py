@@ -62,7 +62,7 @@ class PushStage(DockerStage):
             return self.gen_all_docker()
 
         else:
-            return (json.dumps(dict(status="Not pushable")),)
+            return (json.dumps(dict(status=self.job.pushable_message)),)
 
 
 class FetchStage(JobStageBase):
