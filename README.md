@@ -1,4 +1,4 @@
-[![Build Status](https://demo.dock.ci/project/dockci.svg)](https://demo.dock.ci/projects/dockci)[![Requirements Status](https://requires.io/github/sprucedev/DockCI/requirements.svg?branch=master&style=flat-square)](https://requires.io/github/sprucedev/DockCI/requirements/?branch=master)[![Tickets in Release](https://badge.waffle.io/rickycook/dockci.svg?label=ready&title=This Release)](http://waffle.io/rickycook/dockci)
+[![Build Status](https://demo.dock.ci/project/dockci.svg)](https://demo.dock.ci/projects/dockci)[![Requirements Status](https://requires.io/github/sprucedev/DockCI/requirements.svg?branch=master&style=flat-square)](https://requires.io/github/sprucedev/DockCI/requirements/?branch=master)[![Tickets in Release](https://badge.waffle.io/rickycook/dockci.svg?label=ready&title=This Release)](http://waffle.io/sprucedev/dockci)
 
 # DockCI
 DockCI is still alpha! It's certainly not feature complete.  It's heading towards MVP.
@@ -43,7 +43,7 @@ may disable registry support in the config page when DockCI is running.
    - For VMWare Fusion, add `--driver vmwarefusion`
    - The full command for OSX is: `docker-machine create --driver vmwarefusion --engine-insecure-registry http://localhost:5000 default`
 1. Source the new machine configuration: `eval "$(docker-machine env default)"`
-1. Clone the DockCI repo: `git clone https://github.com/RickyCook/DockCI.git`
+1. Clone the DockCI repo: `git clone https://github.com/sprucedev/DockCI.git`
 1. Change directory to the DockCI directory, and use compose to bring up the stack: `docker-compose up`
 1. You can get the URL to your new installation with: `echo http://$(docker-machine ip default):5001`
 1. You can reset all your data at any time with: `docker-compose rm`
@@ -60,11 +60,11 @@ may disable registry support in the config page when DockCI is running.
 ## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly
 accepted! You can probably find something that you can work on in the
-[GitHub issues](https://github.com/RickyCook/DockCI/issues). There's also a
+[GitHub issues](https://github.com/sprucedev/DockCI/issues). There's also a
 [waffle.io project board](https://waffle.io/rickycook/dockci) with issues
 ranked (approximately) highest to lowest priority. Just choose something that
 isn't already labeled as `in progress`, or already has someone assigned to it
-([here's a filter](https://github.com/RickyCook/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)).
+([here's a filter](https://github.com/sprucedev/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)).
 
 The main code base is also really hastily written, so anything that you'd like
 to refactor, got nuts! It _really_ needs to be done!
@@ -82,5 +82,5 @@ If you want to have a talk about ideas, project priorities, etc feel free to
 drop me an email at mail[at]thatpanda.com.
 
 ## Useful issues filters
-- [Ticket type unlabeled](https://github.com/RickyCook/DockCI/issues?q=is%3Aissue+is%3Aopen+-label%3Abug+-label%3Aenhancement+-label%3Atask)
-- [Things to work on](https://github.com/RickyCook/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)
+- [Ticket type unlabeled](https://github.com/sprucedev/DockCI/issues?q=is%3Aissue+is%3Aopen+-label%3Abug+-label%3Aenhancement+-label%3Atask)
+- [Things to work on](https://github.com/sprucedev/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)
