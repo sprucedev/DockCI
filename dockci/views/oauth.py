@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_security import current_user, login_required
 
-from dockci.models.auth import OAuthToken
+from dockci.models.auth import OAuthToken, User
 from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
 from dockci.util import ext_url_for, get_token_for
 
@@ -34,15 +34,19 @@ def oauth_authorized(name):
         ), 'danger')
 
     else:
-        oauth_token = OAuthToken(
-            service=name,
-            key=resp['access_token'],
-            secret='',
-            scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](resp['scope'])
-        )
-        current_user.oauth_tokens.append(oauth_token)
+        if current_user.is_authenticated():
+            current_user.oauth_tokens.filter_by(service=name).delete(
+                synchronize_session=False,
+            )
+            user = current_user
+            oauth_token = create_oauth_token(name, response)
+
+        else:
+            user, oauth_token = user_from_oauth(name, resp)
+
+        user.oauth_tokens.append(oauth_token)
         DB.session.add(oauth_token)
-        DB.session.add(current_user)
+        DB.session.add(user)
         DB.session.commit()
 
         flash(u"Connected to %s" % name.title(), 'success')
@@ -52,6 +56,38 @@ def oauth_authorized(name):
 
     except KeyError:
         return redirect(url_for('index_view'))
+
+
+def create_oauth_token(name, response):
+    return OAuthToken(
+        service=name,
+        key=response['access_token'],
+        secret='',
+        scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
+    )
+
+
+def user_from_oauth(name, response):
+    oauth_app = OAUTH_APPS[name]
+    oauth_token = create_oauth_token(name, response)
+    oauth_token_tuple = (oauth_token.key, oauth_token.secret)
+
+    if name == 'github':
+        user_data = oauth_app.get('/user', token=oauth_token_tuple).data
+        user_email = user_data['email']
+
+    else:
+        raise NotImplementedError("GitLab doesn't work yet")
+
+    if User.query.filter_by(email=user_email).count() > 0:
+        # If user has a <name> token already, okay
+        # If user has no <name> token, can't do
+        raise Exception("Already registered")  # TODO handle this
+
+    return User(
+        email=user_email,
+        active=True,
+    ), oauth_token
 
 
 def oauth_response(oauth_app):
