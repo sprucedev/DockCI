@@ -24,6 +24,7 @@ from flask import url_for
 
 from .base import RepoFsMixin
 from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
+from dockci.models.base import ServiceBase
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStage
 from dockci.models.job_meta.stages_main import (BuildStage,
@@ -459,17 +460,20 @@ class Job(DB.Model, RepoFsMixin):
 
         return tags_set
 
+    # TODO remove??
     @property
     def docker_base_name(self):
         """ Name of the Docker image, without tag or registry """
         return self.project.slug
 
+    # TODO remove
     @property
     def target_registry_base_name(self):
         """ Base name of the target registry, or None """
         if self.project.target_registry:
             return self.project.target_registry.base_name
 
+    # TODO remove
     @property
     def docker_image_name(self):
         """
@@ -483,6 +487,7 @@ class Job(DB.Model, RepoFsMixin):
 
         return self.docker_base_name
 
+    # TODO remove
     @property
     def docker_full_name(self):
         """
@@ -495,6 +500,17 @@ class Job(DB.Model, RepoFsMixin):
                                          tag=tag)
 
         return self.docker_image_name
+
+    @property
+    def service(self):
+        """ ``ServiceBase`` represented by this job """
+        return ServiceBase(
+            name=self.project.name,
+            repo=self.job_config.repo_name,
+            tag=self.tag,
+            project=self.project,
+            job=self,
+        )
 
     @property
     def is_stable_release(self):

@@ -398,6 +398,57 @@ class TestSemver(TestJobBase):
         assert self.job.tag_semver_str_v is None
 
 
+class TestService(object):
+    """ Test generation of ``ServiceBase`` object for the ``Job`` """
+    @pytest.mark.parametrize('kwargs,repo_name_,exp_display', [
+        (
+            dict(
+                project=Project(
+                    name='DockCI App',
+                    target_registry=AuthenticatedRegistry(
+                        base_name='localhost:5000'
+                    )
+                )
+            ),
+            'sprucedev/dockci',
+            'DockCI App - localhost:5000/sprucedev/dockci:latest',
+        ),
+        (
+            dict(
+                tag='v0.0.9',
+                project=Project(
+                    name='CoolProject2000',
+                    target_registry=AuthenticatedRegistry(
+                        base_name='docker.io'
+                    )
+                )
+            ),
+            'myorg/coolproj',
+            'CoolProject2000 - docker.io/myorg/coolproj:v0.0.9',
+        ),
+        (
+            dict(
+                project=Project(
+                    name='DockCI App',
+                    target_registry=AuthenticatedRegistry(
+                        base_name='docker.io'
+                    )
+                )
+            ),
+            'dockci',
+            'DockCI App - docker.io/dockci:latest',
+        ),
+    ])
+    def test_service_display(self, mocker, kwargs, repo_name_, exp_display):
+        job = Job(**kwargs)
+        class MockJobConfig(object):
+            repo_name = repo_name_
+        job._job_config = MockJobConfig()
+        job.id = 20
+
+        assert job.service.display_full == exp_display
+
+
 @pytest.mark.parametrize('source_enum', [PushableReasons, UnpushableReasons])
 def test_push_reason_messages(source_enum):
     """ Ensure that all push reasons have messages """
