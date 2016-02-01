@@ -63,7 +63,9 @@
   <div class="form-horizontal">
     <div class="form-group" data-bind="visible:job().display_repo">
       <label class="col-sm-2 control-label">Repo</label>
-      <div class="col-sm-10"><p class="form-control-static" data-bind="text:job().display_repo"></p></div>
+      <div class="col-sm-10"><p class="form-control-static">
+        <git-repo params="display_repo: job().display_repo"></git-repo>
+      </p></div>
     </div>
     <div class="form-group" data-bind="visible:job().commit">
       <!-- This will update to a full hash after the git_info stage -->
@@ -159,6 +161,7 @@
     , 'app/util'
     , 'app/models/job'
 
+    , 'app/components/git_repo_display'
     , 'app/components/git_user'
     , 'app/components/job_stage'
     , 'app/components/job_state_glyph'

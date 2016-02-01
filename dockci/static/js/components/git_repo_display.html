@@ -1,0 +1,11 @@
+<!-- ko if: link --><a data-bind="
+    text: text
+  , attr: { href: link }
+  , css: { 'field-icon': icon() }
+  , style: { 'background-image': 'url(' + icon() + ')' }
+"></a><!-- /ko -->
+<!-- ko ifnot: link --><span data-bind="
+    text: text
+  , css: { 'field-icon': icon() }
+  , style: { 'background-image': 'url(' + icon() + ')' }
+"></span><!-- /ko -->

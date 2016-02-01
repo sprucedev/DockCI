@@ -1,8 +1,5 @@
 {% extends "_base.html" %}
 {% block title %}{{ project.name }}{% endblock %}
-{# URI.js is loading differently through require; has to be loaded before
-   require is so that it loads into the root #}
-{% block prescript %}<script src="/static/lib/js/URI.js"></script>{% endblock %}
 {% block header %}
   <span data-bind="text:project().name"></span>
   {% if current_user.is_authenticated() %}
@@ -114,7 +111,6 @@
     , project: project
 "></project-delete-dialog>
 <script>
-  // URI.js is being dumb :(
   require([
       'jquery'
     , 'knockout'
