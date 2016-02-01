@@ -3,6 +3,7 @@ OAuth related API views and routes
 """
 
 import json
+import re
 
 from functools import wraps
 from urllib.parse import urlencode
@@ -10,11 +11,20 @@ from urllib.parse import urlencode
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
 from flask_security import current_user, login_required
+from flask_security.utils import url_for_security
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from dockci.models.auth import OAuthToken, User
-from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
+from dockci.server import (APP,
+                           CONFIG,
+                           DB,
+                           OAUTH_APPS,
+                           OAUTH_APPS_SCOPE_SERIALIZERS,
+                           )
 from dockci.util import ext_url_for, get_token_for
+
+
+RE_VALID_OAUTH = re.compile(r'^[a-z]+$')
 
 
 class OAuthRegError(Exception):
@@ -24,14 +34,54 @@ class OAuthRegError(Exception):
         self.reason = reason
 
 
+def check_oauth_enabled(name):
+    """
+    Check config to see if a given OAuth service is configured, and enabled for
+    register or login actions
+    """
+    if not RE_VALID_OAUTH.match(name):
+        return (False,) * 3
+
+    return (
+        getattr(CONFIG, '%s_enabled' % name),
+        getattr(CONFIG, 'security_registerable_%s' % name),
+        getattr(CONFIG, 'security_login_%s' % name),
+    )
+
+def oauth_redir(return_to=None):
+    """ Get the OAuth redirection URL """
+    try:
+        if return_to is None:
+            return_to = request.args['return_to']
+
+    except KeyError:
+        return_to = url_for('index_view')
+
+    return redirect(return_to)
+
+
 @APP.route('/login/<name>')
 def oauth_login(name):
     """ Entry point for OAuth logins """
-    if name not in ['github', 'gitlab']:
-        return abort(404)
+    try:
+        try:
+            oauth_app = OAUTH_APPS[name]
 
-    return oauth_response(OAUTH_APPS[name])
+        except KeyError:
+            raise OAuthRegError("%s auth not available" % name.title())
 
+        else:
+            configured, _, login = check_oauth_enabled(name)
+
+            if not (configured and login):
+                raise OAuthRegError("%s login not enabled" % name.title())
+
+            return oauth_response(OAUTH_APPS[name])
+
+    except OAuthRegError as ex:
+        flash(ex.reason, 'danger')
+
+    return oauth_redir(url_for_security('login'))
 
 @APP.route('/oauth-authorized/<name>')
 def oauth_authorized(name):
@@ -40,35 +90,51 @@ def oauth_authorized(name):
     in user, errors, as well as redirecting back to the original page
     """
     try:
-        resp = OAUTH_APPS[name].authorized_response()
-
-    except KeyError:
-        return 404, "%s auth not available" % name
-
-    if resp is None or 'error' in resp:
-        flash("{name}: {message}".format(
-            name=name.title(),
-            message=request.args['error_description'],
-        ), 'danger')
-
-    else:
         try:
+            oauth_app = OAUTH_APPS[name]
+
+        except KeyError:
+            raise OAuthRegError("%s auth not available" % name.title())
+
+        else:
+            configured, register, login = check_oauth_enabled(name)
+
+            if not configured:
+                raise OAuthRegError("%s auth not enabled" % name.title())
+
+            resp = oauth_app.authorized_response()
+
+        if resp is None or 'error' in resp:
+            flash("{name}: {message}".format(
+                name=name.title(),
+                message=request.args['error_description'],
+            ), 'danger')
+
+        else:
             if current_user.is_authenticated():
                 user = current_user
                 oauth_token = get_oauth_token(name, resp)
 
+            elif not (register or login):
+                raise OAuthRegError(
+                    "Registration and login disabled for %s" % name.title())
+
             else:
                 user, oauth_token = user_from_oauth(name, resp)
 
+            if user.id is None and not register:
+                raise OAuthRegError(
+                    "Registration disabled for %s" % name.title())
+            elif user.id is not None and not login:
+                raise OAuthRegError(
+                    "Login disabled for %s" % name.title())
+
             associate_user(name, user, oauth_token)
-        except OAuthRegError as ex:
-            flash(ex.reason, 'danger')
 
-    try:
-        return redirect(request.args['return_to'])
+    except OAuthRegError as ex:
+        flash(ex.reason, 'danger')
 
-    except KeyError:
-        return redirect(url_for('index_view'))
+    return oauth_redir()
 
 
 def associate_user(name, user, oauth_token):
