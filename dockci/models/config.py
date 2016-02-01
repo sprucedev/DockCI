@@ -98,7 +98,11 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     gitlab_secret = LoadOnAccess(default=lambda _: None)
 
     security_password_salt = LoadOnAccess(generate=lambda _: uuid4().hex)
-    security_registerable = LoadOnAccess(default=True)
+    # TODO remove after v0.0.10
+    security_registerable = LoadOnAccess(default=lambda _: None)
+    security_registerable_form = LoadOnAccess(default=True)
+    security_registerable_github = LoadOnAccess(default=True)
+    security_registerable_gitlab = LoadOnAccess(default=True)
     security_recoverable = LoadOnAccess(default=True)
 
     live_log_message_timeout = LoadOnAccess(
@@ -180,3 +184,15 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                 raise ValidationError(errors)
 
         return True
+
+    def from_dict(self, data, dirty=True):
+        # TODO remove after v0.0.10
+        try:
+            security_registerable = data.pop('security_registerable')
+            if 'security_registerable_form' not in data:
+                data['security_registerable_form'] = security_registerable
+
+        except KeyError:
+            pass
+
+        super(Config, self).from_dict(data, dirty)

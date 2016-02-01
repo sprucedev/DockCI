@@ -101,7 +101,7 @@ def app_init():
 
     APP.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'
     APP.config['SECURITY_PASSWORD_SALT'] = CONFIG.security_password_salt
-    APP.config['SECURITY_REGISTERABLE'] = CONFIG.security_registerable
+    APP.config['SECURITY_REGISTERABLE'] = CONFIG.security_registerable_form
     APP.config['SECURITY_RECOVERABLE'] = CONFIG.security_recoverable
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender

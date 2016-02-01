@@ -21,9 +21,21 @@
       <div class="form-group">
         <div class="col-sm-10 col-sm-offset-2">
           <div class="checkbox">
-            <label for="inputSecurityReg">
-              <input id="inputSecurityReg" name="security_registerable" type="checkbox" {{ 'checked' if config.model.security_registerable else '' }}>
-              Allow user registration
+            <label for="inputSecurityRegForm">
+              <input id="inputSecurityRegForm" name="security_registerable_form" type="checkbox" {{ 'checked' if config.model.security_registerable_form else '' }}>
+              Allow user registration with registration form
+            </label>
+          </div>
+          <div class="checkbox">
+            <label for="inputSecurityRegGitHub">
+              <input id="inputSecurityRegGitHub" name="security_registerable_github" type="checkbox" {{ 'checked' if config.model.security_registerable_github else '' }}>
+              Allow user registration with GitHub OAuth
+            </label>
+          </div>
+          <div class="checkbox">
+            <label for="inputSecurityRegGitLab">
+              <input id="inputSecurityRegGitLab" name="security_registerable_gitlab" type="checkbox" {{ 'checked' if config.model.security_registerable_gitlab else '' }}>
+              Allow user registration with GitLab OAuth
             </label>
           </div>
           <div class="checkbox">
