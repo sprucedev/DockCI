@@ -119,6 +119,16 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     )
 
     @property
+    def github_enabled(self):
+        """ Whether the GitHub details have been configured """
+        return self.github_key and self.github_secret
+
+    @property
+    def gitlab_enabled(self):
+        """ Whether the GitLab details have been configured """
+        return self.gitlab_key and self.gitlab_secret and gitlab_base_url
+
+    @property
     def mail_host_string(self):
         """
         Get the host/port as a h:p string
