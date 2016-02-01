@@ -27,10 +27,10 @@
     <div class="panel panel-default">
       <div class="panel-heading">Or...</div>
       <div class="panel-body">
-        <a href="{{ url_for('oauth_login', service='github') }}">
+        <a href="{{ url_for('oauth_login', name='github') }}">
           <img class="col-sm-12" src="/static/img/octocat.svg" title="Login/Register with GitHub" />
         </a>
-        <a href="{{ url_for('oauth_login', service='github') }}">
+        <a href="{{ url_for('oauth_login', name='github') }}">
           <img class="col-sm-12" src="/static/img/gitlab.svg" title="Login/Register with GitLab" />
         </a>
       </div>
