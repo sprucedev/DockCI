@@ -81,10 +81,12 @@ def user_from_oauth(name, response):
     else:
         raise NotImplementedError("GitLab doesn't work yet")
 
-    if User.query.filter_by(email=user_email).count() > 0:
-        # If user has a <name> token already, okay
-        # If user has no <name> token, can't do
-        raise Exception("Already registered")  # TODO handle this
+    user = User.query.filter_by(email=user_email).first()
+    if user is not None:
+        if user.oauth_tokens.filter_by(service=name).count() > 0:
+            return user, oauth_token
+        else:
+            raise Exception("Already registered")  # TODO handle this
 
     return User(
         email=user_email,
