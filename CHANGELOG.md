@@ -5,6 +5,7 @@
 - Messages when images will and won't be cleaned up #397
 - Login, and register with GitHub and GitLab OAuth #398
 - Configuration to turn off internal DockCI users #398
+- Links to GitHub repos #399
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
