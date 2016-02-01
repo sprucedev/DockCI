@@ -8,6 +8,7 @@ from functools import wraps
 from urllib.parse import urlencode
 
 from flask import abort, flash, redirect, request, Response, url_for
+from flask_login import login_user
 from flask_security import current_user, login_required
 
 from dockci.models.auth import OAuthToken, User
@@ -50,6 +51,7 @@ def oauth_authorized(name):
         DB.session.commit()
 
         flash(u"Connected to %s" % name.title(), 'success')
+        login_user(user)
 
     try:
         return redirect(request.args['return_to'])
