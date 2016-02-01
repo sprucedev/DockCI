@@ -577,7 +577,6 @@ class ServiceBase(object):
                      "project target_registry value") % self.auth_registry
                 )
 
-
         if (
             value is not None and
             self.has_job and
