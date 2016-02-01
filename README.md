@@ -25,6 +25,9 @@ Sounds great, right? And it will be! But it's not ready yet! Soooooo read on ;D
 ## Requirements
  - Docker 1.6.0 (others may work)
  - Python 3.4 (may work with 3.x, but untested)
+ - PostgreSQL
+ - Redis
+ - RabbitMQ
 
 ## Setup
 
@@ -48,8 +51,11 @@ may disable registry support in the config page when DockCI is running.
 ### Notes for non-dev setups
 
 - You can specify a Postgresql database with the `DOCKCI_DB_URI` environment variable
+- You can specify a Redis host with the `REDIS_PORT_6379_ADDR` environment variable
+- You can specify a RabbitMQ host with the `RABBITMQ_PORT_5672_TCP_ADDR` environment variable
+- You can specify a RabbitMQ user/password for the front end (public), and back end (private) with the `RABBITMQ_ENV_FRONTEND_USER`, `RABBITMQ_ENV_FRONTEND_PASSWORD`, `RABBITMQ_ENV_BACKEND_USER` and `RABBITMQ_ENV_FRONTEND_PASSWORD` environment variables (the default for all is `guest`)
 - The `manage.py` script is used to execute commands on the DockCI install
-- **Example full run command:** `DOCKCI_DB_URI=postgres://dockciuser:dockcipass@localhost:5432/dbname ./manage.py run --db-migrate --bind 0.0.0.0:5000`
+- **Example full run command:** `DOCKCI_DB_URI=postgres://dockciuser:dockcipass@localhost:5432/dbname ./manage.py run --db-migrate --timeout 15 --bind 0.0.0.0:5000`
 
 ## Contributing
 If you want to help DockCI see the light of day, pull requests are certainly
