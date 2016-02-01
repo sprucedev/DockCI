@@ -205,6 +205,7 @@ def create_oauth_token(name, response):
         scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
     )
 
+
 def user_from_oauth(name, response):
     """
     Given an OAuth response, extrapolate a ``User`` and an ``OAuthToken``.
