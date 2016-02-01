@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
 from flask_security import current_user, login_required
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from dockci.models.auth import OAuthToken, User
 from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
@@ -20,7 +20,17 @@ from dockci.util import ext_url_for, get_token_for
 class OAuthRegError(Exception):
     """ Exception for when OAuth registration fails for some reason """
     def __init__(self, reason):
+        super(OAuthRegError, self).__init__()
         self.reason = reason
+
+
+@APP.route('/login/<name>')
+def oauth_login(name):
+    """ Entry point for OAuth logins """
+    if name not in ['github', 'gitlab']:
+        return abort(404)
+
+    return oauth_response(OAUTH_APPS[name])
 
 
 @APP.route('/oauth-authorized/<name>')
@@ -85,7 +95,6 @@ def associate_user(name, user, oauth_token):
     elif oauth_token.user != user:
         raise OAuthRegError("An existing user is already associated "
                             "with that %s account" % name.title())
-        return False
 
     DB.session.add(oauth_token)
     DB.session.add(user)
@@ -93,8 +102,6 @@ def associate_user(name, user, oauth_token):
 
     flash(u"Connected to %s" % name.title(), 'success')
     login_user(user)
-
-    return True
 
 
 def get_oauth_token(name, response, no_db=False):
@@ -261,11 +268,3 @@ def oauth_required(acceptable=None, force_name=None):
             return inner_forced_name
 
     return outer
-
-
-@APP.route('/oauth-login/<name>')
-def oauth_login(name):
-    if name not in ['github', 'gitlab']:
-        return abort(404)
-
-    return oauth_response(OAUTH_APPS[name])
