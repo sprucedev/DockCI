@@ -2,7 +2,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
     function ProjectModel(params) {
         this.slug           = ko.observable()
         this.name           = ko.observable()
-        this.repo           = ko.observable()
+        this._repo           = ko.observable()
         this.display_repo   = ko.observable()
         this.branch_pattern = ko.observable()
         this.utility        = ko.observable()
@@ -54,6 +54,23 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
           , 'deferEvaluation': true
         })
 
+        this.repo = ko.computed({
+            'read': function() {
+                if (this._repo() === null) {
+                    return ''
+                } else {
+                    return this._repo()
+                }
+            }.bind(this),
+            'write': function(value) {
+                if (util.isEmpty(value)) {
+                    this._repo(null)
+                } else {
+                    this._repo(value)
+                }
+            }.bind(this)
+        })
+
         this.link = ko.computed(function() {
             return '/projects/' + this.slug()
         }.bind(this))
@@ -63,7 +80,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.forApi = function(isNew) {
             var baseParams = {
                 'name': this.name() || '',
-                'repo': this.repo() || '',
+                'repo': this._repo(),
                 'branch_pattern': this.branch_pattern() || undefined,
                 'github_secret': this.github_secret() || undefined,
                 'gitlab_private_token': this.gitlab_private_token() || undefined,
@@ -99,7 +116,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             finalData = $.extend({
                   'slug': ''
                 , 'name': ''
-                , 'repo': ''
+                , 'repo': null
                 , 'display_repo': ''
                 , 'branch_pattern': ''
                 , 'utility': false
@@ -110,7 +127,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             }, data)
             this.slug(data['slug'])
             this.name(data['name'])
-            this.repo(data['repo'])
+            this._repo(data['repo'])
             this.display_repo(data['display_repo'])
             this.branch_pattern(data['branch_pattern'])
             this.utility(data['utility'])
