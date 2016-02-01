@@ -1,5 +1,7 @@
 # Changelog
 
+### v0.0.10
+
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
 - Support GitLab push/tag hooks #322
