@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
 from flask_security import current_user, login_required
+from sqlalchemy.orm.exc import NoResultFound
 
 from dockci.models.auth import OAuthToken, User
 from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
@@ -42,19 +43,30 @@ def oauth_authorized(name):
         else:
             user, oauth_token = user_from_oauth(name, resp)
 
-        # Delete other tokens if the user exists
-        if user.id is not None:
-            user.oauth_tokens.filter_by(service=name).delete(
-                synchronize_session=False,
-            )
+        if user is None:
+            # TODO add extra help
+            flash("Couldn't retrieve user details from %s" % name, 'danger')
 
-        user.oauth_tokens.append(oauth_token)
-        DB.session.add(oauth_token)
-        DB.session.add(user)
-        DB.session.commit()
+        else:
+            # Delete other tokens if the user exists, and token is new
+            if user.id is not None and oauth_token.id is None:
+                user.oauth_tokens.filter_by(service=name).delete(
+                    synchronize_session=False,
+                )
 
-        flash(u"Connected to %s" % name.title(), 'success')
-        login_user(user)
+            if oauth_token.user is None:
+                user.oauth_tokens.append(oauth_token)
+
+            elif oauth_token.user != user:
+                 # TODO handle  this
+                raise Exception("OAuth token doesn't match user")
+
+            DB.session.add(oauth_token)
+            DB.session.add(user)
+            DB.session.commit()
+
+            flash(u"Connected to %s" % name.title(), 'success')
+            login_user(user)
 
     try:
         return redirect(request.args['return_to'])
@@ -77,6 +89,20 @@ def user_from_oauth(name, response):
     oauth_token = create_oauth_token(name, response)
     oauth_token_tuple = (oauth_token.key, oauth_token.secret)
 
+    try:
+        # TODO nicely handle this MultipleResultsFound
+        existing_token = OAuthToken.query.filter_by(
+            service=name,
+            key=oauth_token.key,
+        ).one()
+
+    except NoResultFound:
+        pass
+
+    else:
+        existing_token.update_details_from(oauth_token)
+        return existing_token.user, existing_token
+
     if name == 'github':
         user_data = oauth_app.get('/user', token=oauth_token_tuple).data
         user_email = user_data['email']
@@ -84,10 +110,18 @@ def user_from_oauth(name, response):
     else:
         raise NotImplementedError("GitLab doesn't work yet")
 
-    user = User.query.filter_by(email=user_email).first()
-    if user is not None:
-        if user.oauth_tokens.filter_by(service=name).count() > 0:
-            return user, oauth_token
+    if user_email is None:
+        return None, oauth_token
+
+    try:
+        user_by_email = User.query.filter_by(email=user_email).one()
+
+    except NoResultFound:
+        pass
+
+    else:
+        if user_by_email.oauth_tokens.filter_by(service=name).count() > 0:
+            return user_by_email, oauth_token
         else:
             raise Exception("Already registered")  # TODO handle this
 
