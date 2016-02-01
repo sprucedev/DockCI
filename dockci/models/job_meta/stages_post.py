@@ -5,7 +5,6 @@ Job stages that occur after a job is complete
 import json
 
 from dockci.exceptions import StageFailedError
-from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import (bytes_human_readable,
                          stream_write_status,
