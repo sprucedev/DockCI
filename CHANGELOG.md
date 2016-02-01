@@ -37,6 +37,7 @@
 - Utility output is cached based on image id, and input content hash #388
 - Streaming logs replaced by RabbitMQ/websocket implementation #391
 - Informational messages when a build can't be pushed #394
+- Fix broken non-manual project editing from FE overhaul #396
 
 ### v0.0.8 (Breaking)
 - **BREAKING** Replace data store with PostgreSQL/SQLAlchemy #260
