@@ -169,10 +169,10 @@ class PushPrepStage(JobStageBase):
                 if repo_tags_set.issubset(possible_tags_set):
                     self.job._old_image_ids.append(image['Id'])
                     handle.write(
-                        "  No tags remain; deleting the image too".encode())
+                        "  No tags remain; deleting the image too\n".encode())
                 else:
                     handle.write(
-                        "  Tags remain; won't delete the image".encode())
+                        "  Tags remain; won't delete the image\n".encode())
                     for tag in repo_tags_set - possible_tags_set:
                         handle.write(("    %s\n" % tag).encode())
 
