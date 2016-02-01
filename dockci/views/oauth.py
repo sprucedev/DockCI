@@ -174,14 +174,6 @@ def get_oauth_token(name, response, no_db=False):
     Retrieve an ``OAuthToken`` for the response. If a token exists with the
     same service name, and key then we update it with the new details
     """
-    if no_db:
-        return OAuthToken(
-            service=name,
-            key=response['access_token'],
-            secret='',
-            scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
-        )
-
     try:
         oauth_token = OAuthToken.query.filter_by(
             service=name,
@@ -189,7 +181,7 @@ def get_oauth_token(name, response, no_db=False):
         ).one()
 
     except NoResultFound:
-        return get_oauth_token(name, response, no_db=True)
+        return create_oauth_token(name, response)
 
     except MultipleResultsFound:
         raise OAuthRegError(
@@ -199,10 +191,19 @@ def get_oauth_token(name, response, no_db=False):
 
     else:
         oauth_token.update_details_from(
-            get_oauth_token(name, response, no_db=True)
+            create_oauth_token(name, response)
         )
         return oauth_token
 
+
+def create_oauth_token(name, response):
+    """ Create a new ``OAuthToken`` from an OAuth response """
+    return OAuthToken(
+        service=name,
+        key=response['access_token'],
+        secret='',
+        scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
+    )
 
 def user_from_oauth(name, response):
     """
