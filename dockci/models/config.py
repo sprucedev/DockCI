@@ -98,7 +98,15 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     gitlab_secret = LoadOnAccess(default=lambda _: None)
 
     security_password_salt = LoadOnAccess(generate=lambda _: uuid4().hex)
-    security_registerable = LoadOnAccess(default=True)
+    # TODO remove after v0.0.10
+    security_registerable = LoadOnAccess(default=lambda _: None)
+
+    security_registerable_form = LoadOnAccess(default=True)
+    security_login_github = LoadOnAccess(default=True)
+    security_registerable_github = LoadOnAccess(default=True)
+    security_login_gitlab = LoadOnAccess(default=True)
+    security_registerable_gitlab = LoadOnAccess(default=True)
+
     security_recoverable = LoadOnAccess(default=True)
 
     live_log_message_timeout = LoadOnAccess(
@@ -113,6 +121,41 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
         default=60 * 60,  # 1hr
         input_transform=int,
     )
+
+    @property
+    def github_enabled(self):
+        """ Whether the GitHub details have been configured """
+        return self.github_key and self.github_secret
+
+    @property
+    def gitlab_enabled(self):
+        """ Whether the GitLab details have been configured """
+        return self.gitlab_key and self.gitlab_secret and self.gitlab_base_url
+
+    @property
+    def security_github_enabled(self):
+        """ Whether some GitHub registration/login is configured """
+        return (
+            (
+                self.security_login_github or
+                self.security_registerable_github
+            ) and self.github_enabled
+        )
+
+    @property
+    def security_gitlab_enabled(self):
+        """ Whether some GitLab registration/login is configured """
+        return (
+            (
+                self.security_login_gitlab or
+                self.security_registerable_gitlab
+            ) and self.gitlab_enabled
+        )
+
+    @property
+    def security_oauth_enabled(self):
+        """ Whether at least one OAuth login is configured """
+        return self.security_github_enabled or self.security_gitlab_enabled
 
     @property
     def mail_host_string(self):
@@ -180,3 +223,15 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                 raise ValidationError(errors)
 
         return True
+
+    def from_dict(self, data, dirty=True):
+        # TODO remove after v0.0.10
+        try:
+            security_registerable = data.pop('security_registerable')
+            if 'security_registerable_form' not in data:
+                data['security_registerable_form'] = security_registerable
+
+        except KeyError:
+            pass
+
+        super(Config, self).from_dict(data, dirty)

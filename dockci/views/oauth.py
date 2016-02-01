@@ -3,16 +3,83 @@ OAuth related API views and routes
 """
 
 import json
+import re
 
 from functools import wraps
 from urllib.parse import urlencode
 
 from flask import abort, flash, redirect, request, Response, url_for
+from flask_login import login_user
 from flask_security import current_user, login_required
+from flask_security.utils import url_for_security
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
-from dockci.models.auth import OAuthToken
-from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
+from dockci.models.auth import OAuthToken, User
+from dockci.server import (APP,
+                           CONFIG,
+                           DB,
+                           OAUTH_APPS,
+                           OAUTH_APPS_SCOPE_SERIALIZERS,
+                           )
 from dockci.util import ext_url_for, get_token_for
+
+
+RE_VALID_OAUTH = re.compile(r'^[a-z]+$')
+
+
+class OAuthRegError(Exception):
+    """ Exception for when OAuth registration fails for some reason """
+    def __init__(self, reason):
+        super(OAuthRegError, self).__init__()
+        self.reason = reason
+
+
+def check_oauth_enabled(name):
+    """
+    Check config to see if a given OAuth service is configured, and enabled for
+    register or login actions
+    """
+    if not RE_VALID_OAUTH.match(name):
+        return (False,) * 3
+
+    return (
+        getattr(CONFIG, '%s_enabled' % name),
+        getattr(CONFIG, 'security_registerable_%s' % name),
+        getattr(CONFIG, 'security_login_%s' % name),
+    )
+
+
+def oauth_redir(return_to=None):
+    """ Get the OAuth redirection URL """
+    try:
+        if return_to is None:
+            return_to = request.args['return_to']
+
+    except KeyError:
+        return_to = url_for('index_view')
+
+    return redirect(return_to)
+
+
+@APP.route('/login/<name>')
+def oauth_login(name):
+    """ Entry point for OAuth logins """
+    try:
+        if name not in OAUTH_APPS:
+            raise OAuthRegError("%s auth not available" % name.title())
+
+        else:
+            configured, _, login = check_oauth_enabled(name)
+
+            if not (configured and login):
+                raise OAuthRegError("%s login not enabled" % name.title())
+
+            return oauth_response(OAUTH_APPS[name])
+
+    except OAuthRegError as ex:
+        flash(ex.reason, 'danger')
+
+    return oauth_redir(url_for_security('login'))
 
 
 @APP.route('/oauth-authorized/<name>')
@@ -22,36 +89,187 @@ def oauth_authorized(name):
     in user, errors, as well as redirecting back to the original page
     """
     try:
-        resp = OAUTH_APPS[name].authorized_response()
+        try:
+            oauth_app = OAUTH_APPS[name]
 
-    except KeyError:
-        return 404, "%s auth not available" % name
+        except KeyError:
+            raise OAuthRegError("%s auth not available" % name.title())
 
-    if resp is None or 'error' in resp:
-        flash("{name}: {message}".format(
-            name=name.title(),
-            message=request.args['error_description'],
-        ), 'danger')
+        else:
+            configured, register, login = check_oauth_enabled(name)
+
+            if not configured:
+                raise OAuthRegError("%s auth not enabled" % name.title())
+
+            resp = oauth_app.authorized_response()
+
+        if resp is None or 'error' in resp:
+            flash("{name}: {message}".format(
+                name=name.title(),
+                message=request.args['error_description'],
+            ), 'danger')
+
+        else:
+            if current_user.is_authenticated():
+                user = current_user
+                oauth_token = get_oauth_token(name, resp)
+
+            elif not (register or login):
+                raise OAuthRegError(
+                    "Registration and login disabled for %s" % name.title())
+
+            else:
+                user, oauth_token = user_from_oauth(name, resp)
+
+            if user.id is None and not register:
+                raise OAuthRegError(
+                    "Registration disabled for %s" % name.title())
+            elif user.id is not None and not login:
+                raise OAuthRegError(
+                    "Login disabled for %s" % name.title())
+
+            associate_user(name, user, oauth_token)
+
+    except OAuthRegError as ex:
+        flash(ex.reason, 'danger')
+
+    return oauth_redir()
+
+
+def associate_user(name, user, oauth_token):
+    """
+    Given a user, and an OAuth Token, associate the 2. This will ensure that
+    the token isn't in use by a different user, erase old tokens of the same
+    service, associate the token with the user, then log the user in.
+
+    The DB session will be committed, and a flash message displayed
+    """
+    if user is None:
+        raise OAuthRegError("Couldn't retrieve user "
+                            "details from %s" % name.title())
+
+    # Delete other tokens if the user exists, and token is new
+    if user.id is not None and oauth_token.id is None:
+        user.oauth_tokens.filter_by(service=name).delete(
+            synchronize_session=False,
+        )
+
+    if oauth_token.user is None:
+        user.oauth_tokens.append(oauth_token)
+
+    elif oauth_token.user != user:
+        raise OAuthRegError("An existing user is already associated "
+                            "with that %s account" % name.title())
+
+    DB.session.add(oauth_token)
+    DB.session.add(user)
+    DB.session.commit()
+
+    flash(u"Connected to %s" % name.title(), 'success')
+    login_user(user)
+
+
+def get_oauth_token(name, response):
+    """
+    Retrieve an ``OAuthToken`` for the response. If a token exists with the
+    same service name, and key then we update it with the new details
+    """
+    try:
+        oauth_token = OAuthToken.query.filter_by(
+            service=name,
+            key=response['access_token'],
+        ).one()
+
+    except NoResultFound:
+        return create_oauth_token(name, response)
+
+    except MultipleResultsFound:
+        raise OAuthRegError(
+            "Multiple accounts associated with this "
+            "%s account. This shouldn't happen" % name.title()
+        )
 
     else:
-        oauth_token = OAuthToken(
-            service=name,
-            key=resp['access_token'],
-            secret='',
-            scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](resp['scope'])
+        oauth_token.update_details_from(
+            create_oauth_token(name, response)
         )
-        current_user.oauth_tokens.append(oauth_token)
-        DB.session.add(oauth_token)
-        DB.session.add(current_user)
-        DB.session.commit()
+        return oauth_token
 
-        flash(u"Connected to %s" % name.title(), 'success')
+
+def create_oauth_token(name, response):
+    """ Create a new ``OAuthToken`` from an OAuth response """
+    return OAuthToken(
+        service=name,
+        key=response['access_token'],
+        secret='',
+        scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
+    )
+
+
+def user_from_oauth(name, response):
+    """
+    Given an OAuth response, extrapolate a ``User`` and an ``OAuthToken``.
+
+    First, if a token exists, we get it's user. Otherwise, we look up the email
+    address from the service and look for a matching user. If there is no user
+    registered ith the email, we create a new user and return it (uncommitted)
+
+    If the email can't be retrieved from the service, ``OAuthRegError`` raises
+
+    If a user exists with the email from the service, ``OAuthRegError`` raises
+    """
+    oauth_app = OAUTH_APPS[name]
+    oauth_token = get_oauth_token(name, response)
+    oauth_token_tuple = (oauth_token.key, oauth_token.secret)
+
+    if oauth_token.id is not None:
+        return oauth_token.user, oauth_token
+
+    user_data = oauth_app.get('/user', token=oauth_token_tuple).data
+    user_email = user_data['email']
+
+    if user_email is None:
+        raise OAuthRegError(
+            "Couldn't get email address from %s" % name.title())
 
     try:
-        return redirect(request.args['return_to'])
+        user_by_email = User.query.filter_by(email=user_email).one()
 
-    except KeyError:
-        return redirect(url_for('index_view'))
+    except NoResultFound:
+        pass
+
+    else:
+        if user_by_email.oauth_tokens.filter_by(service=name).count() > 0:
+            return user_by_email, oauth_token
+
+        else:
+            raise OAuthRegError("A user is already registered "
+                                "with the email '%s'" % user_email)
+
+    return User(
+        email=user_email,
+        active=True,
+    ), oauth_token
+
+
+def oauth_response(oauth_app):
+    """
+    Build an authorization for the given OAuth service, and return the response
+    """
+    return_to = request.args.get('return_to', None)
+    base_url = ext_url_for(
+        'oauth_authorized', name=oauth_app.name,
+    )
+    if return_to is not None:
+        callback_uri = '{base_url}?{query}'.format(
+            base_url=base_url,
+            query=urlencode({'return_to': return_to})
+        )
+
+    else:
+        callback_uri = base_url
+
+    return oauth_app.authorize(callback=callback_uri)
 
 
 def oauth_required(acceptable=None, force_name=None):
@@ -84,20 +302,7 @@ def oauth_required(acceptable=None, force_name=None):
 
             oauth_app = OAUTH_APPS[name]
             if not get_token_for(oauth_app):
-                return_to = request.args.get('return_to', None)
-                base_url = ext_url_for(
-                    'oauth_authorized', name=name,
-                )
-                if return_to is not None:
-                    callback_uri = '{base_url}?{query}'.format(
-                        base_url=base_url,
-                        query=urlencode({'return_to': return_to})
-                    )
-
-                else:
-                    callback_uri = base_url
-
-                resp = oauth_app.authorize(callback=callback_uri)
+                resp = oauth_response(oauth_app)
                 return Response(json.dumps({'redirect': resp.location}),
                                 mimetype='application/json')
 
