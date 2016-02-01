@@ -54,6 +54,23 @@ def oauth_authorized(name):
         return redirect(url_for('index_view'))
 
 
+def oauth_response(oauth_app):
+    return_to = request.args.get('return_to', None)
+    base_url = ext_url_for(
+        'oauth_authorized', name=oauth_app.name,
+    )
+    if return_to is not None:
+        callback_uri = '{base_url}?{query}'.format(
+            base_url=base_url,
+            query=urlencode({'return_to': return_to})
+        )
+
+    else:
+        callback_uri = base_url
+
+    return oauth_app.authorize(callback=callback_uri)
+
+
 def oauth_required(acceptable=None, force_name=None):
     """
     Wrap the view in oauth functionality to make sure there's an acceptable
@@ -84,20 +101,7 @@ def oauth_required(acceptable=None, force_name=None):
 
             oauth_app = OAUTH_APPS[name]
             if not get_token_for(oauth_app):
-                return_to = request.args.get('return_to', None)
-                base_url = ext_url_for(
-                    'oauth_authorized', name=name,
-                )
-                if return_to is not None:
-                    callback_uri = '{base_url}?{query}'.format(
-                        base_url=base_url,
-                        query=urlencode({'return_to': return_to})
-                    )
-
-                else:
-                    callback_uri = base_url
-
-                resp = oauth_app.authorize(callback=callback_uri)
+                resp = oauth_response(oauth_app)
                 return Response(json.dumps({'redirect': resp.location}),
                                 mimetype='application/json')
 
@@ -124,6 +128,10 @@ def oauth_required(acceptable=None, force_name=None):
 
     return outer
 
-@APP.route('/oauth-login/<service>')
-def oauth_login(service):
-    return 501, "no not yet :("
+
+@APP.route('/oauth-login/<name>')
+def oauth_login(name):
+    if name not in ['github', 'gitlab']:
+        return abort(404)
+
+    return oauth_response(OAUTH_APPS[name])
