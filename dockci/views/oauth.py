@@ -65,10 +65,7 @@ def oauth_redir(return_to=None):
 def oauth_login(name):
     """ Entry point for OAuth logins """
     try:
-        try:
-            oauth_app = OAUTH_APPS[name]
-
-        except KeyError:
+        if name not in OAUTH_APPS:
             raise OAuthRegError("%s auth not available" % name.title())
 
         else:
