@@ -45,6 +45,9 @@
   <meta name="author" content="Ricky Cook">
 
   {% block prescript %}{% endblock %}
+  {# URI.js is loading differently through require; has to be loaded before
+     require is so that it loads into the root #}
+  <script src="/static/lib/js/URI.js"></script>
 
   <link rel="stylesheet" href="/static/lib/css/bootstrap.min.css">
 
@@ -61,7 +64,7 @@
   })</script>
 
   <style>
-    .git-user {
+    .field-icon {
       margin-top: -10px;
       margin-bottom: -10px;
       padding-top: 10px;
@@ -70,6 +73,7 @@
       padding-left: 45px;
       background-repeat: no-repeat;
       background-position: left center;
+      background-size: auto 100%;
     }
     .form-horizontal .checkbox {
       padding-top: 0px;
