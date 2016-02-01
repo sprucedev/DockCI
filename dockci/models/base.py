@@ -182,6 +182,43 @@ class ServiceBase(object):
                    use_db=use_db,
                    )
 
+    def clone_and_update(self, **kwargs):
+        """
+        Clone this ``ServiceBase``, and update some parameters
+
+        Examples:
+
+        >>> base = ServiceBase.from_image(
+        ...     'quay.io/sprucedev/dockci:latest',
+        ...     use_db=False,
+        ... )
+
+        >>> base.clone_and_update(tag='v0.0.9').display
+        'quay.io/sprucedev/dockci:v0.0.9'
+        >>> base.display
+        'quay.io/sprucedev/dockci:latest'
+
+        >>> clone = base.clone_and_update()
+        >>> clone.tag = 'v0.0.9'
+        >>> clone.display
+        'quay.io/sprucedev/dockci:v0.0.9'
+        >>> base.display
+        'quay.io/sprucedev/dockci:latest'
+        """
+        final_kwargs = dict(
+            name=self.name_raw,
+            repo=self.repo_raw,
+            tag=self.tag_raw,
+            project=self.project_raw,
+            job=self.job_raw,
+            base_registry=self.base_registry_raw,
+            auth_registry=self.auth_registry_raw,
+            meta=self.meta,
+            use_db=self.use_db,
+        )
+        final_kwargs.update(kwargs)
+        return ServiceBase(**final_kwargs)
+
     @property
     def name_raw(self):
         """ Raw name given to this service """
