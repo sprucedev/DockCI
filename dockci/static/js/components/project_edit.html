@@ -72,7 +72,7 @@
     </div>
   </div>
   <!-- /ko -->
-  <div data-bind="visible: project().isType('manual')">
+  <div data-bind="if: project().isType('manual')">
     <div class="form-group">
       <label for="inputRepo" class="col-sm-2 control-label">Git Repository</label>
       <div class="col-sm-10">
