@@ -161,13 +161,22 @@ class PushPrepStage(JobStageBase):
                 # All this job's possible tags that are on the image
                 # Later, we clean up by removing the tags that our new image
                 #   will be tagged with
-                to_cleanup = repo_tags_set.intersection(possible_tags_set)
+                to_cleanup = repo_tags_set & possible_tags_set
 
                 self.job._old_image_ids.extend(list(to_cleanup))
 
                 # If we're removing all the tags, delete the image too
                 if repo_tags_set.issubset(possible_tags_set):
                     self.job._old_image_ids.append(image['Id'])
+                    handle.write(
+                        "  No tags remain; deleting the image too".encode())
+                else:
+                    handle.write(
+                        "  Tags remain; won't delete the image".encode())
+                    for tag in repo_tags_set - possible_tags_set:
+                        handle.write(("    %s\n" % tag).encode())
+
+                handle.flush()
 
         # Don't immediately delete our own tags
         for tag in tags_set:
