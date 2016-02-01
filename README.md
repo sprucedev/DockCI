@@ -61,7 +61,7 @@ may disable registry support in the config page when DockCI is running.
 If you want to help DockCI see the light of day, pull requests are certainly
 accepted! You can probably find something that you can work on in the
 [GitHub issues](https://github.com/sprucedev/DockCI/issues). There's also a
-[waffle.io project board](https://waffle.io/rickycook/dockci) with issues
+[waffle.io project board](https://waffle.io/sprucedev/dockci) with issues
 ranked (approximately) highest to lowest priority. Just choose something that
 isn't already labeled as `in progress`, or already has someone assigned to it
 ([here's a filter](https://github.com/sprucedev/DockCI/issues?q=is%3Aopen+is%3Aissue+no%3Aassignee+-label%3A%22in+progress%22+)).
