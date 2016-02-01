@@ -17,6 +17,11 @@ from dockci.server import APP, DB, OAUTH_APPS, OAUTH_APPS_SCOPE_SERIALIZERS
 from dockci.util import ext_url_for, get_token_for
 
 
+class OAuthRegError(Exception):
+    def __init__(self, reason):
+        self.reason = reason
+
+
 @APP.route('/oauth-authorized/<name>')
 def oauth_authorized(name):
     """
@@ -36,14 +41,17 @@ def oauth_authorized(name):
         ), 'danger')
 
     else:
-        if current_user.is_authenticated():
-            user = current_user
-            oauth_token = get_oauth_token(name, resp)
+        try:
+            if current_user.is_authenticated():
+                user = current_user
+                oauth_token = get_oauth_token(name, resp)
 
-        else:
-            user, oauth_token = user_from_oauth(name, resp)
+            else:
+                user, oauth_token = user_from_oauth(name, resp)
 
-        associate_user(name, user, oauth_token)
+            associate_user(name, user, oauth_token)
+        except OAuthRegError as ex:
+            flash(ex.reason, 'danger')
 
     try:
         return redirect(request.args['return_to'])
@@ -54,10 +62,8 @@ def oauth_authorized(name):
 
 def associate_user(name, user, oauth_token):
     if user is None:
-        # TODO add extra help
-        flash("Couldn't retrieve user details from %s" % name.title(),
-              'danger')
-        return False
+        raise OAuthRegError("Couldn't retrieve user "
+                            "details from %s" % name.title())
 
     # Delete other tokens if the user exists, and token is new
     if user.id is not None and oauth_token.id is None:
@@ -69,8 +75,8 @@ def associate_user(name, user, oauth_token):
         user.oauth_tokens.append(oauth_token)
 
     elif oauth_token.user != user:
-        flash("An existing user is already associated with that "
-              "%s account" % name.title(), 'danger')
+        raise OAuthRegError("An existing user is already associated "
+                            "with that %s account" % name.title())
         return False
 
     DB.session.add(oauth_token)
@@ -93,7 +99,6 @@ def get_oauth_token(name, response, no_db=False):
         )
 
     try:
-        # TODO nicely handle this MultipleResultsFound
         oauth_token = OAuthToken.query.filter_by(
             service=name,
             key=response['access_token'],
@@ -101,6 +106,12 @@ def get_oauth_token(name, response, no_db=False):
 
     except NoResultFound:
         return get_oauth_token(name, response, no_db=True)
+
+    except MultipleResultsFound:
+        raise OAuthRegError(
+            "Multiple accounts associated with this "
+            "%s account. This shouldn't happen" % name.title()
+        )
 
     else:
         oauth_token.update_details_from(
@@ -122,10 +133,14 @@ def user_from_oauth(name, response):
         user_email = user_data['email']
 
     else:
-        raise NotImplementedError("GitLab doesn't work yet")
+        # TODO implement
+        raise OAuthRegError(
+            "GitLab doesn't work just yet"
+        )
 
     if user_email is None:
-        return None, oauth_token
+        raise OAuthRegError(
+            "Couldn't get email address from %s" % name.title())
 
     try:
         user_by_email = User.query.filter_by(email=user_email).one()
@@ -136,8 +151,10 @@ def user_from_oauth(name, response):
     else:
         if user_by_email.oauth_tokens.filter_by(service=name).count() > 0:
             return user_by_email, oauth_token
+
         else:
-            raise Exception("Already registered")  # TODO handle this
+            raise OAuthRegError("A user is already registered "
+                                "with the email '%s'" % user_email)
 
     return User(
         email=user_email,
