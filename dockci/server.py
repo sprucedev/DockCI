@@ -233,7 +233,7 @@ def app_init_oauth():
     """
     Initialize the OAuth integrations
     """
-    if CONFIG.github_key and CONFIG.github_secret:
+    if CONFIG.github_enabled:
         if 'github' not in OAUTH_APPS:
             scope = 'user:email,admin:repo_hook,repo'
             OAUTH_APPS_SCOPES['github'] = \
@@ -249,7 +249,7 @@ def app_init_oauth():
                 access_token_url='https://github.com/login/oauth/access_token',
                 authorize_url='https://github.com/login/oauth/authorize'
             )
-    if CONFIG.gitlab_key and CONFIG.gitlab_secret:
+    if CONFIG.gitlab_enabled:
         if 'gitlab' not in OAUTH_APPS:
             scope = 'api'
             OAUTH_APPS_SCOPES['gitlab'] = \
