@@ -460,47 +460,6 @@ class Job(DB.Model, RepoFsMixin):
 
         return tags_set
 
-    # TODO remove??
-    @property
-    def docker_base_name(self):
-        """ Name of the Docker image, without tag or registry """
-        return self.project.slug
-
-    # TODO remove
-    @property
-    def target_registry_base_name(self):
-        """ Base name of the target registry, or None """
-        if self.project.target_registry:
-            return self.project.target_registry.base_name
-
-    # TODO remove
-    @property
-    def docker_image_name(self):
-        """
-        Get the docker image name, including repository where necessary
-        """
-        if self.project.target_registry:
-            return '{host}/{name}'.format(
-                host=self.target_registry_base_name,
-                name=self.docker_base_name,
-            )
-
-        return self.docker_base_name
-
-    # TODO remove
-    @property
-    def docker_full_name(self):
-        """
-        Get the full name of the docker image, including tag, and repository
-        where necessary
-        """
-        tag = self.docker_tag
-        if tag:
-            return '{name}:{tag}'.format(name=self.docker_image_name,
-                                         tag=tag)
-
-        return self.docker_image_name
-
     @property
     def service(self):
         """ ``ServiceBase`` represented by this job """
