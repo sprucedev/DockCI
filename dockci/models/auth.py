@@ -40,6 +40,80 @@ class OAuthToken(DB.Model):  # pylint:disable=no-init
                            foreign_keys="OAuthToken.user_id",
                            backref=DB.backref('oauth_tokens', lazy='dynamic'))
 
+    def update_details_from(self, other):
+        """
+        Update some details from another ``OAuthToken``
+
+        Examples:
+
+        >>> base = OAuthToken(key='basekey')
+        >>> other = OAuthToken(key='otherkey')
+        >>> other.update_details_from(base)
+        >>> other.key
+        'basekey'
+
+        >>> base = OAuthToken(secret='basesecret')
+        >>> other = OAuthToken(secret='othersecret')
+        >>> other.update_details_from(base)
+        >>> other.secret
+        'basesecret'
+
+        >>> base = OAuthToken(scope='basescope')
+        >>> other = OAuthToken(scope='otherscope')
+        >>> other.update_details_from(base)
+        >>> other.scope
+        'basescope'
+
+        >>> base = OAuthToken(key='basekey')
+        >>> other = OAuthToken(key='otherkey', secret='sec', scope='sco')
+        >>> other.update_details_from(base)
+        >>> other.key
+        'basekey'
+        >>> other.secret
+        'sec'
+        >>> other.scope
+        'sco'
+
+        >>> user1 = User(email='1@test.com')
+        >>> user2 = User(email='2@test.com')
+        >>> base = OAuthToken(secret='basesec', user=user1)
+        >>> other = OAuthToken(secret='othersec', user=user2)
+        >>> other.update_details_from(base)
+        ... # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+          ...
+        ValueError: Trying to set token details
+        for user <User: 2@test.com... from user <User: 1@test.com...
+
+        >>> other.secret
+        'othersec'
+
+        >>> base = OAuthToken(secret='basesec')
+        >>> other = OAuthToken(secret='othersec', user=user2)
+        >>> other.update_details_from(base)
+
+        >>> base = OAuthToken(secret='basesec', user=user1)
+        >>> other = OAuthToken(secret='othersec')
+        >>> other.update_details_from(base)
+        """
+        # Don't allow accidental cross-user updates
+        if not (
+            self.user is None or
+            other.user is None or
+            self.user.email == other.user.email
+        ):
+            raise ValueError(
+                "Trying to set token details for user %s from user %s" % (
+                    self.user,
+                    other.user,
+                )
+            )
+
+        for attr_name in ('key', 'secret', 'scope'):
+            other_val = getattr(other, attr_name)
+            if other_val is not None:
+                setattr(self, attr_name, other_val)
+
     def __str__(self):
         return '<{klass}: {service} for {email}>'.format(
             klass=self.__class__.__name__,
