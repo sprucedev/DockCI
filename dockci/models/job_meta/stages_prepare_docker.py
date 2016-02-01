@@ -130,11 +130,11 @@ class PushPrepStage(JobStageBase):
         to remove other images that this job replaces
         """
         possible_tags_set = {
-            '%s:%s' % (self.job.docker_image_name, tag)
+            self.job.service.clone_and_update(tag=tag).image
             for tag in self.job.possible_tags_set
         }
         tags_set = {
-            '%s:%s' % (self.job.docker_image_name, tag)
+            self.job.service.clone_and_update(tag=tag).image
             for tag in self.job.tags_set
         }
 
