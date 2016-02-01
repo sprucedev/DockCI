@@ -123,3 +123,7 @@ def oauth_required(acceptable=None, force_name=None):
             return inner_forced_name
 
     return outer
+
+@APP.route('/oauth-login/<service>')
+def oauth_login(service):
+    return 501, "no not yet :("
