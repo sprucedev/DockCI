@@ -36,14 +36,17 @@ def oauth_authorized(name):
 
     else:
         if current_user.is_authenticated():
-            current_user.oauth_tokens.filter_by(service=name).delete(
-                synchronize_session=False,
-            )
             user = current_user
             oauth_token = create_oauth_token(name, response)
 
         else:
             user, oauth_token = user_from_oauth(name, resp)
+
+        # Delete other tokens if the user exists
+        if user.id is not None:
+            user.oauth_tokens.filter_by(service=name).delete(
+                synchronize_session=False,
+            )
 
         user.oauth_tokens.append(oauth_token)
         DB.session.add(oauth_token)
