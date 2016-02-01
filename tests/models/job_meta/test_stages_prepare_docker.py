@@ -102,8 +102,13 @@ class TestPushPrepStage(object):
             def images(self):
                 return images
 
+        class MockJobConfig(object):
+            repo_name = self.project.slug
+
         job.project = self.project
         job._docker_client = MockDocker()
+        job._job_config = MockJobConfig()
+        job.id = 20
         stage = PushPrepStage(job)
 
         stage.set_old_image_ids(sys.stdout)

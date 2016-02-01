@@ -5,7 +5,6 @@ Job stages that occur after a job is complete
 import json
 
 from dockci.exceptions import StageFailedError
-from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import (bytes_human_readable,
                          stream_write_status,
@@ -23,33 +22,30 @@ class PushStage(DockerStage):
     def get_services(self):
         """ Return target registry, if this is a push candidate """
         if self.job.push_candidate:
-            return [ServiceBase(
-                auth_registry=self.job.project.target_registry,
-                name='Push Target',
-            )]
+            return [self.job.service]
 
         return []
 
     def gen_all_docker(self):
         """ Generator to merge multiple docker push """
         insecure_registry = self.job.project.target_registry.insecure
-        image_name = self.job.docker_image_name
+        repo_name = self.job.service.repo_full
         for tag in self.job.tags_set:
             success = self.job.docker_client.tag(
                 image=self.job.image_id,
-                repository=image_name,
+                repository=repo_name,
                 tag=tag,
                 force=True,
             )
             if not success:
                 raise StageFailedError(
                     message="Couldn't tag image '%s' as '%s:%s'" % (
-                        self.job.image_id, image_name, tag,
+                        self.job.image_id, repo_name, tag,
                     )
                 )
 
             for line in self.job.docker_client.push(
-                repository=image_name,
+                repository=repo_name,
                 tag=tag,
                 stream=True,
                 insecure_registry=insecure_registry,

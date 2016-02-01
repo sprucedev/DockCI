@@ -182,6 +182,43 @@ class ServiceBase(object):
                    use_db=use_db,
                    )
 
+    def clone_and_update(self, **kwargs):
+        """
+        Clone this ``ServiceBase``, and update some parameters
+
+        Examples:
+
+        >>> base = ServiceBase.from_image(
+        ...     'quay.io/sprucedev/dockci:latest',
+        ...     use_db=False,
+        ... )
+
+        >>> base.clone_and_update(tag='v0.0.9').display
+        'quay.io/sprucedev/dockci:v0.0.9'
+        >>> base.display
+        'quay.io/sprucedev/dockci:latest'
+
+        >>> clone = base.clone_and_update()
+        >>> clone.tag = 'v0.0.9'
+        >>> clone.display
+        'quay.io/sprucedev/dockci:v0.0.9'
+        >>> base.display
+        'quay.io/sprucedev/dockci:latest'
+        """
+        final_kwargs = dict(
+            name=self.name_raw,
+            repo=self.repo_raw,
+            tag=self.tag_raw,
+            project=self.project_raw,
+            job=self.job_raw,
+            base_registry=self.base_registry_raw,
+            auth_registry=self.auth_registry_raw,
+            meta=self.meta,
+            use_db=self.use_db,
+        )
+        final_kwargs.update(kwargs)
+        return ServiceBase(**final_kwargs)
+
     @property
     def name_raw(self):
         """ Raw name given to this service """
@@ -479,13 +516,26 @@ class ServiceBase(object):
     @property
     def has_auth_registry(self):
         """ Whether or not an authenticated registry was reliably given """
-        project = self.project
-        return (
-            self.auth_registry_raw is not None or (
-                project is not None and
-                project.target_registry is not None
-            )
-        )
+        return self._has_auth_registry()
+
+    def _has_auth_registry(self, lookup_allow=None):
+        """
+        Figure out if we have a reliable ``auth_registry``source from other
+        values
+        """
+        if self.auth_registry_raw is not None:
+            return True
+
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        lookup_allow['has_auth_registry'] = False
+
+        if lookup_allow['project']:
+            project = self.project
+            return project is not None and project.target_registry is not None
+
+        return False
 
     @property
     def project_raw(self):
@@ -505,6 +555,9 @@ class ServiceBase(object):
     @project.setter
     def project(self, value):
         """ Set the project """
+        lookup_allow = defaultdict(lambda: True)
+        lookup_allow['project'] = False
+
         if value is not None and value.target_registry is not None:
             if (
                 self.has_base_registry and
@@ -516,7 +569,7 @@ class ServiceBase(object):
                 )
 
             if (
-                self.has_auth_registry and
+                self._has_auth_registry(lookup_allow) and
                 self.auth_registry != value.target_registry
             ):
                 raise ValueError(
@@ -552,7 +605,13 @@ class ServiceBase(object):
         lookup_allow['project'] = False
 
         if self._project_dynamic is None and self.use_db:
-            if self.has_base_registry or self.auth_registry_raw is not None:
+            if (
+                self.has_base_registry or
+                (
+                    lookup_allow['has_auth_registry'] and
+                    self._has_auth_registry(lookup_allow)
+                )
+            ):
                 return None
 
             self._project_dynamic = Project.query.filter_by(

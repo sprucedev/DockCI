@@ -130,11 +130,11 @@ class PushPrepStage(JobStageBase):
         to remove other images that this job replaces
         """
         possible_tags_set = {
-            '%s:%s' % (self.job.docker_image_name, tag)
+            self.job.service.clone_and_update(tag=tag).image
             for tag in self.job.possible_tags_set
         }
         tags_set = {
-            '%s:%s' % (self.job.docker_image_name, tag)
+            self.job.service.clone_and_update(tag=tag).image
             for tag in self.job.tags_set
         }
 
@@ -161,13 +161,22 @@ class PushPrepStage(JobStageBase):
                 # All this job's possible tags that are on the image
                 # Later, we clean up by removing the tags that our new image
                 #   will be tagged with
-                to_cleanup = repo_tags_set.intersection(possible_tags_set)
+                to_cleanup = repo_tags_set & possible_tags_set
 
                 self.job._old_image_ids.extend(list(to_cleanup))
 
                 # If we're removing all the tags, delete the image too
                 if repo_tags_set.issubset(possible_tags_set):
                     self.job._old_image_ids.append(image['Id'])
+                    handle.write(
+                        "  No tags remain; deleting the image too\n".encode())
+                else:
+                    handle.write(
+                        "  Tags remain; won't delete the image\n".encode())
+                    for tag in repo_tags_set - possible_tags_set:
+                        handle.write(("    %s\n" % tag).encode())
+
+                handle.flush()
 
         # Don't immediately delete our own tags
         for tag in tags_set:

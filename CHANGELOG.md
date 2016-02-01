@@ -1,6 +1,8 @@
 # Changelog
 
 ### v0.0.10
+- Allow override of repo name in `dockci.yaml` #397
+- Messages when images will and won't be cleaned up #397
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322

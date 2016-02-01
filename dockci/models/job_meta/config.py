@@ -29,6 +29,8 @@ class JobConfig(Model):  # pylint:disable=too-few-public-methods
     utilities = LoadOnAccess(default=lambda _: [])
     dockerfile = LoadOnAccess(default='Dockerfile')
 
+    repo_name = LoadOnAccess(default=lambda self: self.job.project.slug)
+
     skip_tests = LoadOnAccess(default=False)
 
     def __init__(self, job):
