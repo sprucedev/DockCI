@@ -169,7 +169,7 @@ def associate_user(name, user, oauth_token):
     login_user(user)
 
 
-def get_oauth_token(name, response, no_db=False):
+def get_oauth_token(name, response):
     """
     Retrieve an ``OAuthToken`` for the response. If a token exists with the
     same service name, and key then we update it with the new details
