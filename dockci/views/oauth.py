@@ -38,35 +38,12 @@ def oauth_authorized(name):
     else:
         if current_user.is_authenticated():
             user = current_user
-            oauth_token = create_oauth_token(name, response)
+            oauth_token = get_oauth_token(name, resp)
 
         else:
             user, oauth_token = user_from_oauth(name, resp)
 
-        if user is None:
-            # TODO add extra help
-            flash("Couldn't retrieve user details from %s" % name, 'danger')
-
-        else:
-            # Delete other tokens if the user exists, and token is new
-            if user.id is not None and oauth_token.id is None:
-                user.oauth_tokens.filter_by(service=name).delete(
-                    synchronize_session=False,
-                )
-
-            if oauth_token.user is None:
-                user.oauth_tokens.append(oauth_token)
-
-            elif oauth_token.user != user:
-                 # TODO handle  this
-                raise Exception("OAuth token doesn't match user")
-
-            DB.session.add(oauth_token)
-            DB.session.add(user)
-            DB.session.commit()
-
-            flash(u"Connected to %s" % name.title(), 'success')
-            login_user(user)
+        associate_user(name, user, oauth_token)
 
     try:
         return redirect(request.args['return_to'])
@@ -75,33 +52,70 @@ def oauth_authorized(name):
         return redirect(url_for('index_view'))
 
 
-def create_oauth_token(name, response):
-    return OAuthToken(
-        service=name,
-        key=response['access_token'],
-        secret='',
-        scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
-    )
+def associate_user(name, user, oauth_token):
+    if user is None:
+        # TODO add extra help
+        flash("Couldn't retrieve user details from %s" % name.title(),
+              'danger')
+        return False
+
+    # Delete other tokens if the user exists, and token is new
+    if user.id is not None and oauth_token.id is None:
+        user.oauth_tokens.filter_by(service=name).delete(
+            synchronize_session=False,
+        )
+
+    if oauth_token.user is None:
+        user.oauth_tokens.append(oauth_token)
+
+    elif oauth_token.user != user:
+        flash("An existing user is already associated with that "
+              "%s account" % name.title(), 'danger')
+        return False
+
+    DB.session.add(oauth_token)
+    DB.session.add(user)
+    DB.session.commit()
+
+    flash(u"Connected to %s" % name.title(), 'success')
+    login_user(user)
+
+    return True
+
+
+def get_oauth_token(name, response, no_db=False):
+    if no_db:
+        return OAuthToken(
+            service=name,
+            key=response['access_token'],
+            secret='',
+            scope=OAUTH_APPS_SCOPE_SERIALIZERS[name](response['scope'])
+        )
+
+    try:
+        # TODO nicely handle this MultipleResultsFound
+        oauth_token = OAuthToken.query.filter_by(
+            service=name,
+            key=response['access_token'],
+        ).one()
+
+    except NoResultFound:
+        return get_oauth_token(name, response, no_db=True)
+
+    else:
+        oauth_token.update_details_from(
+            get_oauth_token(name, response, no_db=True)
+        )
+        return oauth_token
 
 
 def user_from_oauth(name, response):
     oauth_app = OAUTH_APPS[name]
-    oauth_token = create_oauth_token(name, response)
+    oauth_token = get_oauth_token(name, response)
     oauth_token_tuple = (oauth_token.key, oauth_token.secret)
 
-    try:
-        # TODO nicely handle this MultipleResultsFound
-        existing_token = OAuthToken.query.filter_by(
-            service=name,
-            key=oauth_token.key,
-        ).one()
-
-    except NoResultFound:
-        pass
-
-    else:
-        existing_token.update_details_from(oauth_token)
-        return existing_token.user, existing_token
+    if oauth_token.id is not None:
+        return oauth_token.user, oauth_token
 
     if name == 'github':
         user_data = oauth_app.get('/user', token=oauth_token_tuple).data
