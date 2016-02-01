@@ -224,15 +224,8 @@ def user_from_oauth(name, response):
     if oauth_token.id is not None:
         return oauth_token.user, oauth_token
 
-    if name == 'github':
-        user_data = oauth_app.get('/user', token=oauth_token_tuple).data
-        user_email = user_data['email']
-
-    else:
-        # TODO implement
-        raise OAuthRegError(
-            "GitLab doesn't work just yet"
-        )
+    user_data = oauth_app.get('/user', token=oauth_token_tuple).data
+    user_email = user_data['email']
 
     if user_email is None:
         raise OAuthRegError(
