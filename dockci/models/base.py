@@ -569,7 +569,13 @@ class ServiceBase(object):
         lookup_allow['project'] = False
 
         if self._project_dynamic is None and self.use_db:
-            if self.has_base_registry or self.auth_registry_raw is not None:
+            if (
+                self.has_base_registry or
+                (
+                    lookup_allow['has_auth_registry'] and
+                    self._has_auth_registry(lookup_allow)
+                )
+            ):
                 return None
 
             self._project_dynamic = Project.query.filter_by(
