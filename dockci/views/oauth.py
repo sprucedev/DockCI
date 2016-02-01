@@ -18,6 +18,7 @@ from dockci.util import ext_url_for, get_token_for
 
 
 class OAuthRegError(Exception):
+    """ Exception for when OAuth registration fails for some reason """
     def __init__(self, reason):
         self.reason = reason
 
@@ -61,6 +62,13 @@ def oauth_authorized(name):
 
 
 def associate_user(name, user, oauth_token):
+    """
+    Given a user, and an OAuth Token, associate the 2. This will ensure that
+    the token isn't in use by a different user, erase old tokens of the same
+    service, associate the token with the user, then log the user in.
+
+    The DB session will be committed, and a flash message displayed
+    """
     if user is None:
         raise OAuthRegError("Couldn't retrieve user "
                             "details from %s" % name.title())
@@ -90,6 +98,10 @@ def associate_user(name, user, oauth_token):
 
 
 def get_oauth_token(name, response, no_db=False):
+    """
+    Retrieve an ``OAuthToken`` for the response. If a token exists with the
+    same service name, and key then we update it with the new details
+    """
     if no_db:
         return OAuthToken(
             service=name,
@@ -121,6 +133,17 @@ def get_oauth_token(name, response, no_db=False):
 
 
 def user_from_oauth(name, response):
+    """
+    Given an OAuth response, extrapolate a ``User`` and an ``OAuthToken``.
+
+    First, if a token exists, we get it's user. Otherwise, we look up the email
+    address from the service and look for a matching user. If there is no user
+    registered ith the email, we create a new user and return it (uncommitted)
+
+    If the email can't be retrieved from the service, ``OAuthRegError`` raises
+
+    If a user exists with the email from the service, ``OAuthRegError`` raises
+    """
     oauth_app = OAUTH_APPS[name]
     oauth_token = get_oauth_token(name, response)
     oauth_token_tuple = (oauth_token.key, oauth_token.secret)
@@ -163,6 +186,9 @@ def user_from_oauth(name, response):
 
 
 def oauth_response(oauth_app):
+    """
+    Build an authorization for the given OAuth service, and return the response
+    """
     return_to = request.args.get('return_to', None)
     base_url = ext_url_for(
         'oauth_authorized', name=oauth_app.name,
