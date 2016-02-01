@@ -157,7 +157,6 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
         """ Whether at least one OAuth login is configured """
         return self.security_github_enabled or self.security_gitlab_enabled
 
-
     @property
     def mail_host_string(self):
         """

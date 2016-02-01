@@ -48,6 +48,7 @@ def check_oauth_enabled(name):
         getattr(CONFIG, 'security_login_%s' % name),
     )
 
+
 def oauth_redir(return_to=None):
     """ Get the OAuth redirection URL """
     try:
@@ -82,6 +83,7 @@ def oauth_login(name):
         flash(ex.reason, 'danger')
 
     return oauth_redir(url_for_security('login'))
+
 
 @APP.route('/oauth-authorized/<name>')
 def oauth_authorized(name):
