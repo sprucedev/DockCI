@@ -479,13 +479,26 @@ class ServiceBase(object):
     @property
     def has_auth_registry(self):
         """ Whether or not an authenticated registry was reliably given """
-        project = self.project
-        return (
-            self.auth_registry_raw is not None or (
-                project is not None and
-                project.target_registry is not None
-            )
-        )
+        return self._has_auth_registry()
+
+    def _has_auth_registry(self, lookup_allow=None):
+        """
+        Figure out if we have a reliable ``auth_registry``source from other
+        values
+        """
+        if self.auth_registry_raw is not None:
+            return True
+
+        if lookup_allow is None:
+            lookup_allow = defaultdict(lambda: True)
+
+        lookup_allow['has_auth_registry'] = False
+
+        if lookup_allow['project']:
+            project = self.project
+            return project is not None and project.target_registry is not None
+
+        return False
 
     @property
     def project_raw(self):
@@ -505,6 +518,9 @@ class ServiceBase(object):
     @project.setter
     def project(self, value):
         """ Set the project """
+        lookup_allow = defaultdict(lambda: True)
+        lookup_allow['project'] = False
+
         if value is not None and value.target_registry is not None:
             if (
                 self.has_base_registry and
@@ -516,13 +532,14 @@ class ServiceBase(object):
                 )
 
             if (
-                self.has_auth_registry and
+                self._has_auth_registry(lookup_allow) and
                 self.auth_registry != value.target_registry
             ):
                 raise ValueError(
                     ("Existing auth_registry value '%s' doesn't match new "
                      "project target_registry value") % self.auth_registry
                 )
+
 
         if (
             value is not None and
