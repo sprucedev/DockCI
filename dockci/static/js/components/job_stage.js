@@ -86,7 +86,7 @@ define([
                     if (this.lastLineType !== 'build') {
                         linesArray = ko.observableArray()
                         this.lines.push({'component': 'job-stage-build-step', 'params': {'lines': linesArray}})
-                    } else if (data !== null && data['stream'].startsWith('Step ')) {
+                    } else if (data !== null && typeof(data['stream']) !== 'undefined' && data['stream'].startsWith('Step ')) {
                         linesArray = ko.observableArray()
                         this.lines.push({'component': 'job-stage-build-step', 'params': {'lines': linesArray}})
                     } else {

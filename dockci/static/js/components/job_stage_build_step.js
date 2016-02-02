@@ -7,10 +7,16 @@ define([
         this.lines = params['lines']
         this.cached = ko.observable(false)
         this.visible = ko.observable(true)
+        this.error = ko.observable(false)
 
         this.processLine = function(line) {
-            stream = line['stream'].trimRight()
-            if (stream === ' ---> Using cache') { this.cached(true) }
+            if (typeof(line['stream']) !== 'undefined') {
+                stream = line['stream'].trimRight()
+                if (stream === ' ---> Using cache') { this.cached(true) }
+            }
+            if (typeof(line['error']) !== 'undefined') {
+                this.error(true)
+            }
         }.bind(this)
         this.lines.subscribe(function(value) {
             lastLine = value[value.length - 1]
@@ -22,6 +28,9 @@ define([
 
         this.cached.subscribe(function(value) {
             if (value) { this.visible(false) }
+        }.bind(this))
+        this.error.subscribe(function(value) {
+            if (value) { this.visible(true) }
         }.bind(this))
     }
 

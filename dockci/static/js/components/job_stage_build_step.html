@@ -1,40 +1,48 @@
-<div class="pull-right">
-  <a title="Cached" class="glyphicon glyphicon-floppy-saved" data-bind="visible:cached"></a>
-  <a data-bind="toggle: visible">
-    <i class="glyphicon" data-bind="
-      css: {
-          'glyphicon-chevron-down': !visible()
-        , 'glyphicon-chevron-up': visible
-      }
-    "></i>
-  </a>
-</div>
-<table><tbody>
-  <!-- ko if: visible -->
-    <!-- ko foreach: lines -->
-      <tr><td>
+<div style="position:relative">
+  <div style="position:absolute; top: 0px; right: 0px">
+    <a title="Cached" class="glyphicon glyphicon-floppy-saved" data-bind="visible:cached"></a>
+    <a title="Error" class="glyphicon glyphicon-warning-sign text-danger" data-bind="visible:error"></a>
+    <a data-bind="toggle: visible">
+      <i class="glyphicon" data-bind="
+        css: {
+            'glyphicon-chevron-down': !visible()
+          , 'glyphicon-chevron-up': visible
+        }
+      "></i>
+    </a>
+  </div>
+  <table><tbody>
+    <!-- ko if: visible -->
+      <!-- ko foreach: lines -->
         <!-- ko if: $index() === 0 -->
-          <a data-bind="
+          <tr><td><a data-bind="
               html: ansi_up.ansi_to_html(_.escape(stream) || '&nbsp;')
             , toggle: $parent.visible
-          " class="build-stage-title"></a>
+            , css: { 'text-danger': $parent.error }
+          " class="build-stage-title"></a></tr></td>
         <!-- /ko -->
         <!-- ko ifnot: $index() === 0 -->
-          <span data-bind="
-              html: ansi_up.ansi_to_html(_.escape(stream) || '&nbsp;')
-          "></span>
+          <!-- ko if: typeof($data['error']) !== 'undefined' -->
+            <tr><td class="alert alert-danger" data-bind="text: error"></td></tr>
+          <!-- /ko -->
+          <!-- ko if: typeof($data['stream']) !== 'undefined' -->
+            <tr><td data-bind="
+                html: ansi_up.ansi_to_html(_.escape(stream)) || '&nbsp;'
+            "></td></tr>
+          <!-- /ko -->
         <!-- /ko -->
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: !visible() -->
+      <tr><td>
+        <a data-bind="
+            html: ansi_up.ansi_to_html(_.escape(lines()[0]['stream']) || '&nbsp;')
+          , toggle: visible
+          , css: { 'text-danger': error }
+        " class="build-stage-title"></a>
       </td></tr>
     <!-- /ko -->
-  <!-- /ko -->
-  <!-- ko if: !visible() -->
-    <tr><td>
-      <a data-bind="
-          html: ansi_up.ansi_to_html(_.escape(lines()[0]['stream']) || '&nbsp;')
-        , toggle: visible
-      " class="build-stage-title"></a>
-    </td></tr>
-  <!-- /ko -->
-</tbody></table>
+  </tbody></table>
+</div>
 
 <div class="clearfix"></div>
