@@ -23,7 +23,11 @@ def unittest():
     import pytest
 
     tests_dir = project_root().join('tests')
-    return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
+    return pytest.main(['--doctest-modules',
+                        '--subunit',
+                        '-vvrxs',
+                        tests_dir.strpath,
+                        ])
 
 
 @MANAGER.command
@@ -54,7 +58,11 @@ def dbtest():
                 '/code/entrypoint.sh', 'dbtest',
             ])
 
-    return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
+    return pytest.main(['--doctest-modules',
+                        '--subunit',
+                        '-vvrxs',
+                        tests_dir.strpath,
+                        ])
 
 
 @MANAGER.command
@@ -63,7 +71,11 @@ def doctest():
     import pytest
 
     tests_dir = project_root().join('dockci')
-    return pytest.main(['--doctest-modules', '-vvrxs', tests_dir.strpath])
+    return pytest.main(['--doctest-modules',
+                        '--subunit',
+                        '-vvrxs',
+                        tests_dir.strpath,
+                        ])
 
 
 @MANAGER.command
