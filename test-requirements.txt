@@ -4,15 +4,28 @@
 #
 #    pip-compile test-requirements.in
 #
-astroid==1.3.8            # via pylint
-logilab-common==1.1.0     # via astroid, pylint
+argparse==1.4.0           # via unittest2
+astroid==1.4.4            # via pylint
+extras==0.0.3             # via python-subunit, testtools
+lazy-object-proxy==1.2.1  # via astroid
+linecache2==1.0.0         # via traceback2
+logilab-common==1.1.0     # via pylint
+pbr==1.8.1                # via testtools
 pep8==1.6.2
-py==1.4.30                # via pytest
+py==1.4.31                # via pytest
 pylint==1.4.4
+pyrsistent==0.11.11       # via testtools
 pytest-mock==0.8.1
+pytest-subunit==0.0.9
 pytest==2.8.2
-six==1.10.0               # via astroid, logilab-common, pylint
+python-mimeparse==1.5.1   # via testtools
+python-subunit==1.2.0     # via pytest-subunit
+six==1.10.0               # via astroid, logilab-common, pylint, pyrsistent, unittest2
+testtools==1.9.0          # via python-subunit
+traceback2==1.4.0         # via testtools, unittest2
+unittest2==1.1.0          # via testtools
+wrapt==1.10.6             # via astroid
 
 # The following packages are commented out because they are
 # considered to be unsafe in a requirements file:
-# setuptools==18.4          # via logilab-common
+# setuptools==19.6.2        # via logilab-common
