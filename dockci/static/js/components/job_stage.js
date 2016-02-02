@@ -48,7 +48,7 @@ define([
                 } catch(e) {}
             }
             if (!util.isEmpty(data)) {
-                function componentData(linesArray) {
+                function dockerComp(linesArray) {
                     return {
                           'component': 'job-stage-docker-line'
                         , 'params': {
@@ -59,12 +59,12 @@ define([
 
                 if (util.isEmpty(data['id'])) {
                     linesArray = ko.observableArray()
-                    this.lines.push(componentData(linesArray))
+                    this.lines.push(dockerComp(linesArray))
 
                 } else if (typeof(this.dockerLines[data['id']]) === 'undefined') {
                     this.dockerLines[data['id']] = ko.observableArray()
                     linesArray = this.dockerLines[data['id']]
-                    this.lines.push(componentData(linesArray))
+                    this.lines.push(dockerComp(linesArray))
 
                 } else {
                     linesArray = this.dockerLines[data['id']]
@@ -74,6 +74,14 @@ define([
 
                 this.lastLineType = 'docker'
             } else if (slug === 'docker_build') {
+                function buildComp(linesArray) {
+                    return {
+                          'component': 'job-stage-build-step'
+                        , 'params': {
+                            'lines': linesArray
+                        }
+                    }
+                }
                 if (line === '') { return }
 
                 try {
@@ -83,12 +91,15 @@ define([
                 }
 
                 if (data !== null || this.lastLineType === 'build') {
-                    if (this.lastLineType !== 'build') {
+                    newComponent = this.lastLineType !== 'build'
+                    newComponent = newComponent || (
+                        data !== null &&
+                        typeof(data['stream']) !== 'undefined' &&
+                        data['stream'].startsWith('Step ')
+                    )
+                    if (newComponent) {
                         linesArray = ko.observableArray()
-                        this.lines.push({'component': 'job-stage-build-step', 'params': {'lines': linesArray}})
-                    } else if (data !== null && typeof(data['stream']) !== 'undefined' && data['stream'].startsWith('Step ')) {
-                        linesArray = ko.observableArray()
-                        this.lines.push({'component': 'job-stage-build-step', 'params': {'lines': linesArray}})
+                        this.lines.push(buildComp(linesArray))
                     } else {
                         lines = this.lines()
                         linesArray = lines[lines.length - 1]['params']['lines']
