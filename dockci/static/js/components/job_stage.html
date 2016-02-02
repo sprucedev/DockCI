@@ -13,16 +13,20 @@
     </a>
   </div>
   <!-- ko if: visible -->
-  <div class="panel-body stage-log" data-bind="foreach:lines">
-    <!-- ko if: typeof($data) === 'string' -->
-      <div class="stage-line-text" data-bind="html:ansi_up.ansi_to_html(_.escape($data) || '&nbsp;')"></div>
-    <!-- /ko -->
-    <!-- ko if: typeof($data) !== 'string' -->
-      <!-- ko component: {
-          name: $data['component']
-        , params: $data['params']
-      } --><!-- /ko -->
-    <!-- /ko -->
+  <div class="panel-body stage-log">
+    <table data-bind="css: { table: slug() === 'docker_build' }">
+      <tbody data-bind="foreach:lines"><tr>
+        <!-- ko if: typeof($data) === 'string' -->
+          <td class="stage-line-text" data-bind="html:ansi_up.ansi_to_html(_.escape($data) || '&nbsp;')"></td>
+        <!-- /ko -->
+        <!-- ko if: typeof($data) !== 'string' --><td>
+          <!-- ko component: {
+              name: $data['component']
+            , params: $data['params']
+          } --><!-- /ko -->
+        </td><!-- /ko -->
+      </tr></tbody>
+    </table>
   </div>
   <!-- /ko -->
 </div>

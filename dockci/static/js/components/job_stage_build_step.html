@@ -1,9 +1,3 @@
-<style type="text/css">
-  .build-stage-title {
-    font-weight: bold;
-  }
-</style>
-
 <div class="pull-right">
   <a title="Cached" class="glyphicon glyphicon-floppy-saved" data-bind="visible:cached"></a>
   <a data-bind="toggle: visible">
@@ -15,16 +9,32 @@
     "></i>
   </a>
 </div>
-<!-- ko if: visible -->
-<div data-bind="foreach:lines">
-  <div data-bind="
-      html: ansi_up.ansi_to_html(_.escape($data['stream']) || '&nbsp;')
-    , css: { 'build-stage-title': $index() === 0 }
-  "></div>
-</div>
-<!-- /ko -->
-<!-- ko if: !visible() -->
-<div data-bind="text: lines()[0]['stream']" class="build-stage-title"></div>
-<!-- /ko -->
+<table><tbody>
+  <!-- ko if: visible -->
+    <!-- ko foreach: lines -->
+      <tr><td>
+        <!-- ko if: $index() === 0 -->
+          <a data-bind="
+              html: ansi_up.ansi_to_html(_.escape(stream) || '&nbsp;')
+            , toggle: $parent.visible
+          " class="build-stage-title"></a>
+        <!-- /ko -->
+        <!-- ko ifnot: $index() === 0 -->
+          <span data-bind="
+              html: ansi_up.ansi_to_html(_.escape(stream) || '&nbsp;')
+          "></span>
+        <!-- /ko -->
+      </td></tr>
+    <!-- /ko -->
+  <!-- /ko -->
+  <!-- ko if: !visible() -->
+    <tr><td>
+      <a data-bind="
+          html: ansi_up.ansi_to_html(_.escape(lines()[0]['stream']) || '&nbsp;')
+        , toggle: visible
+      " class="build-stage-title"></a>
+    </td></tr>
+  <!-- /ko -->
+</tbody></table>
 
 <div class="clearfix"></div>
