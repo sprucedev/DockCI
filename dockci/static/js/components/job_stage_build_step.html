@@ -18,7 +18,7 @@
 <!-- ko if: visible -->
 <div data-bind="foreach:lines">
   <div data-bind="
-      text: $data['stream']
+      html: ansi_up.ansi_to_html(_.escape($data['stream']) || '&nbsp;')
     , css: { 'build-stage-title': $index() === 0 }
   "></div>
 </div>
