@@ -4,6 +4,7 @@ define([
     , 'text!./job_stage.html'
 
     , './job_stage_docker_line'
+    , './job_stage_build_step'
 ], function(ko, util, template) {
     function JobStageModel(params) {
         this.slug = util.param(params['slug'])
@@ -72,14 +73,36 @@ define([
                 linesArray.push(data)
 
                 this.lastLineType = 'docker'
+            } else if (slug === 'docker_build') {
+                if (line === '') { return }
+
+                try {
+                    data = JSON.parse(line)
+                } catch(e) {
+                    data = null
+                }
+
+                if (data !== null || this.lastLineType === 'build') {
+                    if (this.lastLineType !== 'build') {
+                        linesArray = ko.observableArray()
+                        this.lines.push({'component': 'job-stage-build-step', 'params': {'lines': linesArray}})
+                    } else if (data !== null && data['stream'].startsWith('Step ')) {
+                        linesArray = ko.observableArray()
+                        this.lines.push({'component': 'job-stage-build-step', 'params': {'lines': linesArray}})
+                    } else {
+                        lines = this.lines()
+                        linesArray = lines[lines.length - 1]['params']['lines']
+                    }
+
+                    linesArray.push(data !== null ? data : line)
+                    this.lastLineType = 'build'
+                } else {
+                    this.lines.push(ko.observable(line))
+                    this.lastLineType = 'plain'
+                }
             } else {
                 newLine = util.isEmpty(currentLine) || this.lastLineType !== 'plain'
                 fullLine = newLine ? line : currentLine() + line
-                if (slug === 'docker_build') {
-                    try {
-                        fullLine = JSON.parse(fullLine)['stream']
-                    } catch(e) {}
-                }
 
                 if (newLine) {
                     this.lines.push(ko.observable(fullLine))

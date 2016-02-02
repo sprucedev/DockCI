@@ -1,0 +1,30 @@
+<style type="text/css">
+  .build-stage-title {
+    font-weight: bold;
+  }
+</style>
+
+<div class="pull-right">
+  <a title="Cached" class="glyphicon glyphicon-floppy-saved" data-bind="visible:cached"></a>
+  <a data-bind="toggle: visible">
+    <i class="glyphicon" data-bind="
+      css: {
+          'glyphicon-chevron-down': !visible()
+        , 'glyphicon-chevron-up': visible
+      }
+    "></i>
+  </a>
+</div>
+<!-- ko if: visible -->
+<div data-bind="foreach:lines">
+  <div data-bind="
+      text: $data['stream']
+    , css: { 'build-stage-title': $index() === 0 }
+  "></div>
+</div>
+<!-- /ko -->
+<!-- ko if: !visible() -->
+<div data-bind="text: lines()[0]['stream']" class="build-stage-title"></div>
+<!-- /ko -->
+
+<div class="clearfix"></div>
