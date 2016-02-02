@@ -4,6 +4,7 @@ define([
     , 'text!./job_stage.html'
 
     , './job_stage_docker_line'
+    , './job_stage_build_step'
 ], function(ko, util, template) {
     function JobStageModel(params) {
         this.slug = util.param(params['slug'])
@@ -47,7 +48,7 @@ define([
                 } catch(e) {}
             }
             if (!util.isEmpty(data)) {
-                function componentData(linesArray) {
+                function dockerComp(linesArray) {
                     return {
                           'component': 'job-stage-docker-line'
                         , 'params': {
@@ -58,12 +59,12 @@ define([
 
                 if (util.isEmpty(data['id'])) {
                     linesArray = ko.observableArray()
-                    this.lines.push(componentData(linesArray))
+                    this.lines.push(dockerComp(linesArray))
 
                 } else if (typeof(this.dockerLines[data['id']]) === 'undefined') {
                     this.dockerLines[data['id']] = ko.observableArray()
                     linesArray = this.dockerLines[data['id']]
-                    this.lines.push(componentData(linesArray))
+                    this.lines.push(dockerComp(linesArray))
 
                 } else {
                     linesArray = this.dockerLines[data['id']]
@@ -72,14 +73,47 @@ define([
                 linesArray.push(data)
 
                 this.lastLineType = 'docker'
+            } else if (slug === 'docker_build') {
+                function buildComp(linesArray) {
+                    return {
+                          'component': 'job-stage-build-step'
+                        , 'params': {
+                            'lines': linesArray
+                        }
+                    }
+                }
+                if (line === '') { return }
+
+                try {
+                    data = JSON.parse(line)
+                } catch(e) {
+                    data = null
+                }
+
+                if (data !== null || this.lastLineType === 'build') {
+                    newComponent = this.lastLineType !== 'build'
+                    newComponent = newComponent || (
+                        data !== null &&
+                        typeof(data['stream']) !== 'undefined' &&
+                        data['stream'].startsWith('Step ')
+                    )
+                    if (newComponent) {
+                        linesArray = ko.observableArray()
+                        this.lines.push(buildComp(linesArray))
+                    } else {
+                        lines = this.lines()
+                        linesArray = lines[lines.length - 1]['params']['lines']
+                    }
+
+                    linesArray.push(data !== null ? data : line)
+                    this.lastLineType = 'build'
+                } else {
+                    this.lines.push(ko.observable(line))
+                    this.lastLineType = 'plain'
+                }
             } else {
                 newLine = util.isEmpty(currentLine) || this.lastLineType !== 'plain'
                 fullLine = newLine ? line : currentLine() + line
-                if (slug === 'docker_build') {
-                    try {
-                        fullLine = JSON.parse(fullLine)['stream']
-                    } catch(e) {}
-                }
 
                 if (newLine) {
                     this.lines.push(ko.observable(fullLine))
