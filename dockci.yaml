@@ -8,7 +8,7 @@ utilities:
     command: |-
       sh -c '
         apt-get update &&
-        apt-get install -y libffi-dev libpq-dev &&
+        apt-get install -y libffi-dev libpq-dev git &&
         pip wheel -r requirements.txt &&
         pip wheel -r test-requirements.txt
       '
