@@ -163,6 +163,70 @@ class BuildStage(DockerStage):
         return 1
 
 
+class WrapIt(object):
+    """
+    Examples:
+
+    >>> gen = iter([b'ab', b'cd', b'ef'])
+    >>> stream = WrapIt(gen)
+    >>> stream.read(2)
+    b'ab'
+    >>> stream.read(2)
+    b'cd'
+    >>> stream.read(2)
+    b'ef'
+    >>> stream.read(2)
+    b''
+
+    >>> gen = iter([b'ab', b'cd', b'ef'])
+    >>> stream = WrapIt(gen)
+    >>> stream.read(3)
+    b'abc'
+    >>> stream.read(3)
+    b'def'
+    >>> stream.read(3)
+    b''
+
+    >>> gen = iter([b'abcdef'])
+    >>> stream = WrapIt(gen)
+    >>> stream.read(3)
+    b'abc'
+    >>> stream.read(3)
+    b'def'
+    >>> stream.read(3)
+    b''
+
+    >>> gen = iter([b'a'])
+    >>> stream = WrapIt(gen)
+    >>> stream.read(3)
+    b'a'
+    """
+    def __init__(self, gen):
+        self.gen = gen
+        self.buffer = b''
+
+    def read(self, count=-1):
+        """ Read stuff """
+        read_total = len(self.buffer)
+        while count == -1 or read_total < count:
+            try:
+                next_data = next(self.gen)
+            except StopIteration:
+                break
+
+            read_total += len(next_data)
+            self.buffer += next_data
+
+        if count == -1:
+            this_data = self.buffer
+            self.buffer = b''
+        else:
+            this_data = self.buffer[:count]
+            self.buffer = self.buffer[count:]
+
+        return this_data
+
+
 class TestStage(JobStageBase):
     """
     Tell the Docker host to run the CI command
@@ -177,7 +241,7 @@ class TestStage(JobStageBase):
         """
         if self.job.job_config.skip_tests:
             # todo output subunit
-            #handle.write("Skipping tests, as per configuration".encode())
+            # handle.write("Skipping tests, as per configuration".encode())
             self.job.exit_code = 0
             self.job.db_session.add(self.job)
             self.job.db_session.commit()
@@ -226,9 +290,26 @@ class TestStage(JobStageBase):
             ]
         )
 
-        result = ByteStreamToStreamResult(stream, non_subunit_name='otherthings')
+        result = ByteStreamToStreamResult(
+            WrapIt(stream),
+            non_subunit_name='otherthings',
+        )
+
+        def prep_for_json(value):
+            """ Encode bytes """
+            try:
+                return value.decode()
+
+            except AttributeError:
+                return value
+
         class DoIt(object):
-            def status(self, **kwargs):
+            """ Do things """
+            def status(self, **kwargs):  # pylint:disable=no-self-use
+                """ Write a status to the stream """
+                for k in kwargs.keys():
+                    kwargs[k] = prep_for_json(kwargs[k])
+
                 handle.write(json.dumps(kwargs).encode())
                 handle.write(b'\n')
 
