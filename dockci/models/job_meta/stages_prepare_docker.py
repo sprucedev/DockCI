@@ -444,7 +444,7 @@ class UtilStage(InlineProjectStage):
 
         return container['Id'], True
 
-    def retrieve_files(self, container_id, faux_log, files_id):
+    def retrieve_files(self, container_id, faux_log):
         """
         Retrieve the files in the job config from the utility container
 
@@ -452,8 +452,6 @@ class UtilStage(InlineProjectStage):
           container_id (str): ID of a container to copy files from. Most likely
             the completed utility container
           faux_log: The faux docker log object
-          files_id: Log ID for the output retrieval stage. Used as both an ID,
-            and a prefix
 
         Returns:
           bool: True when all files retrieved as expected, False otherwise
@@ -465,7 +463,7 @@ class UtilStage(InlineProjectStage):
         ]
         success = True
         if not output_files:
-            faux_log.update(id=files_id, progress="Skipped")
+            faux_log.update(id="output", progress="Skipped")
 
         for output_idx, output_set in enumerate(output_files):
             if isinstance(output_set, dict):
@@ -473,7 +471,7 @@ class UtilStage(InlineProjectStage):
                     remote_spath = output_set['from']
                 except KeyError:
                     defaults = {
-                        'id': '%s-%s' % (files_id, output_idx),
+                        'id': "output.%s" % output_idx,
                         'progress': "Failed",
                     }
                     with faux_log.more_defaults(**defaults):
@@ -488,7 +486,7 @@ class UtilStage(InlineProjectStage):
                 remote_spath = output_set
 
             defaults = {
-                'id': '%s-%s' % (files_id, local_spath),
+                'id': "output.%s" % local_spath,
                 'status': "Copying from '%s'" % remote_spath,
             }
             with faux_log.more_defaults(**defaults):
@@ -521,7 +519,6 @@ class UtilStage(InlineProjectStage):
                 image_id,
                 container_id,
                 faux_log,
-                cleanup_id,
                 ):
         """
         Cleanup after the util stage is done processing. Removes the contanier,
@@ -533,7 +530,6 @@ class UtilStage(InlineProjectStage):
           image_id (str): ID of the image used by the utility run
           container_id (str): ID of the container the utility run created
           faux_log: The faux docker log object
-          cleanup_id (str): Base ID for the faux_log
 
         Returns:
           bool: Whether the cleanup was successful or not
@@ -561,7 +557,7 @@ class UtilStage(InlineProjectStage):
         )
         for obj_name, func, obj_id in cleanups:
             defaults = {
-                'id': '%s-%s' % (cleanup_id, obj_id),
+                'id': "cleanup.%s" % obj_id,
                 'status': "Cleaning up %s" % obj_name
             }
             with faux_log.more_defaults(**defaults):
@@ -585,7 +581,7 @@ class UtilStage(InlineProjectStage):
         service_id = self.id_for_service(service.app_name)
 
         defaults = {
-            'id': "%s-input" % service_id,
+            'id': "input",
             'status': "Adding files",
         }
         with faux_log.more_defaults(**defaults):
@@ -596,7 +592,6 @@ class UtilStage(InlineProjectStage):
 
         container_id = None
         success = True
-        cleanup_id = "%s-cleanup" % service_id
         try:
             defaults = {'status': "Starting utility %s" % service.display}
             with faux_log.more_defaults(**defaults):
@@ -606,7 +601,7 @@ class UtilStage(InlineProjectStage):
                 )
 
             if success:
-                with faux_log.more_defaults(id=cleanup_id):
+                with faux_log.more_defaults(id="cleanup"):
                     faux_log.update(status="Collecting status")
                     exit_code = self.job.docker_client.inspect_container(
                         container_id
@@ -614,18 +609,17 @@ class UtilStage(InlineProjectStage):
 
                 if exit_code != 0:
                     faux_log.update(
-                        id="%s-exit" % service_id,
+                        id="exit",
                         error="Exit code was %d" % exit_code
                     )
                     success = False
 
             if success:
-                files_id = "%s-output" % service_id
                 defaults = {'status': "Getting files"}
                 with faux_log.more_defaults(**defaults):
                     faux_log.update()
                     success = success & self.retrieve_files(
-                        container_id, faux_log, files_id,
+                        container_id, faux_log,
                     )
 
         except Exception:
@@ -633,7 +627,6 @@ class UtilStage(InlineProjectStage):
                          image_id,
                          container_id,
                          faux_log,
-                         cleanup_id,
                          )
             raise
 
@@ -642,7 +635,6 @@ class UtilStage(InlineProjectStage):
                                              image_id,
                                              container_id,
                                              faux_log,
-                                             cleanup_id,
                                              )
 
         return success
