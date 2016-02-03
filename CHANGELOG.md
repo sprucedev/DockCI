@@ -7,6 +7,8 @@
 - Configuration to turn off internal DockCI users #398
 - Links to GitHub repos #399
 - Basic parsing and folding of Docker build stage #400
+- Shorter names for utility steps #401
+- Failing utility doesn't create blank cache #402
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
