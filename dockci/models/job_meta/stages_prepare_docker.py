@@ -578,8 +578,6 @@ class UtilStage(InlineProjectStage):
         """
         Adds files, runs the container, retrieves output, and cleans up
         """
-        service_id = self.id_for_service(service.app_name)
-
         defaults = {
             'id': "input",
             'status': "Adding files",
