@@ -4,8 +4,6 @@ Main job stages that constitute a job
 
 import json
 
-from subunit.v2 import ByteStreamToStreamResult
-
 from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
 from dockci.util import built_docker_image_id
@@ -163,7 +161,7 @@ class BuildStage(DockerStage):
         return 1
 
 
-class TestStage(JobStageBase):
+class TestStage(DockerStage):
     """
     Tell the Docker host to run the CI command
     """
@@ -176,13 +174,19 @@ class TestStage(JobStageBase):
         ``DockerStage`` runnable to execute Docker-based tests
         """
         if self.job.job_config.skip_tests:
-            # todo output subunit
-            #handle.write("Skipping tests, as per configuration".encode())
+            handle.write("Skipping tests, as per configuration".encode())
             self.job.exit_code = 0
             self.job.db_session.add(self.job)
             self.job.db_session.commit()
             return 0
 
+        return super(TestStage, self).runnable(handle)
+
+    def runnable_docker(self):
+        """
+        Create a container instance, attach to its outputs and then start it,
+        returning the output stream
+        """
         container_details = self.job.docker_client.create_container(
             self.job.image_id, 'ci'
         )
@@ -226,13 +230,7 @@ class TestStage(JobStageBase):
             ]
         )
 
-        result = ByteStreamToStreamResult(stream, non_subunit_name='otherthings')
-        class DoIt(object):
-            def status(self, **kwargs):
-                handle.write(json.dumps(kwargs).encode())
-                handle.write(b'\n')
-
-        result.run(DoIt())
+        return stream
 
     def on_done(self, _):
         """
