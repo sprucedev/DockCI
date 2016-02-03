@@ -682,7 +682,7 @@ class UtilStage(InlineProjectStage):
 
         else:
             ret = self.generate_data(service, base_image_id, handle, faux_log)
-            if blob_store:
+            if ret and blob_store:
                 blob_store.write()
             return ret
 
