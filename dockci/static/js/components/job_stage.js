@@ -1,11 +1,13 @@
 define([
       'knockout'
+    , 'lodash'
     , '../util'
+    , '../models/line_buffer'
     , 'text!./job_stage.html'
 
     , './job_stage_docker_line'
     , './job_stage_build_step'
-], function(ko, util, template) {
+], function(ko, _, util, LineBuffer, template) {
     function JobStageModel(params) {
         this.slug = util.param(params['slug'])
         this.job  = util.param(params['job'])
@@ -14,8 +16,114 @@ define([
         this.lines = ko.observableArray([]).extend({'deferred': true})
         this.lastLineType = null
         this.dockerLines = {}
+        this.lastBuildLines = null
+
+        this.lineBuffer = new LineBuffer()
 
         this.visibleOverride = util.param(params['visible'])
+
+        this.showIncomplete = ko.computed(function() {
+            slug = this.slug()
+            tranformMatches = [
+                'docker_push',
+                'docker_provision',
+                'docker_build',
+            ]
+            return !(
+                tranformMatches.indexOf(slug) != -1 ||
+                slug.startsWith('utility_')
+            )
+        }.bind(this))
+
+        this.lineBuffer.subscribeLine(function(line) {
+            line = this.dockerGenericTransform(line)
+            line = this.buildTransform(line)
+            return line
+        }.bind(this))
+
+        this.dockerGenericTransformDo = ko.computed(function() {
+            slug = this.slug()
+            dockerSlugs = ['docker_push', 'docker_provision']
+            return (
+                dockerSlugs.indexOf(slug) != -1 ||
+                slug.startsWith('utility_')
+            )
+        }.bind(this))
+        this.dockerGenericTransform = function(line) {
+            if (!this.dockerGenericTransformDo()) { return line }
+            if (line === '' && this.lastLineType === 'docker') { return null }
+
+            try {
+                data = JSON.parse(line)
+            } catch(e) { return line }
+
+            function dockerComp(linesArray) {
+                return {
+                      'component': 'job-stage-docker-line'
+                    , 'params': {
+                        'lines': linesArray
+                    }
+                }
+            }
+
+            if (util.isEmpty(data['id'])) {
+                linesArray = ko.observableArray()
+                newLine = dockerComp(linesArray)
+
+            } else if (_.isNil(this.dockerLines[data['id']])) {
+                this.dockerLines[data['id']] = ko.observableArray()
+                linesArray = this.dockerLines[data['id']]
+                newLine = dockerComp(linesArray)
+
+            } else {
+                linesArray = this.dockerLines[data['id']]
+                newLine = null
+            }
+
+            linesArray.push(data)
+            this.lastLineType = 'docker'
+            return newLine
+
+        }.bind(this)
+        this.buildTransformDo = ko.computed(function() {
+            return this.slug() === 'docker_build'
+        }.bind(this))
+        this.buildTransform = function(line) {
+            if (!this.buildTransformDo()) { return line }
+            if (line === '') { return null }
+
+            try {
+                data = JSON.parse(line)
+            } catch(e) { return line }
+
+            function buildComp(linesArray) {
+                return {
+                      'component': 'job-stage-build-step'
+                    , 'params': {
+                        'lines': linesArray
+                    }
+                }
+            }
+
+            newComponent = _.isNil(this.lastBuildLines)
+            newComponent = newComponent || (
+                !_.isNil(data['stream']) &&
+                data['stream'].startsWith('Step ')
+            )
+            if (newComponent) {
+                linesArray = ko.observableArray()
+                newLine = buildComp(linesArray)
+            } else {
+                linesArray = this.lastBuildLines
+                newLine = null
+            }
+
+            linesArray.push(data !== null ? data : line)
+            this.lastBuildLines = linesArray
+            this.lastLineType = 'build'
+            return newLine
+
+        }.bind(this)
 
         this.togglePanel = function() {
             this.visibleOverride(!this.visible())
@@ -37,109 +145,8 @@ define([
             return false
         }.bind(this))
 
-        this.processLine = function(currentLine, line) {
-            slug = this.slug()
-            dockerSlugs = ['docker_push', 'docker_provision']
-            data = null
-            if (dockerSlugs.indexOf(slug) != -1 || slug.startsWith('utility_')) {
-                if (line === '' && this.lastLineType === 'docker') { return }
-                try {
-                    data = JSON.parse(line)
-                } catch(e) {}
-            }
-            if (!util.isEmpty(data)) {
-                function dockerComp(linesArray) {
-                    return {
-                          'component': 'job-stage-docker-line'
-                        , 'params': {
-                            'lines': linesArray
-                        }
-                    }
-                }
-
-                if (util.isEmpty(data['id'])) {
-                    linesArray = ko.observableArray()
-                    this.lines.push(dockerComp(linesArray))
-
-                } else if (typeof(this.dockerLines[data['id']]) === 'undefined') {
-                    this.dockerLines[data['id']] = ko.observableArray()
-                    linesArray = this.dockerLines[data['id']]
-                    this.lines.push(dockerComp(linesArray))
-
-                } else {
-                    linesArray = this.dockerLines[data['id']]
-                }
-
-                linesArray.push(data)
-
-                this.lastLineType = 'docker'
-            } else if (slug === 'docker_build') {
-                function buildComp(linesArray) {
-                    return {
-                          'component': 'job-stage-build-step'
-                        , 'params': {
-                            'lines': linesArray
-                        }
-                    }
-                }
-                if (line === '') { return }
-
-                try {
-                    data = JSON.parse(line)
-                } catch(e) {
-                    data = null
-                }
-
-                if (data !== null || this.lastLineType === 'build') {
-                    newComponent = this.lastLineType !== 'build'
-                    newComponent = newComponent || (
-                        data !== null &&
-                        typeof(data['stream']) !== 'undefined' &&
-                        data['stream'].startsWith('Step ')
-                    )
-                    if (newComponent) {
-                        linesArray = ko.observableArray()
-                        this.lines.push(buildComp(linesArray))
-                    } else {
-                        lines = this.lines()
-                        linesArray = lines[lines.length - 1]['params']['lines']
-                    }
-
-                    linesArray.push(data !== null ? data : line)
-                    this.lastLineType = 'build'
-                } else {
-                    this.lines.push(ko.observable(line))
-                    this.lastLineType = 'plain'
-                }
-            } else {
-                newLine = util.isEmpty(currentLine) || this.lastLineType !== 'plain'
-                fullLine = newLine ? line : currentLine() + line
-
-                if (newLine) {
-                    this.lines.push(ko.observable(fullLine))
-                } else {
-                    currentLine(fullLine)
-                }
-
-                this.lastLineType = 'plain'
-            }
-        }.bind(this)
-
         this.updateData = function(data) {
-            message_lines = data.split('\n')
-            if (this.lines().length === 1) {
-                while (message_lines.length !== 0 && message_lines[0].trim() === '') {
-                    message_lines.shift()
-                }
-                if (message_lines.length === 0) {
-                    return
-                }
-            }
-            last_line = this.lines()[this.lines().length - 1]
-            this.processLine(last_line, message_lines.shift())
-            $(message_lines).each(function(idx, message_line) {
-                this.processLine(null, message_line)
-            }.bind(this))
+            this.lineBuffer.append(data)
         }.bind(this)
 
         this.consumeLiveContent = function() {
