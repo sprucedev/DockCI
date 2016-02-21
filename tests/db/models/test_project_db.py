@@ -1,6 +1,3 @@
-import datetime
-import re
-
 import pytest
 
 from dockci.models.job import Job
