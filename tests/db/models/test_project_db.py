@@ -9,6 +9,7 @@ from dockci.server import DB
 
 
 def create_project(slug, **kwargs):
+    """ Create a ``Project`` with defaults """
     final_kwargs = dict(
         name=slug,
         slug=slug,
@@ -20,6 +21,7 @@ def create_project(slug, **kwargs):
 
 
 def create_job(**kwargs):
+    """ Create a ``Job`` with defaults """
     final_kwargs = dict(
         repo_fs='test',
         commit='test',
@@ -29,6 +31,8 @@ def create_job(**kwargs):
 
 
 class TestProjectsSummary(object):
+    """ Ensure ``Project.get_status_summary`` behaves as expected """
+
     @pytest.mark.parametrize('models,exp_s,exp_f,exp_b', [
         (
             (
@@ -72,6 +76,7 @@ class TestProjectsSummary(object):
         ),
     ])
     def test_it(self, db, models, exp_s, exp_f, exp_b):
+        """ Commit models, assert status summary is accurate """
         for project, *jobs in models:
             DB.session.add(project)
             for job in jobs:
