@@ -19,7 +19,6 @@ from .exceptions import NoModelError, WrappedValueError
 from .fields import NonBlankInput, RegexField, RegexInput, RewriteUrl
 from .util import (clean_attrs,
                    DT_FORMATTER,
-                   filter_query_args,
                    new_edit_parsers,
                    )
 from dockci.models.auth import AuthenticatedRegistry
