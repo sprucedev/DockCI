@@ -303,11 +303,15 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
         return self.repo
 
     @classmethod
-    def get_last_jobs(cls):
+    def get_last_jobs(cls, project_filters=None):
         """ Retrieve the last jobs for all projects """
+        if project_filters is None:
+            project_filters = {}
+
         from .job import Job
         job_left = Job
         job_right = sqlalchemy.orm.aliased(Job)
+
         return job_left.query.outerjoin(
             job_right,
             sqlalchemy.and_(
@@ -315,13 +319,17 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
                 job_left.id < job_right.id,
                 job_right.result != None,  # noqa
             )
-        ).filter(job_right.id == None, job_left.result != None)  # noqa
+        ).filter(
+            job_right.id == None,  # noqa
+            job_left.result != None,  # noqa
+            Job.project.has(**project_filters)
+        )
 
     @classmethod
-    def get_status_summary(cls):
+    def get_status_summary(cls, project_filters=None):
         """ Retrieve sums of projects in all statuses """
         summary = {'success': 0, 'fail': 0, 'broken': 0}
-        for job in cls.get_last_jobs().all():
+        for job in cls.get_last_jobs(project_filters).all():
             summary[job.result] += 1
 
         return summary

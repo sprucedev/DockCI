@@ -19,7 +19,6 @@ from .exceptions import NoModelError, WrappedValueError
 from .fields import NonBlankInput, RegexField, RegexInput, RewriteUrl
 from .util import (clean_attrs,
                    DT_FORMATTER,
-                   filter_query_args,
                    new_edit_parsers,
                    )
 from dockci.models.auth import AuthenticatedRegistry
@@ -207,22 +206,22 @@ class ProjectList(Resource):
     """ API resource that handles listing projects """
     def get(self):
         """ List of all projects """
-        args = PROJECT_LIST_PARSER.parse_args()
-        base_query = Project.query
-        query = filter_query_args(
-            PROJECT_FILTERS_PARSER,
-            base_query,
-        )
+        filters = PROJECT_FILTERS_PARSER.parse_args()
+        filters = clean_attrs(filters)
+        if filters:
+            query = Project.query.filter_by(**filters)
+        else:
+            query = Project.query
+
         marshaler = dict(items=ALL_LIST_ROOT_FIELDS['items'])
         values = dict(items=query.all())
+
+        args = PROJECT_LIST_PARSER.parse_args()
 
         if args['meta']:
             marshaler['meta'] = ALL_LIST_ROOT_FIELDS['meta']
             values['meta'] = {'total': query.count()}
-
-            # Can't do this for filtered queries
-            if query is base_query:
-                values['meta'].update(Project.get_status_summary())
+            values['meta'].update(Project.get_status_summary(filters))
 
         if args['latest_job']:
             marshaler['items'] = ITEMS_MARSHALER_LATEST_JOB
