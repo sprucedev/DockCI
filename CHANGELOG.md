@@ -10,6 +10,7 @@
 - Shorter names for utility steps #401
 - Failing utility doesn't create blank cache #402
 - Allow project list API meta on filtered queries #404
+- Create TS and commit ID in jobs list #405
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322

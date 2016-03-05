@@ -23,6 +23,8 @@ from dockci.util import str2bool
 BASIC_FIELDS = {
     'slug': fields.String(),
     'state': fields.String(),
+    'commit': fields.String(),
+    'create_ts': DT_FORMATTER,
 }
 
 
@@ -44,9 +46,7 @@ CREATE_FIELDS = {
     'project_detail': RewriteUrl('project_detail', rewrites=dict(
         project_slug='project.slug',
     )),
-    'create_ts': DT_FORMATTER,
     'display_repo': fields.String(),
-    'commit': fields.String(),
 }
 CREATE_FIELDS.update(LIST_FIELDS)
 
