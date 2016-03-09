@@ -133,8 +133,11 @@
         }
       }
     }
+    function default_rabbitmq_protocol() {
+      return document.location.protocol === 'https:' ? 'wss' : 'ws'
+    }
     function default_rabbitmq_server() {
-      return "ws://" + document.location.hostname + ":15674/ws"
+      return default_rabbitmq_protocol() + "://" + document.location.hostname + ":15674/ws"
     }
   </script>
 </head>
