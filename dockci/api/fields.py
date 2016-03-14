@@ -68,7 +68,7 @@ class GravatarUrl(fields.String):
         else:
             email = getattr(obj, self.attr_name)
 
-        return super(GravatarUrl, self).output(key, gravatar_url(email))
+        return gravatar_url(email)
 
 
 class RegexField(fields.String):
