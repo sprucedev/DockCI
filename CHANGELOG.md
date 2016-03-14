@@ -12,6 +12,7 @@
 - Allow project list API meta on filtered queries #404
 - Create TS and commit ID in jobs list #405
 - Auto detect websocket SSL #406
+- Add "incomplete" state to projects meta #409
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
