@@ -16,7 +16,12 @@ from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import NoModelError, WrappedValueError
-from .fields import NonBlankInput, RegexField, RegexInput, RewriteUrl
+from .fields import (GravatarUrl,
+                     NonBlankInput,
+                     RegexField,
+                     RegexInput,
+                     RewriteUrl,
+                     )
 from .util import (clean_attrs,
                    DT_FORMATTER,
                    new_edit_parsers,
@@ -60,6 +65,7 @@ LATEST_JOB_FIELDS = {
     )),
     'state': fields.String(),
     'create_ts': DT_FORMATTER,
+    'git_author_avatar': GravatarUrl(attr_name='git_author_email')
 }
 LIST_FIELDS_LATEST_JOB = {
     'latest_job': fields.Nested(
