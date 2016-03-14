@@ -57,6 +57,9 @@ class GravatarUrl(fields.String):
     >>> field.output('different_name',
     ...              Job(git_author_email='ricky@spruce.sh'))
     'https://s.gravatar.com/avatar/35866d5d838f7aeb9b51a29eda9878e7'
+
+    >>> field.output('git_author_email',
+    ...              Job(git_author_email=None))
     """
     def __init__(self, attr_name=None):
         super(GravatarUrl, self).__init__()
