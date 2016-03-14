@@ -317,19 +317,19 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
             sqlalchemy.and_(
                 job_left.project_id == job_right.project_id,
                 job_left.id < job_right.id,
-                job_right.result != None,  # noqa
             )
         ).filter(
             job_right.id == None,  # noqa
-            job_left.result != None,  # noqa
             Job.project.has(**project_filters)
         )
 
     @classmethod
     def get_status_summary(cls, project_filters=None):
         """ Retrieve sums of projects in all statuses """
-        summary = {'success': 0, 'fail': 0, 'broken': 0}
+        summary = {'success': 0, 'fail': 0, 'broken': 0, None: 0}
         for job in cls.get_last_jobs(project_filters).all():
             summary[job.result] += 1
+
+        summary['incomplete'] = summary.pop(None)
 
         return summary

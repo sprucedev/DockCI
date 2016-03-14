@@ -30,7 +30,7 @@ def create_job(**kwargs):
 class TestProjectsSummary(object):
     """ Ensure ``Project.get_status_summary`` behaves as expected """
 
-    @pytest.mark.parametrize('models,p_filters,exp_s,exp_f,exp_b', [
+    @pytest.mark.parametrize('models,p_filters,exp_s,exp_f,exp_b,exp_i', [
         (
             (
                 (create_project('p1'),              create_job(result='success')),
@@ -38,7 +38,7 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job()),
             ),
             None,
-            1, 0, 0,
+            1, 0, 0, 2,
         ),
         (
             (
@@ -47,7 +47,7 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job(result='success')),
             ),
             None,
-            1, 0, 0,
+            1, 0, 0, 2,
         ),
         (
             (
@@ -56,7 +56,7 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job(result='success')),
             ),
             None,
-            2, 0, 0,
+            2, 0, 0, 1,
         ),
         (
             (
@@ -65,7 +65,7 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job(result='success')),
             ),
             None,
-            1, 1, 0,
+            1, 1, 0, 1,
         ),
         (
             (
@@ -74,7 +74,7 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job(result='success')),
             ),
             None,
-            1, 0, 1,
+            1, 0, 1, 1,
         ),
         (
             (
@@ -83,7 +83,7 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job(result='success')),
             ),
             {'utility': False},
-            0, 0, 1,
+            0, 0, 1, 1,
         ),
         (
             (
@@ -92,10 +92,19 @@ class TestProjectsSummary(object):
                 (create_project('u', utility=True), create_job(result='success')),
             ),
             {'utility': True},
-            1, 0, 0,
+            1, 0, 0, 0,
+        ),
+        (
+            (
+                (create_project('p1'),              create_job(result='broken')),
+                (create_project('p2'),              create_job(result='broken')),
+                (create_project('u', utility=True), create_job(result='success')),
+            ),
+            None,
+            1, 0, 2, 0,
         ),
     ])
-    def test_it(self, db, models, p_filters, exp_s, exp_f, exp_b):
+    def test_it(self, db, models, p_filters, exp_s, exp_f, exp_b, exp_i):
         """ Commit models, assert status summary is accurate """
         for project, *jobs in models:
             DB.session.add(project)
@@ -109,4 +118,5 @@ class TestProjectsSummary(object):
             success=exp_s,
             fail=exp_f,
             broken=exp_b,
+            incomplete=exp_i,
         )
