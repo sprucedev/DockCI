@@ -9,6 +9,8 @@ from functools import wraps
 
 from flask_restful import fields
 
+from dockci.util import gravatar_url
+
 
 class RewriteUrl(fields.Url):
     """
@@ -38,6 +40,34 @@ class RewriteUrl(fields.Url):
             data[field_set] = attr_path_data
 
         return super(RewriteUrl, self).output(key, data)
+
+
+class GravatarUrl(fields.String):
+    """
+    Automatically turn an email into a Gravatar URL
+
+    >>> from dockci.models.job import Job
+
+    >>> field = GravatarUrl()
+    >>> field.output('git_author_email',
+    ...              Job(git_author_email='ricky@spruce.sh'))
+    'https://s.gravatar.com/avatar/35866d5d838f7aeb9b51a29eda9878e7'
+
+    >>> field = GravatarUrl(attr_name='git_author_email')
+    >>> field.output('different_name',
+    ...              Job(git_author_email='ricky@spruce.sh'))
+    'https://s.gravatar.com/avatar/35866d5d838f7aeb9b51a29eda9878e7'
+    """
+    def __init__(self, attr_name=None):
+        self.attr_name = attr_name
+
+    def output(self, key, obj):
+        if self.attr_name is None:
+            email = getattr(obj, key)
+        else:
+            email = getattr(obj, self.attr_name)
+
+        return gravatar_url(email)
 
 
 class RegexField(fields.String):
