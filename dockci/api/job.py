@@ -11,7 +11,7 @@ from flask_security import login_required
 
 from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
-from .fields import NonBlankInput, RewriteUrl
+from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
 from dockci.models.job import Job
 from dockci.models.project import Project
@@ -25,6 +25,7 @@ BASIC_FIELDS = {
     'state': fields.String(),
     'commit': fields.String(),
     'create_ts': DT_FORMATTER,
+    'git_author_avatar': GravatarUrl(attr_name='git_author_email'),
 }
 
 
@@ -69,6 +70,7 @@ DETAIL_FIELDS = {
     'git_author_email': fields.String(),
     'git_committer_name': fields.String(),
     'git_committer_email': fields.String(),
+    'git_committer_avatar': GravatarUrl(attr_name='git_committer_email'),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 DETAIL_FIELDS.update(CREATE_FIELDS)
