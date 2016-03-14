@@ -19,7 +19,7 @@ from base64 import b64encode
 from contextlib import contextmanager
 from functools import wraps
 from ipaddress import ip_address
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlencode, urlparse, urlunparse
 
 import docker.errors
 import py.error  # pylint:disable=import-error
@@ -692,3 +692,27 @@ def rabbit_stage_key(stage, mtype):
         stage_slug=stage.slug,
         mtype=mtype,
     )
+
+
+def gravatar_url(email, size=None):
+    """
+    Get a Gravatar URL from an email address
+
+    >>> gravatar_url('ricky@spruce.sh')
+    'https://s.gravatar.com/avatar/35866d5d838f7aeb9b51a29eda9878e7'
+
+    >>> gravatar_url('hello@spruce.sh')
+    'https://s.gravatar.com/avatar/6f54fe761ebc48100522fc2bdf958848'
+
+    >>> gravatar_url('ricky@spruce.sh', size=100)
+    'https://s.gravatar.com/avatar/35866d5d838f7aeb9b51a29eda9878e7?s=100'
+
+    >>> gravatar_url('hello@spruce.sh', size=120)
+    'https://s.gravatar.com/avatar/6f54fe761ebc48100522fc2bdf958848?s=120'
+    """
+    email_digest = hashlib.md5(email.lower().encode()).hexdigest()
+    url = "https://s.gravatar.com/avatar/" + email_digest
+    if size is not None:
+        url += '?' + urlencode({'s': str(size)})
+
+    return url
