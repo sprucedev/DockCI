@@ -68,6 +68,9 @@ class GravatarUrl(fields.String):
         else:
             email = getattr(obj, self.attr_name)
 
+        if email is None:
+            return None
+
         return gravatar_url(email)
 
 
