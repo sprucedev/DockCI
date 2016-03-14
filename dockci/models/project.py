@@ -328,10 +328,8 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
         """ Retrieve sums of projects in all statuses """
         summary = {'success': 0, 'fail': 0, 'broken': 0, None: 0}
         for job in cls.get_last_jobs(project_filters).all():
-            print(job.result)
             summary[job.result] += 1
 
-        print(summary)
         summary['incomplete'] = summary.pop(None)
 
         return summary
