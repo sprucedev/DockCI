@@ -711,8 +711,8 @@ def gravatar_url(email, size=None):
     'https://s.gravatar.com/avatar/6f54fe761ebc48100522fc2bdf958848?s=120'
     """
     email_digest = hashlib.md5(email.lower().encode()).hexdigest()
-    gravatar_url = "https://s.gravatar.com/avatar/" + email_digest
+    url = "https://s.gravatar.com/avatar/" + email_digest
     if size is not None:
-        gravatar_url += '?' + urlencode({'s':str(size)})
+        url += '?' + urlencode({'s': str(size)})
 
-    return gravatar_url
+    return url

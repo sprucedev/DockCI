@@ -59,6 +59,7 @@ class GravatarUrl(fields.String):
     'https://s.gravatar.com/avatar/35866d5d838f7aeb9b51a29eda9878e7'
     """
     def __init__(self, attr_name=None):
+        super(GravatarUrl, self).__init__()
         self.attr_name = attr_name
 
     def output(self, key, obj):
@@ -67,7 +68,7 @@ class GravatarUrl(fields.String):
         else:
             email = getattr(obj, self.attr_name)
 
-        return gravatar_url(email)
+        return super(GravatarUrl, self).output(key, gravatar_url(email))
 
 
 class RegexField(fields.String):
