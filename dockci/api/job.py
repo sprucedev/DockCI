@@ -62,10 +62,14 @@ DETAIL_FIELDS = {
     'start_ts': DT_FORMATTER,
     'complete_ts': DT_FORMATTER,
 
+    'display_repo': fields.String(),
+
     'image_id': fields.String(),
     'container_id': fields.String(),
-    'exit_code': fields.Integer(),
     'docker_client_host': fields.String(),
+
+    'exit_code': fields.Integer(),
+
     'git_author_name': fields.String(),
     'git_author_email': fields.String(),
     'git_committer_name': fields.String(),
