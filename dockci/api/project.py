@@ -59,6 +59,7 @@ LIST_FIELDS = {
 LIST_FIELDS.update(BASIC_FIELDS)
 
 LATEST_JOB_FIELDS = {
+    'slug': fields.String(),
     'detail': RewriteUrl('job_detail', rewrites=dict(
         project_slug='project.slug',
         job_slug='slug',
