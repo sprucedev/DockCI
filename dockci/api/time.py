@@ -13,8 +13,10 @@ NOW_FIELDS = {
 
 
 class NowDetail(Resource):
+    """ API to retrieve current server time """
     @marshal_with(NOW_FIELDS)
-    def get(self):
+    def get(self):  # pylint:disable=no-self-use
+        """ Return current server time """
         return {'now_ts': datetime.datetime.now()}
 
 
