@@ -17,6 +17,7 @@
 - Add git commit author avatar to project latest job API #414
 - API to retrieve the current time #417
 - Job slug in projects latest job API #418
+- Add tag, and branch to jobs list API #420
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
