@@ -15,6 +15,7 @@
 - Add "incomplete" state to projects meta #409
 - Add git commit author avatar to job detail, and list APIs #412
 - Add git commit author avatar to project latest job API #414
+- API to retrieve the current time #417
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
