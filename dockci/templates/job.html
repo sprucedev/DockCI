@@ -214,7 +214,7 @@
         }.bind(this))
         this.setupScroll()
 
-        JobModel.from_url(document.location + '.json', function(job) {
+        JobModel.from_url('/api/v1' + document.location.pathname, function(job) {
           this.job(job)
         }.bind(this))
       }

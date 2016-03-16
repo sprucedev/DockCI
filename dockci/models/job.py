@@ -255,6 +255,11 @@ class Job(DB.Model, RepoFsMixin):
         return [stage.slug for stage in self.job_stages]
 
     @property
+    def project_slug(self):
+        """ Shortcut for the API to get project slug """
+        return self.project.slug
+
+    @property
     def url(self):
         """ URL for this job """
         return url_for('job_view',

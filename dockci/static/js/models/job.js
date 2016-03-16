@@ -202,8 +202,9 @@ define([
         this.reload = function () {
             return $.ajax(
                 (
+                    '/api/v1' +
                     '/projects/' + this.project_slug() +
-                    '/jobs/' + this.slug() + '.json'
+                    '/jobs/' + this.slug()
                 ), {
                     'dataType': 'json'
                 }
