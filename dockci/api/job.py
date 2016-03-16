@@ -61,6 +61,7 @@ DETAIL_FIELDS = {
     'project_detail': RewriteUrl('project_detail', rewrites=dict(
         project_slug='project.slug',
     )),
+    'job_stage_slugs': fields.List(fields.String),
 
     'start_ts': DT_FORMATTER,
     'complete_ts': DT_FORMATTER,
