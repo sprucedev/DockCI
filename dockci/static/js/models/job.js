@@ -103,7 +103,6 @@ define([
             if (this._liveLoadDetail === null) {
                 this._liveLoadDetailCallbacks.push(callback)
                 if (this._liveLoadDetailCallbacks.length === 1) {
-                    // TODO POST
                     return $.ajax(
                         (
                             '/api/v1' +
@@ -203,8 +202,9 @@ define([
         this.reload = function () {
             return $.ajax(
                 (
+                    '/api/v1' +
                     '/projects/' + this.project_slug() +
-                    '/jobs/' + this.slug() + '.json'
+                    '/jobs/' + this.slug()
                 ), {
                     'dataType': 'json'
                 }

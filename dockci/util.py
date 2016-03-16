@@ -165,21 +165,6 @@ def login_or_github_required(func):
     return inner
 
 
-# pylint:disable=too-few-public-methods
-class DateTimeEncoder(json.JSONEncoder):
-    """
-    Encode a date/time for JSON dump
-    """
-    def default(self, obj):  # pylint:disable=method-hidden
-        if isinstance(obj, datetime.datetime):
-            encoded_object = list(obj.timetuple())[0:6]
-
-        else:
-            encoded_object = super(DateTimeEncoder, self).default(obj)
-
-        return encoded_object
-
-
 def is_hex_string(value, max_len=None):
     """
     Is the value a hex string (only characters 0-f)
