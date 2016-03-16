@@ -58,6 +58,9 @@ DETAIL_FIELDS = {
         project_slug='project.slug',
         job_slug='ancestor_job.slug',
     )),
+    'project_detail': RewriteUrl('project_detail', rewrites=dict(
+        project_slug='project.slug',
+    )),
 
     'start_ts': DT_FORMATTER,
     'complete_ts': DT_FORMATTER,
