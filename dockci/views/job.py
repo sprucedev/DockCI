@@ -149,42 +149,6 @@ def job_new_github(project, job):
         )
 
 
-@APP.route('/projects/<project_slug>/jobs/<job_slug>.json',
-           methods=('GET',))
-def job_output_json(project_slug, job_slug):
-    """
-    View to download some job info in JSON
-    """
-    project = Project.query.filter_by(slug=project_slug).first_or_404()
-    job = Job.query.get_or_404(Job.id_from_slug(job_slug))
-
-    # TODO flask-restful
-    return Response(
-        json.dumps(
-            dict(
-                tuple((key, getattr(job, key)) for key in (
-                    'id', 'slug',
-                    'create_ts', 'start_ts', 'complete_ts',
-                    'result', 'display_repo', 'commit', 'tag',
-                    'image_id', 'container_id', 'docker_client_host',
-                    'exit_code',
-                    'git_branch',
-                    'git_author_name', 'git_author_email',
-                    'git_committer_name', 'git_committer_email',
-                    'git_changes',
-                )) + (
-                    ('project_slug', project.slug),
-                    ('job_stage_slugs', [
-                        stage.slug for stage in job.job_stages
-                    ]),
-                )
-            ),
-            cls=DateTimeEncoder,
-        ),
-        mimetype='application/json',
-    )
-
-
 def check_output(project_slug, job_slug, filename):
     """ Ensure the job exists, and that the path is not dangerous """
     Project.query.filter_by(slug=project_slug).first_or_404()  # ensure exist
