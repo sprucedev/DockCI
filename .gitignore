@@ -3,6 +3,7 @@ data/
 dockci/static/lib/
 node_modules/
 python_env/
+pe/
 __pycache__/
 tests/**/.cache/
 dockci/**/.cache/
