@@ -19,8 +19,7 @@ from yaml_model import ValidationError
 from dockci.models.job import Job
 from dockci.models.project import Project
 from dockci.server import APP, DB
-from dockci.util import (DateTimeEncoder,
-                         is_valid_github,
+from dockci.util import (is_valid_github,
                          parse_branch_from_ref,
                          parse_ref,
                          parse_tag_from_ref,
