@@ -38,9 +38,13 @@ define([
         this.lineBuffer.subscribeLine(function(line) {
             line = this.dockerGenericTransform(line)
             line = this.buildTransform(line)
+            line = this.testTransform(line)
             return line
         }.bind(this))
 
+        /*
+         * Generic Docker stages - updatable, progress, errors
+         */
         this.dockerGenericTransformDo = ko.computed(function() {
             slug = this.slug()
             dockerSlugs = ['docker_push', 'docker_provision']
@@ -85,6 +89,10 @@ define([
             return newLine
 
         }.bind(this)
+
+        /*
+         * Build stage - JSON with "stream" key, parsed to split steps
+         */
         this.buildTransformDo = ko.computed(function() {
             return this.slug() === 'docker_build'
         }.bind(this))
@@ -122,6 +130,32 @@ define([
             this.lastBuildLines = linesArray
             this.lastLineType = 'build'
             return newLine
+
+        }.bind(this)
+
+        /*
+         * Subunit (test) stage
+         */
+        this.testTransformDo = ko.computed(function() {
+            return this.slug() === 'docker_test'
+        }.bind(this))
+        this.testTransform = function(line) {
+            if (!this.testTransformDo()) { return line }
+
+            try {
+                data = JSON.parse(line)
+            } catch(e) { return line }
+
+            if (data['file_name'] === 'otherthings') {
+                this.updateData(data['file_bytes'])
+
+            } else {
+                linesArray = this.lastBuildLines
+                newLine = null
+            }
+
+            this.lastLineType = 'test'
+            return null
 
         }.bind(this)
 

@@ -72,7 +72,7 @@ def doctest():
 
     tests_dir = project_root().join('dockci')
     return pytest.main(['--doctest-modules',
-                        '--subunit',
+                        # '--subunit',
                         '-vvrxs',
                         tests_dir.strpath,
                         ])

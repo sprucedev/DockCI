@@ -8,7 +8,7 @@ from subunit.v2 import ByteStreamToStreamResult
 
 from dockci.models.base import ServiceBase
 from dockci.models.job_meta.stages import JobStageBase, DockerStage
-from dockci.util import built_docker_image_id
+from dockci.util import built_docker_image_id, DateTimeEncoder
 
 
 def parse_oauth_response(response):
@@ -303,6 +303,12 @@ class TestStage(JobStageBase):
             except AttributeError:
                 return value
 
+        def encode_datetime(obj):
+            import datetime
+            if isinstance(obj, datetime.datetime):
+                return list(obj.timetuple())[0:6]
+            return obj
+
         class DoIt(object):
             """ Do things """
             def status(self, **kwargs):  # pylint:disable=no-self-use
@@ -310,7 +316,7 @@ class TestStage(JobStageBase):
                 for k in kwargs.keys():
                     kwargs[k] = prep_for_json(kwargs[k])
 
-                handle.write(json.dumps(kwargs).encode())
+                handle.write(json.dumps(kwargs, cls=DateTimeEncoder).encode())
                 handle.write(b'\n')
 
         result.run(DoIt())

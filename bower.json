@@ -21,6 +21,7 @@
     "requirejs": "~2.1.20",
     "requirejs-text": "~2.0.14",
     "stomp.js": "https://github.com/jmesnil/stomp-websocket.git",
+    "msgpack-lite": "https://github.com/kawanet/msgpack-lite.git",
     "lodash": "~4.0.0"
   },
   "resolutions": {
