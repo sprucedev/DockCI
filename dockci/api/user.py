@@ -3,7 +3,7 @@ from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
-from .fields import NonBlankInput, RewriteUrl
+from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER, new_edit_parsers
 from dockci.models.auth import User
 from dockci.server import API
@@ -22,6 +22,7 @@ LIST_FIELDS.update(BASIC_FIELDS)
 
 
 DETAIL_FIELDS = {
+    'avatar': GravatarUrl(attr_name='email'),
     'confirmed_at': DT_FORMATTER,
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
