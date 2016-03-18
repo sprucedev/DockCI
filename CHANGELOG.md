@@ -19,6 +19,7 @@
 - Job slug in projects latest job API #418
 - Add tag, and branch to jobs list API #420
 - Remove the ad-hoc job API from /projects/--/jobs/--.json #421
+- Add avatar to user API #425
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
