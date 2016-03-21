@@ -27,7 +27,7 @@ def _copy_data(from_path, to_path, sources):
     local(...)
     >>> to_path.ensure_dir()
     local(...)
-    
+
     >>> from_file = from_path.join('dockci_doctest_a')
     >>> to_file = to_path.join('dockci_doctest_a')
     >>> from_file.write_binary(b'')
