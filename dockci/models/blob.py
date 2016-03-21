@@ -17,13 +17,32 @@ def _copy_data(from_path, to_path, sources):
     """
     Copy data in ``sources`` from a path, to a path preserving directory
     structure
+
+    Examples:
+
+    >>> test_path = getfixture('tmpdir')
+    >>> from_path = test_path.join('from')
+    >>> to_path = test_path.join('to')
+    >>> from_path.ensure_dir()
+    local(...)
+    >>> to_path.ensure_dir()
+    local(...)
+
+    >>> from_file = from_path.join('dockci_doctest_a')
+    >>> to_file = to_path.join('dockci_doctest_a')
+    >>> from_file.write_binary(b'')
+
+    >>> from_file.chmod(0o755)
+    >>> _copy_data(from_path, to_path, [from_file])
+    >>> oct(to_file.stat().mode)[-3:]
+    '755'
     """
     for from_path_i in sources:
         rel_path_str = from_path_i.relto(from_path)
         to_path_i = to_path.join(rel_path_str)
 
         to_path_i.dirpath().ensure_dir()
-        from_path_i.copy(to_path_i)
+        from_path_i.copy(to_path_i, mode=True)
 
 
 class FilesystemBlob(object):
