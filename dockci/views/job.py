@@ -396,12 +396,23 @@ def _seeker_lines_one_back(handle):
     8
     >>> handle.read(3)
     'ghi'
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_lines_one_back(handle)
+    0
+    >>> handle.read(3)
+    'abc'
     """
     first = True
     current_pos = handle.tell()
     while first or handle.read(1) not in ('\n', None, ''):
         first = False
         current_pos -= 1
+
+        if current_pos < 0:
+            handle.seek(0)
+            return 0
+
         handle.seek(current_pos)  # Likely raises exception
 
     return current_pos + 1  # add 1 for the read
