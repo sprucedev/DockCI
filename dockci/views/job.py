@@ -190,22 +190,15 @@ def job_log_init_view(project_slug, job_slug, stage):
             if line_seek is not None:
                 _seeker_lines(handle, line_seek)
 
-            bytes_remain = bytes_count
-            while bytes_remain is None or bytes_remain > 0:
-                if bytes_remain is not None:
-                    chunk_size = min(1024, bytes_remain)
-                else:
-                    chunk_size = 1024
+            if bytes_count is not None:
+                gen = _reader_bytes(handle, bytes_count)
+            elif lines_count is not None:
+                gen = _reader_lines(handle, lines_count)
+            else:
+                gen = _reader_bytes(handle)
 
-                data = handle.read(chunk_size)
-
-                if bytes_remain is not None:
-                    bytes_remain -= len(data)
-
+            for data in gen:
                 yield data
-
-                if len(data) == 0:
-                    return
 
     return Response(loader(), mimetype='text/plain')
 
