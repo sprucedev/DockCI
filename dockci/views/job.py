@@ -255,28 +255,28 @@ def _reader_lines(handle, count=None):
     >>> handle.seek(4)
     4
     >>> list(_reader_lines(handle, 2))
-    ['def', 'ghi']
+    ['def\\n', 'ghi\\n']
 
     >>> handle = tmp_file.open()
     >>> handle.seek(8)
     8
     >>> list(_reader_lines(handle))
-    ['ghi', 'jkl', 'mno']
+    ['ghi\\n', 'jkl\\n', 'mno']
 
     >>> handle = tmp_file.open()
     >>> handle.seek(5)
     5
     >>> list(_reader_lines(handle, 1))
-    ['ef']
+    ['ef\\n']
 
     >>> tmp_file.write('abc\\n\\ndef\\n')
     >>> handle = tmp_file.open()
     >>> list(_reader_lines(handle))
-    ['abc', '', 'def', '']
+    ['abc\\n', '\\n', 'def\\n', '']
 
     >>> handle = tmp_file.open('rb')
     >>> list(_reader_lines(handle))
-    [b'abc', b'', b'def', b'']
+    [b'abc\\n', b'\\n', b'def\\n', b'']
     """
     remain = count
     while remain is None or remain > 0:
@@ -285,12 +285,11 @@ def _reader_lines(handle, count=None):
         if remain is not None:
             remain -= 1
 
-        split_char = b'\n' if type(data) == bytes else '\n'
-        data_split = data.split(split_char)
 
-        yield data_split[0]
+        yield data
 
-        if len(data_split) < 2:
+        search_char = b'\n' if type(data) == bytes else '\n'
+        if search_char not in data:
             return
 
 
