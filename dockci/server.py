@@ -105,6 +105,8 @@ def app_init():
     APP.config['SECURITY_RECOVERABLE'] = CONFIG.security_recoverable
     APP.config['SECURITY_CHANGEABLE'] = True
     APP.config['SECURITY_EMAIL_SENDER'] = CONFIG.mail_default_sender
+    APP.config['REMEMBER_COOKIE_NAME'] = 'dockci_remember_me'
+    APP.config['SESSION_COOKIE_NAME'] = 'dockci_session'
 
     APP.config['RABBITMQ_USER'] = os.environ.get(
         'RABBITMQ_ENV_BACKEND_USER', 'guest')
