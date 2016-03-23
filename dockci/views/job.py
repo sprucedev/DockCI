@@ -429,7 +429,7 @@ def _seeker_lines_one_back(handle):
             handle.seek(0)
             return 0
 
-        handle.seek(current_pos)  # Likely raises exception
+        handle.seek(current_pos)
 
     return current_pos + 1  # add 1 for the read
 
