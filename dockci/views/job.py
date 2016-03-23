@@ -285,10 +285,9 @@ def _reader_lines(handle, count=None):
         if remain is not None:
             remain -= 1
 
-
         yield data
 
-        search_char = b'\n' if type(data) == bytes else '\n'
+        search_char = b'\n' if isinstance(data, bytes) else '\n'
         if search_char not in data:
             return
 
