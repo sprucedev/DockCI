@@ -273,6 +273,10 @@ def _reader_lines(handle, count=None):
     >>> handle = tmp_file.open()
     >>> list(_reader_lines(handle))
     ['abc', '', 'def', '']
+
+    >>> handle = tmp_file.open('rb')
+    >>> list(_reader_lines(handle))
+    [b'abc', b'', b'def', b'']
     """
     remain = count
     while remain is None or remain > 0:
@@ -281,7 +285,8 @@ def _reader_lines(handle, count=None):
         if remain is not None:
             remain -= 1
 
-        data_split = data.split('\n')
+        split_char = b'\n' if type(data) == bytes else '\n'
+        data_split = data.split(split_char)
 
         yield data_split[0]
 
@@ -347,6 +352,11 @@ def _seeker_lines(handle, seek):
     >>> _seeker_lines(handle, -20)
     >>> handle.read(3)
     'abc'
+
+    >>> handle = tmp_file.open('rb')
+    >>> _seeker_lines(handle, -20)
+    >>> handle.read(3)
+    b'abc'
     """
     if seek >= 0:
         for _ in range(seek):
