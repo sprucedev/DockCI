@@ -171,13 +171,25 @@ def check_output(project_slug, job_slug, filename):
 def job_log_init_view(project_slug, job_slug, stage):
     """ View to download initial job log """
     data_file_path = check_output(project_slug, job_slug, '%s.log' % stage)
-    byte_seek = request.args.get('seek', 0, type=int)
+
+    byte_seek = request.args.get('seek', None, type=int)
+    line_seek = request.args.get('seek_lines', None, type=int)
     bytes_count = request.args.get('count', None, type=int)
+    lines_count = request.args.get('count_lines', None, type=int)
+
+    if byte_seek and line_seek:
+        return "byte_seek and line_seek are mutually exclusive", 400
+    if bytes_count and lines_count:
+        return "bytes_count and lines_count are mutually exclusive", 400
 
     def loader():
         """ Stream the parts of the log that we want """
         with data_file_path.open('rb') as handle:
-            handle.seek(byte_seek)
+            if byte_seek is not None:
+                _seeker_bytes(handle, byte_seek)
+            if line_seek is not None:
+                _seeker_lines(handle, line_seek)
+
             bytes_remain = bytes_count
             while bytes_remain is None or bytes_remain > 0:
                 if bytes_remain is not None:
@@ -196,6 +208,210 @@ def job_log_init_view(project_slug, job_slug, stage):
                     return
 
     return Response(loader(), mimetype='text/plain')
+
+
+def _reader_bytes(handle, count=None, chunk_size=1024):
+    """
+    Read a given number of bytes
+
+    Examples:
+
+    >>> tmp_dir = getfixture('tmpdir')
+    >>> tmp_file = tmp_dir.join('test')
+    >>> tmp_file.write('abcdefghi')
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(4)
+    4
+    >>> list(_reader_bytes(handle, 2))
+    ['ef']
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(4)
+    4
+    >>> list(_reader_bytes(handle, chunk_size=3))
+    ['efg', 'hi']
+    """
+    remain = count
+    while remain is None or remain > 0:
+        if remain is not None:
+            chunk_size = min(chunk_size, remain)
+
+        data = handle.read(chunk_size)
+
+        if remain is not None:
+            remain -= len(data)
+
+        if len(data) == 0:
+            return
+
+        yield data
+
+
+def _reader_lines(handle, count=None):
+    """
+    Read a given number of lines
+
+    Examples:
+
+    >>> tmp_dir = getfixture('tmpdir')
+    >>> tmp_file = tmp_dir.join('test')
+    >>> tmp_file.write('abc\\ndef\\nghi\\njkl\\nmno')
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(4)
+    4
+    >>> list(_reader_lines(handle, 2))
+    ['def', 'ghi']
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(8)
+    8
+    >>> list(_reader_lines(handle))
+    ['ghi', 'jkl', 'mno']
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(5)
+    5
+    >>> list(_reader_lines(handle, 1))
+    ['ef']
+
+    >>> tmp_file.write('abc\\n\\ndef\\n')
+    >>> handle = tmp_file.open()
+    >>> list(_reader_lines(handle))
+    ['abc', '', 'def', '']
+    """
+    remain = count
+    while remain is None or remain > 0:
+        data = handle.readline()
+
+        if remain is not None:
+            remain -= 1
+
+        data_split = data.split('\n')
+
+        yield data_split[0]
+
+        if len(data_split) < 2:
+            return
+
+
+def _seeker_bytes(handle, seek):
+    """
+    Seek ahead in handle by the given number of bytes. If ``seek`` is
+    negative, seeks that number of bytes from the end of the file
+
+    Examples:
+
+    >>> tmp_dir = getfixture('tmpdir')
+    >>> tmp_file = tmp_dir.join('test')
+    >>> tmp_file.write('abcdefghi')
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_bytes(handle, 3)
+    >>> handle.read(1)
+    'd'
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_bytes(handle, -3)
+    >>> handle.read(1)
+    'g'
+    """
+    if seek >= 0:
+        handle.seek(seek)
+    else:
+        handle.seek(0, 2)
+        file_size = handle.tell()
+        handle.seek(file_size + seek)  # seek is negative
+
+
+def _seeker_lines(handle, seek):
+    """
+    Seek ahead in handle by the given number of lines
+
+    Examples:
+
+    >>> tmp_dir = getfixture('tmpdir')
+    >>> tmp_file = tmp_dir.join('test')
+    >>> tmp_file.write('abc\\ndef\\nghi\\njkl\\nmno')
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_lines(handle, 3)
+    >>> handle.read(1)
+    'j'
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_lines(handle, -1)
+    >>> handle.read(3)
+    'mno'
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_lines(handle, -3)
+    >>> handle.read(1)
+    'g'
+    """
+    if seek >= 0:
+        for _ in range(seek):
+            _seeker_lines_one_ahead(handle)
+    else:
+        handle.seek(0, 2)
+        seek = seek * -1
+        for idx in range(seek):
+            current_pos = _seeker_lines_one_back(handle)
+
+            # unless last iter, seek back 1 for the new line
+            if idx + 1 < seek:
+                handle.seek(current_pos - 1)
+
+
+def _seeker_lines_one_ahead(handle):
+    """
+    Seek ahead in handle by 1 line
+
+    Examples:
+
+    >>> tmp_dir = getfixture('tmpdir')
+    >>> tmp_file = tmp_dir.join('test')
+    >>> tmp_file.write('abc\\ndef\\nghi\\njkl\\nmno')
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(10)
+    10
+    >>> _seeker_lines_one_ahead(handle)
+    >>> handle.read(3)
+    'jkl'
+    >>>
+    """
+    while handle.read(1) not in ('\n', None, ''):
+        pass
+
+
+def _seeker_lines_one_back(handle):
+    """
+    Seek back in handle by 1 line
+
+    Examples:
+
+    >>> tmp_dir = getfixture('tmpdir')
+    >>> tmp_file = tmp_dir.join('test')
+    >>> tmp_file.write('abc\\ndef\\nghi\\njkl\\nmno')
+
+    >>> handle = tmp_file.open()
+    >>> handle.seek(10)
+    10
+    >>> _seeker_lines_one_back(handle)
+    8
+    >>> handle.read(3)
+    'ghi'
+    """
+    first = True
+    current_pos = handle.tell()
+    while first or handle.read(1) not in ('\n', None, ''):
+        first = False
+        current_pos -= 1
+        handle.seek(current_pos)  # Likely raises exception
+
+    return current_pos + 1  # add 1 for the read
 
 
 @APP.route('/projects/<project_slug>/jobs/<job_slug>/output/<filename>',
