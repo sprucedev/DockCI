@@ -342,6 +342,11 @@ def _seeker_lines(handle, seek):
     >>> _seeker_lines(handle, -3)
     >>> handle.read(1)
     'g'
+
+    >>> handle = tmp_file.open()
+    >>> _seeker_lines(handle, -20)
+    >>> handle.read(3)
+    'abc'
     """
     if seek >= 0:
         for _ in range(seek):
@@ -351,6 +356,9 @@ def _seeker_lines(handle, seek):
         seek = seek * -1
         for idx in range(seek):
             current_pos = _seeker_lines_one_back(handle)
+
+            if current_pos == 0:
+                return
 
             # unless last iter, seek back 1 for the new line
             if idx + 1 < seek:
