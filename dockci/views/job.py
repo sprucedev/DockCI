@@ -383,7 +383,7 @@ def _seeker_lines_one_ahead(handle):
     'jkl'
     >>>
     """
-    while handle.read(1) not in ('\n', None, ''):
+    while handle.read(1) not in ('\n', b'\n', None, '', b''):
         pass
 
 
@@ -413,7 +413,7 @@ def _seeker_lines_one_back(handle):
     """
     first = True
     current_pos = handle.tell()
-    while first or handle.read(1) not in ('\n', None, ''):
+    while first or handle.read(1) not in ('\n', b'\n', None, '', b''):
         first = False
         current_pos -= 1
 
