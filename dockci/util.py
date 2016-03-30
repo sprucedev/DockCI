@@ -701,3 +701,28 @@ def gravatar_url(email, size=None):
         url += '?' + urlencode({'s': str(size)})
 
     return url
+
+
+API_RE = re.compile(r'/api/.*')
+
+
+def is_api_request(check_request=None):
+    """
+    Checks if the request is for the API
+
+    Examples:
+
+    >>> from dockci.server import APP
+
+    >>> with APP.test_request_context('/api/v1/projects'):
+    ...     is_api_request(request)
+    True
+
+    >>> with APP.test_request_context('/projects/dockci'):
+    ...     is_api_request(request)
+    False
+    """
+    if check_request is None:
+        check_request = request
+
+    return API_RE.match(check_request.url_rule.rule) is not None
