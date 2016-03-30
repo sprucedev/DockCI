@@ -21,6 +21,7 @@
 - Remove the ad-hoc job API from /projects/--/jobs/--.json #421
 - Add avatar to user API #425
 - Utilites copy permissions correctly #428
+- API requests don't create new sessions #436
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
