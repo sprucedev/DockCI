@@ -1,7 +1,6 @@
 """ Handlers for Flask, and Flask plugins """
 import json
 import logging
-import re
 
 import jwt
 import rollbar
@@ -27,7 +26,6 @@ from dockci.util import is_api_request
 SECURITY_STATE = APP.extensions['security']
 LOGIN_MANAGER = SECURITY_STATE.login_manager
 LOGIN_FORM = BaseRequestParser()
-
 
 
 @LOGIN_MANAGER.unauthorized_handler

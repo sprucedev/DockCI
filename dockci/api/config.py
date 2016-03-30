@@ -6,7 +6,7 @@ from .base import BaseDetailResource, BaseRequestParser
 from .fields import NonBlankInput
 from .util import new_edit_parsers
 from dockci.models.auth import AuthenticatedRegistry
-from dockci.server import API, DB
+from dockci.server import API, APP, DB
 
 
 REGISTRY_BASIC_FIELDS = {
@@ -92,9 +92,22 @@ class RegistryDetail(BaseDetailResource):
         return {'message': '%s deleted' % display_name}
 
 
+class StreamDetail(Resource):
+    """ Configuration for the live logs """
+    def get(self):
+        """ Get live log configuration """
+        return dict(
+            username=APP.config['RABBITMQ_USER_FE'],
+            password=APP.config['RABBITMQ_PASSWORD_FE'],
+        )
+
+
 API.add_resource(RegistryList,
                  '/registries',
                  endpoint='registry_list')
 API.add_resource(RegistryDetail,
                  '/registries/<string:base_name>',
                  endpoint='registry_detail')
+API.add_resource(StreamDetail,
+                 '/config/stream',
+                 endpoint='stream_detail')

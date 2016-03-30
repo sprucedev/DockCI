@@ -706,7 +706,7 @@ def gravatar_url(email, size=None):
 API_RE = re.compile(r'/api/.*')
 
 
-def is_api_request(request):
+def is_api_request(check_request=None):
     """
     Checks if the request is for the API
 
@@ -722,4 +722,7 @@ def is_api_request(request):
     ...     is_api_request(request)
     False
     """
-    return API_RE.match(request.url_rule.rule) is not None
+    if check_request is None:
+        check_request = request
+
+    return API_RE.match(check_request.url_rule.rule) is not None

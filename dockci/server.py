@@ -26,6 +26,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.pool import NullPool
 
 from dockci.models.config import Config
+from dockci.session import SessionSwitchInterface
 from dockci.util import project_root, setup_templates, tokengetter_for
 
 
@@ -46,6 +47,8 @@ MANAGER = Manager(APP)
 MIGRATE = Migrate(APP, DB, directory='alembic')
 
 APP.config.model = CONFIG  # For templates
+
+APP.session_interface = SessionSwitchInterface(APP)
 
 
 OAUTH_APPS = {}
