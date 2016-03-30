@@ -21,13 +21,13 @@ from dockci.api.base import BaseRequestParser
 from dockci.api.util import clean_attrs
 from dockci.models.auth import User
 from dockci.server import APP, CONFIG, DB, MAIL
+from dockci.util import is_api_request
 
 
 SECURITY_STATE = APP.extensions['security']
 LOGIN_MANAGER = SECURITY_STATE.login_manager
 LOGIN_FORM = BaseRequestParser()
 
-API_RE = re.compile(r'/api/.*')
 
 
 @LOGIN_MANAGER.unauthorized_handler
@@ -45,7 +45,7 @@ def unauthorized_handler():
         if LOGIN_MANAGER.localize_callback is not None:
             message = LOGIN_MANAGER.localize_callback(message)
 
-    if API_RE.match(request.url_rule.rule):
+    if is_api_request(request):
         args = clean_attrs(LOGIN_FORM.parse_args())
         if 'username' in args or 'password' in args or 'api_key' in args:
             message = "Invalid credentials"
