@@ -22,7 +22,7 @@ class SessionSwitchInterface(SecureCookieSessionInterface):
     def open_session(self, app, request):
         session_id = request.cookies.get(self.app.session_cookie_name)
 
-        if not session_id and is_api_request(request):
+        if not session_id and is_api_request():
             return FakeSession()
 
         return super(SessionSwitchInterface, self).open_session(
