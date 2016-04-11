@@ -13,6 +13,7 @@ from flask_restful import (fields,
                            Resource,
                            )
 from flask_security import current_user, login_required
+from sqlalchemy.sql import functions as sql_func
 
 from .base import BaseDetailResource, BaseRequestParser
 from .exceptions import NoModelError, WrappedValueError
@@ -29,7 +30,7 @@ from .util import (clean_attrs,
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import API, DB
+from dockci.server import API
 
 
 DOCKER_REPO_RE = re.compile(r'^[a-z0-9]+(?:[._-][a-z0-9]+)*$')
@@ -177,6 +178,14 @@ PROJECT_LIST_PARSER.add_argument(
 PROJECT_FILTERS_PARSER = reqparse.RequestParser()
 PROJECT_FILTERS_PARSER.add_argument('utility', **UTILITY_ARG)
 
+PROJECTS_OPTS_PARSER = reqparse.RequestParser()
+PROJECTS_OPTS_PARSER.add_argument(
+    'order',
+    choices=('none', 'recent'),
+    default='none',
+    help="How to sort the projects list",
+)
+
 
 def set_target_registry(args):
     """ Set the ``target_registry`` to the model object """
@@ -213,12 +222,25 @@ class ProjectList(Resource):
     """ API resource that handles listing projects """
     def get(self):
         """ List of all projects """
+        opts = PROJECTS_OPTS_PARSER.parse_args()
         filters = PROJECT_FILTERS_PARSER.parse_args()
         filters = clean_attrs(filters)
+
+        query = Project.query
+
+        if opts['order'] == 'recent':
+            query = (
+                query.
+                join(Project.jobs).
+                group_by(Project).
+                order_by(sql_func.max(Job.create_ts).desc())
+            )
+
         if filters:
-            query = DB.session.query(Project).filter_by(**filters)
-        else:
-            query = DB.session.query(Project)
+            query = query.filter(*[
+                getattr(Project, field) == value
+                for field, value in filters.items()
+            ])
 
         marshaler = dict(items=ALL_LIST_ROOT_FIELDS['items'])
         values = dict(items=query.all())
