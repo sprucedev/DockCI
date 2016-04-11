@@ -29,7 +29,7 @@ from .util import (clean_attrs,
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.models.job import Job
 from dockci.models.project import Project
-from dockci.server import API
+from dockci.server import API, DB
 
 
 DOCKER_REPO_RE = re.compile(r'^[a-z0-9]+(?:[._-][a-z0-9]+)*$')
@@ -216,9 +216,9 @@ class ProjectList(Resource):
         filters = PROJECT_FILTERS_PARSER.parse_args()
         filters = clean_attrs(filters)
         if filters:
-            query = Project.query.filter_by(**filters)
+            query = DB.session.query(Project).filter_by(**filters)
         else:
-            query = Project.query
+            query = DB.session.query(Project)
 
         marshaler = dict(items=ALL_LIST_ROOT_FIELDS['items'])
         values = dict(items=query.all())
