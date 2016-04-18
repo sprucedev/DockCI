@@ -216,19 +216,28 @@ class StageStreamDetail(Resource):
                         routing_key=routing_key,
                     )
 
-                    stage = job.job_stages[-1]
-                    bytes_read = redis_conn.get(redis_len_key(stage))
+                    try:
+                        stage = job.job_stages[-1]
+
+                    except IndexError:
+                        stage = None
+                        bytes_read = 0
+
+                    else:
+                        bytes_read = redis_conn.get(redis_len_key(stage))
 
         return {
-            'init_stage': stage.slug,
-            'init_log': "{url}?count={count}".format(
-                url=url_for(
-                    'job_log_init_view',
-                    project_slug=project_slug,
-                    job_slug=job_slug,
-                    stage=stage.slug
-                ),
-                count=bytes_read,
+            'init_stage': None if stage is None else stage.slug,
+            'init_log': None if stage is None else (
+                "{url}?count={count}".format(
+                    url=url_for(
+                        'job_log_init_view',
+                        project_slug=project_slug,
+                        job_slug=job_slug,
+                        stage=stage.slug
+                    ),
+                    count=bytes_read,
+                )
             ),
             'live_queue': queue_result.method.queue,
         }
