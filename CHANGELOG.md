@@ -24,6 +24,7 @@
 - API requests don't create new sessions #436
 - Add 'order' option to projects list API #438
   - Value of 'recent' will order, descending by latest job create timestamps
+- Job stream gives `null` for `init_*` when a job has no stages #444
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
