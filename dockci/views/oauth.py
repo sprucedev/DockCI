@@ -7,7 +7,7 @@ import logging
 import re
 
 from functools import wraps
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import urlencode
 
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
@@ -272,7 +272,11 @@ def oauth_response(oauth_app):
     callback_uri = ext_url_for(
         'oauth_authorized',
         name=oauth_app.name,
-        next=request.args.get('next') or request.referrer or url_for('index_view'),
+        next=(
+            request.args.get('next') or
+            request.referrer or
+            url_for('index_view')
+        ),
     )
 
     return oauth_app.authorize(callback=callback_uri)
