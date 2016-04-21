@@ -3,10 +3,11 @@ OAuth related API views and routes
 """
 
 import json
+import logging
 import re
 
 from functools import wraps
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
@@ -25,6 +26,11 @@ from dockci.util import ext_url_for, get_token_for
 
 
 RE_VALID_OAUTH = re.compile(r'^[a-z]+$')
+
+USER_API_PATHS = {
+    'github': '/user',
+    'gitlab': '/api/v3/user',
+}
 
 
 class OAuthRegError(Exception):
@@ -49,16 +55,12 @@ def check_oauth_enabled(name):
     )
 
 
-def oauth_redir(return_to=None):
+def oauth_redir(next_url=None):
     """ Get the OAuth redirection URL """
-    try:
-        if return_to is None:
-            return_to = request.args['return_to']
+    if next_url is None:
+        next_url = request.args.get('next') or url_for('index_view')
 
-    except KeyError:
-        return_to = url_for('index_view')
-
-    return redirect(return_to)
+    return redirect(next_url)
 
 
 @APP.route('/login/<name>')
@@ -102,6 +104,14 @@ def oauth_authorized(name):
                 raise OAuthRegError("%s auth not enabled" % name.title())
 
             resp = oauth_app.authorized_response()
+
+        if isinstance(resp, Exception):
+            try:
+                logging.error('OAuth exception data: %s', resp.data)
+            except AttributeError:
+                pass
+
+            raise resp
 
         if resp is None or 'error' in resp:
             flash("{name}: {message}".format(
@@ -225,7 +235,10 @@ def user_from_oauth(name, response):
     if oauth_token.id is not None:
         return oauth_token.user, oauth_token
 
-    user_data = oauth_app.get('/user', token=oauth_token_tuple).data
+    user_data = oauth_app.get(
+        USER_API_PATHS[name],
+        token=oauth_token_tuple,
+    ).data
     user_email = user_data['email']
 
     if user_email is None:
@@ -256,18 +269,11 @@ def oauth_response(oauth_app):
     """
     Build an authorization for the given OAuth service, and return the response
     """
-    return_to = request.args.get('return_to', None)
-    base_url = ext_url_for(
-        'oauth_authorized', name=oauth_app.name,
+    callback_uri = ext_url_for(
+        'oauth_authorized',
+        name=oauth_app.name,
+        next=request.args.get('next') or request.referrer or url_for('index_view'),
     )
-    if return_to is not None:
-        callback_uri = '{base_url}?{query}'.format(
-            base_url=base_url,
-            query=urlencode({'return_to': return_to})
-        )
-
-    else:
-        callback_uri = base_url
 
     return oauth_app.authorize(callback=callback_uri)
 
@@ -294,7 +300,7 @@ def oauth_required(acceptable=None, force_name=None):
         @wraps(func)
         def inner_with_name(name, *args, **kwargs):
             """
-            Wrap a view function to provide the redirect/return_to
+            Wrap a view function to provide the redirect/next
             functionality on current user having no oauth
             """
             if name not in acceptable:
