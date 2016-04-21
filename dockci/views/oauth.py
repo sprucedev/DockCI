@@ -7,7 +7,6 @@ import logging
 import re
 
 from functools import wraps
-from urllib.parse import urlencode
 
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
@@ -84,6 +83,28 @@ def oauth_login(name):
     return oauth_redir(url_for_security('login'))
 
 
+def get_oauth_app(name):
+    """
+    Wrapper to raise exception if oauth app doesn't exist
+
+    Examples:
+
+    >>> get_oauth_app('fake')
+    Traceback (most recent call last):
+        ...
+    dockci.views.oauth.OAuthRegError
+
+    >>> OAUTH_APPS['real'] = 'a real app'
+    >>> get_oauth_app('real')
+    'a real app'
+    """
+    try:
+        return OAUTH_APPS[name]
+
+    except KeyError:
+        raise OAuthRegError("%s auth not available" % name.title())
+
+
 @APP.route('/oauth-authorized/<name>')
 def oauth_authorized(name):
     """
@@ -91,19 +112,13 @@ def oauth_authorized(name):
     in user, errors, as well as redirecting back to the original page
     """
     try:
-        try:
-            oauth_app = OAUTH_APPS[name]
+        oauth_app = get_oauth_app(name)
+        configured, register, login = check_oauth_enabled(name)
 
-        except KeyError:
-            raise OAuthRegError("%s auth not available" % name.title())
+        if not configured:
+            raise OAuthRegError("%s auth not enabled" % name.title())
 
-        else:
-            configured, register, login = check_oauth_enabled(name)
-
-            if not configured:
-                raise OAuthRegError("%s auth not enabled" % name.title())
-
-            resp = oauth_app.authorized_response()
+        resp = oauth_app.authorized_response()
 
         if isinstance(resp, Exception):
             try:
