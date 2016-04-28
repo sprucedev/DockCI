@@ -17,7 +17,7 @@ import rollbar.contrib.flask
 
 from flask import Flask
 from flask_oauthlib.client import OAuth
-from flask_security import Security, SQLAlchemyUserDatastore
+from flask_security import Security
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_restful import Api
@@ -57,6 +57,13 @@ OAUTH_APPS_SCOPE_SERIALIZERS = {
     'github': lambda scope: ','.join(sorted(scope.split(','))),
     'gitlab': lambda scope: ','.join(sorted(scope.split(','))),
 }
+
+try:
+    from flask_debugtoolbar import DebugToolbarExtension
+except ImportError:
+    TOOLBAR = None
+else:
+    TOOLBAR = DebugToolbarExtension()
 
 
 def get_db_uri():
@@ -135,15 +142,19 @@ def app_init():
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
-    from dockci.models.auth import User, Role
+    from dockci.models.auth import DockciUserDatastore, User, Role
     from dockci.models.job import Job  # pylint:disable=unused-variable
     from dockci.models.project import Project  # pylint:disable=unused-variable
 
     if 'security' not in APP.blueprints:
-        SECURITY.init_app(APP, SQLAlchemyUserDatastore(DB, User, Role))
+        SECURITY.init_app(APP, DockciUserDatastore(DB, User, Role))
 
     MAIL.init_app(APP)
     DB.init_app(APP)
+
+    if TOOLBAR is not None:
+        logging.warning('Debug initialized. Enabled: %s', APP.debug)
+        TOOLBAR.init_app(APP)
 
     app_init_oauth()
     app_init_handlers()

@@ -5,6 +5,7 @@ Users and permissions models
 import sqlalchemy
 
 from flask_security import UserMixin, RoleMixin
+from flask_security.datastore import SQLAlchemyUserDatastore
 
 from dockci.server import DB
 
@@ -13,6 +14,38 @@ ROLES_USERS = DB.Table(
     DB.Column('user_id', DB.Integer(), DB.ForeignKey('user.id'), index=True),
     DB.Column('role_id', DB.Integer(), DB.ForeignKey('role.id')),
 )
+
+
+class DockciUserDatastore(SQLAlchemyUserDatastore):
+    """
+    Flask-security datastore to add ``UserEmail`` objects for users, and
+    get users by all attached emails
+    """
+    def get_user(self, identifier):
+        if self._is_numeric(identifier):
+            return self.user_model.query.get(identifier)
+
+        email_obj = UserEmail.query.filter(
+            UserEmail.email.ilike(identifier)
+        ).first()
+        if email_obj is not None:
+            return email_obj.user
+
+    def find_user(self, **kwargs):
+        email_val = kwargs.pop('email', None)
+        base_query = self.user_model.query.filter_by(**kwargs)
+
+        if email_val is None:
+            return base_query.first()
+
+        return base_query.join(self.user_model.emails).filter(
+            UserEmail.email == email_val,
+        ).first()
+
+    def create_user(self, **kwargs):
+        user = super(DockciUserDatastore, self).create_user(**kwargs)
+        self.put(UserEmail(email=user.email, user=user))
+        return user
 
 
 class Role(DB.Model, RoleMixin):
@@ -85,6 +118,17 @@ class OAuthToken(DB.Model):  # pylint:disable=no-init
         ValueError: Trying to set token details
         for user <User: 2@test.com... from user <User: 1@test.com...
 
+        >>> user1 = User(email_obj=UserEmail(email='1@test.com'))
+        >>> user2 = User(email_obj=UserEmail(email='2@test.com'))
+        >>> base = OAuthToken(secret='basesec', user=user1)
+        >>> other = OAuthToken(secret='othersec', user=user2)
+        >>> other.update_details_from(base)
+        ... # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+          ...
+        ValueError: Trying to set token details
+        for user <User: 2@test.com... from user <User: 1@test.com...
+
         >>> other.secret
         'othersec'
 
@@ -97,10 +141,10 @@ class OAuthToken(DB.Model):  # pylint:disable=no-init
         >>> other.update_details_from(base)
         """
         # Don't allow accidental cross-user updates
-        if not (
-            self.user is None or
-            other.user is None or
-            self.user.email == other.user.email
+        if (
+            self.user is not None and
+            other.user is not None and
+            self.user.email_str != other.user.email_str
         ):
             raise ValueError(
                 "Trying to set token details for user %s from user %s" % (
@@ -122,13 +166,33 @@ class OAuthToken(DB.Model):  # pylint:disable=no-init
         )
 
 
+class UserEmail(DB.Model):  # pylint:disable=no-init
+    """ Email addresses associated with users """
+    id = DB.Column(DB.Integer, primary_key=True)
+    email = DB.Column(DB.String(255), unique=True, index=True, nullable=False)
+    user_id = DB.Column(DB.Integer,
+                        DB.ForeignKey('user.id'),
+                        index=True,
+                        nullable=True)
+    user = DB.relationship('User',
+                           foreign_keys="UserEmail.user_id",
+                           backref=DB.backref('emails', lazy='dynamic'),
+                           post_update=True)
+
+
 class User(DB.Model, UserMixin):  # pylint:disable=no-init
     """ User model for authentication """
     id = DB.Column(DB.Integer, primary_key=True)
-    email = DB.Column(DB.String(255), unique=True, index=True)
     password = DB.Column(DB.String(255))
     active = DB.Column(DB.Boolean())
     confirmed_at = DB.Column(DB.DateTime())
+    email = DB.Column(DB.String(255),
+                      DB.ForeignKey('user_email.email'),
+                      index=True,
+                      unique=True,
+                      nullable=False)
+    email_obj = DB.relationship('UserEmail',
+                                foreign_keys="User.email")
     roles = DB.relationship('Role',
                             secondary=ROLES_USERS,
                             backref=DB.backref('users', lazy='dynamic'))
@@ -136,7 +200,7 @@ class User(DB.Model, UserMixin):  # pylint:disable=no-init
     def __str__(self):
         return '<{klass}: {email} ({active})>'.format(
             klass=self.__class__.__name__,
-            email=self.email,
+            email=self.email_str,
             active='active' if self.active else 'inactive'
         )
 
@@ -145,6 +209,27 @@ class User(DB.Model, UserMixin):  # pylint:disable=no-init
         return self.oauth_tokens.filter_by(
             service=service_name,
         ).order_by(sqlalchemy.desc(OAuthToken.id)).first()
+
+    @property
+    def email_str(self):
+        """
+        Return the email field, falling back to ``email_obj.email``
+
+        Examples:
+
+        >>> User(email='test').email_str
+        'test'
+
+        >>> User(email_obj=UserEmail(email='test')).email_str
+        'test'
+
+        >>> User().email_str
+        """
+        if self.email is not None:
+            return self.email
+
+        if self.email_obj is not None:
+            return self.email_obj.email
 
 
 class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init

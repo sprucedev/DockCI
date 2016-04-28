@@ -14,7 +14,7 @@ from flask_security import current_user, login_required
 from flask_security.utils import url_for_security
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
-from dockci.models.auth import OAuthToken, User
+from dockci.models.auth import OAuthToken, UserEmail
 from dockci.server import (APP,
                            CONFIG,
                            DB,
@@ -30,6 +30,8 @@ USER_API_PATHS = {
     'github': '/user',
     'gitlab': '/api/v3/user',
 }
+
+SECURITY_STATE = APP.extensions['security']
 
 
 class OAuthRegError(Exception):
@@ -133,27 +135,27 @@ def oauth_authorized(name):
                 name=name.title(),
                 message=request.args['error_description'],
             ), 'danger')
+            return oauth_redir()
+
+        if current_user.is_authenticated():
+            oauth_token = associate_oauth_current_user(name, resp)
+            user = current_user
+
+        elif not (register or login):
+            raise OAuthRegError(
+                "Registration and login disabled for %s" % name.title())
 
         else:
-            if current_user.is_authenticated():
-                user = current_user
-                oauth_token = get_oauth_token(name, resp)
+            user, oauth_token = user_from_oauth(name, resp)
 
-            elif not (register or login):
-                raise OAuthRegError(
-                    "Registration and login disabled for %s" % name.title())
+        if user.id is None and not register:
+            raise OAuthRegError(
+                "Registration disabled for %s" % name.title())
+        elif user.id is not None and not login:
+            raise OAuthRegError(
+                "Login disabled for %s" % name.title())
 
-            else:
-                user, oauth_token = user_from_oauth(name, resp)
-
-            if user.id is None and not register:
-                raise OAuthRegError(
-                    "Registration disabled for %s" % name.title())
-            elif user.id is not None and not login:
-                raise OAuthRegError(
-                    "Login disabled for %s" % name.title())
-
-            associate_user(name, user, oauth_token)
+        associate_user(name, user, oauth_token)
 
     except OAuthRegError as ex:
         flash(ex.reason, 'danger')
@@ -194,6 +196,29 @@ def associate_user(name, user, oauth_token):
     login_user(user)
 
 
+def associate_oauth_current_user(name, resp):
+    """ Associate the OAuth token in response with the current user """
+    existing_user, user_email, oauth_token = \
+        existing_user_from_oauth(name, resp)
+    if (
+        existing_user is not None and
+        existing_user.id != current_user.id
+    ):
+        raise OAuthRegError("A user is already registered "
+                            "with the email '%s'" % user_email)
+
+    # Add a new email to the user if necessary
+    if current_user.emails.filter(
+        UserEmail.email.ilike(user_email),
+    ).count() == 0:
+        DB.session.add(UserEmail(
+            email=user_email,
+            user=current_user,
+        ))
+
+    return oauth_token
+
+
 def get_oauth_token(name, response):
     """
     Retrieve an ``OAuthToken`` for the response. If a token exists with the
@@ -231,6 +256,34 @@ def create_oauth_token(name, response):
     )
 
 
+def existing_user_from_oauth(name, response):
+    """
+    Query the OAuth provider API for user email, and get a user from that
+    """
+    oauth_app = OAUTH_APPS[name]
+    oauth_token = get_oauth_token(name, response)
+    oauth_token_tuple = (oauth_token.key, oauth_token.secret)
+
+    if oauth_token.id is not None:
+        return oauth_token.user, oauth_token.user.email, oauth_token
+
+    user_data = oauth_app.get(
+        USER_API_PATHS[name],
+        token=oauth_token_tuple,
+    ).data
+    user_email = user_data['email']
+
+    if user_email is None:
+        raise OAuthRegError(
+            "Couldn't get email address from %s" % name.title())
+
+    return (
+        SECURITY_STATE.datastore.find_user(email=user_email),
+        user_email,
+        oauth_token,
+    )
+
+
 def user_from_oauth(name, response):
     """
     Given an OAuth response, extrapolate a ``User`` and an ``OAuthToken``.
@@ -243,41 +296,23 @@ def user_from_oauth(name, response):
 
     If a user exists with the email from the service, ``OAuthRegError`` raises
     """
-    oauth_app = OAUTH_APPS[name]
-    oauth_token = get_oauth_token(name, response)
-    oauth_token_tuple = (oauth_token.key, oauth_token.secret)
+    existing_user, user_email, oauth_token = \
+        existing_user_from_oauth(name, response)
 
-    if oauth_token.id is not None:
-        return oauth_token.user, oauth_token
-
-    user_data = oauth_app.get(
-        USER_API_PATHS[name],
-        token=oauth_token_tuple,
-    ).data
-    user_email = user_data['email']
-
-    if user_email is None:
-        raise OAuthRegError(
-            "Couldn't get email address from %s" % name.title())
-
-    try:
-        user_by_email = User.query.filter_by(email=user_email).one()
-
-    except NoResultFound:
-        pass
-
-    else:
-        if user_by_email.oauth_tokens.filter_by(service=name).count() > 0:
-            return user_by_email, oauth_token
+    if existing_user is not None:
+        if existing_user.oauth_tokens.filter_by(service=name).count() > 0:
+            return existing_user, oauth_token
 
         else:
             raise OAuthRegError("A user is already registered "
                                 "with the email '%s'" % user_email)
 
-    return User(
-        email=user_email,
+    user_obj = SECURITY_STATE.datastore.create_user(
         active=True,
-    ), oauth_token
+        email=user_email,
+    )
+
+    return user_obj, oauth_token
 
 
 def oauth_response(oauth_app):
