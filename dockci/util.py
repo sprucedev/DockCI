@@ -752,11 +752,12 @@ def jwt_token(**kwargs):
     """
     from .server import CONFIG
 
-    jwt_kwargs = (dict(
-        sub=current_user.id if current_user.is_authenticated() else None,
-        iat=datetime.datetime.utcnow(),
-    ))
-    jwt_kwargs.update(kwargs)
+    jwt_kwargs = kwargs.copy()
+    if 'sub' not in jwt_kwargs and current_user.is_authenticated():
+        jwt_kwargs['sub'] = current_user.id
+    if 'iat' not in jwt_kwargs:
+        jwt_kwargs['iat'] = datetime.datetime.utcnow()
+
     jwt_kwargs = {
         key: value
         for key, value in jwt_kwargs.items()
