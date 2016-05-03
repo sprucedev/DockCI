@@ -108,8 +108,7 @@ def try_user_pass(password, lookup):
     if password is None or lookup is None:
         return None
 
-    # Unthrottled here because the password verify will handle throttling
-    user = SECURITY_STATE.datastore.get_user_unthrottled(lookup)
+    user = SECURITY_STATE.datastore.get_user(lookup)
 
     if not user:
         return None
