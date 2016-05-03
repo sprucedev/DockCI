@@ -40,6 +40,7 @@ def config_edit_view():
         'live_log_message_timeout', 'live_log_session_timeout',
         'redis_len_expire',
         'auth_fail_max', 'auth_fail_ttl_sec',
+        'oauth_authorized_redirects',
     )
     all_fields = restart_fields + ()
     blanks = (
