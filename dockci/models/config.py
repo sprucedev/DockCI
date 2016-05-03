@@ -3,8 +3,10 @@ Application configuration models
 """
 
 import os
+import re
 import socket
 
+from sre_constants import error as RegexError
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -96,6 +98,11 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     gitlab_base_url = LoadOnAccess(default=lambda _: None)
     gitlab_key = LoadOnAccess(default=lambda _: None)
     gitlab_secret = LoadOnAccess(default=lambda _: None)
+
+    oauth_authorized_redirects = LoadOnAccess(
+        input_transform=guess_multi_value,
+        default=[],
+    )
 
     security_password_salt = LoadOnAccess(generate=lambda _: uuid4().hex)
     # TODO remove after v0.0.10
@@ -227,6 +234,16 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
                 if any(invalid_url_parts):
                     errors.append("External URL can only include scheme, "
                                   "host, port, and path")
+
+            for url_re in self.oauth_authorized_redirects:
+                try:
+                    re.compile(url_re)
+                except RegexError as ex:
+                    errors.append(
+                        "Authorized OAuth URL regex error: %s in '%s'" % (
+                            ex, url_re,
+                        )
+                    )
 
             if errors:
                 raise ValidationError(errors)

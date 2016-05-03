@@ -70,6 +70,18 @@
           <div class="help-block">Number of seconds before a login failure is forgotten</div>
         </div>
       </div>
+      <div class="form-group">
+        <label for="inputOauthAutherizedRedirects" class="col-sm-2 control-label">Authorized OAuth URLs</label>
+        <div class="col-sm-10">
+          <textarea class="form-control" id="inputOauthAuthorizedRedirects" name="oauth_authorized_redirects">{{
+            config.model.oauth_authorized_redirects | join('\n')
+          }}</textarea>
+          <div class="help-block">
+              <div>List of URLs that are allowed to receive redirects and an API key after OAuth</div>
+              <div>One URL regex per line; The DockCI external URL is always accepted</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="panel panel-default">
