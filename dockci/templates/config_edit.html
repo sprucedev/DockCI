@@ -20,10 +20,16 @@
       </div>
       <div class="form-group">
         <div class="col-sm-offset-2">
-          <div class="checkbox col-sm-10">
+          <div class="checkbox col-sm-5">
             <label for="inputSecurityRegForm">
               <input id="inputSecurityRegForm" name="security_registerable_form" type="checkbox" {{ 'checked' if config.model.security_registerable_form else '' }}>
-              Allow user login and registration with built-in forms
+              Allow user registration with built-in forms
+            </label>
+          </div>
+          <div class="checkbox col-sm-5">
+            <label for="inputSecurityLoginForm">
+              <input id="inputSecurityLoginForm" name="security_login_form" type="checkbox" {{ 'checked' if config.model.security_login_form else '' }}>
+              Allow user login with built-in forms
             </label>
           </div>
           <div class="checkbox col-sm-5">

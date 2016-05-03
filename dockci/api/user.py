@@ -8,7 +8,7 @@ from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import clean_attrs, DT_FORMATTER, new_edit_parsers
 from dockci.models.auth import User, UserEmail
-from dockci.server import API, APP, DB
+from dockci.server import API, APP, CONFIG, DB
 
 
 BASIC_FIELDS = {
@@ -68,9 +68,13 @@ class UserList(BaseDetailResource):
     @marshal_with(DETAIL_FIELDS)
     def post(self):
         """ Create a new user """
+        if not CONFIG.security_registerable_form:
+            rest_abort(403, message="API user registration disabled")
+
         args = USER_NEW_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
 
+        # TODO throttle before error
         user = SECURITY_STATE.datastore.get_user(args['email'])
         if user is not None:
             rest_abort(400, message={
