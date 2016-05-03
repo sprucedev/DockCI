@@ -142,10 +142,10 @@ def oauth_redir(next_url=None, user_id=None):
         'jwt' in next_url and
         user_id is not None
     ):
-            match = JWT_URL_RE.search(next_url)
-            if match is not None:
-                token = jwt_token(sub=user_id, **match.groupdict())
-                next_url = JWT_URL_RE.sub(token, next_url, 1)
+        match = JWT_URL_RE.search(next_url)
+        if match is not None:
+            token = jwt_token(sub=user_id, **match.groupdict())
+            next_url = JWT_URL_RE.sub(token, next_url, 1)
 
     return redirect(next_url)
 
