@@ -1,11 +1,12 @@
 """ API relating to User model objects """
 from flask import abort
+from flask_restful import abort as rest_abort
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
 
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
-from .util import DT_FORMATTER, new_edit_parsers
+from .util import clean_attrs, DT_FORMATTER, new_edit_parsers
 from dockci.models.auth import User, UserEmail
 from dockci.server import API, APP, DB
 
@@ -55,6 +56,7 @@ SECURITY_STATE = APP.extensions['security']
 
 # pylint:disable=no-self-use
 
+
 class UserList(BaseDetailResource):
     """ API resource that handles listing users, and creating new users """
     @login_required
@@ -66,8 +68,19 @@ class UserList(BaseDetailResource):
     @marshal_with(DETAIL_FIELDS)
     def post(self):
         """ Create a new user """
-        user = User()
-        return self.handle_write(user, USER_NEW_PARSER)
+        args = USER_NEW_PARSER.parse_args(strict=True)
+        args = clean_attrs(args)
+
+        user = SECURITY_STATE.datastore.get_user(args['email'])
+        if user is not None:
+            rest_abort(400, message={
+                "email": "Duplicate value '%s'" % args['email'],
+            })
+
+        user = SECURITY_STATE.datastore.create_user(**args)
+        DB.session.add(user)
+        DB.session.commit()
+        return user
 
 
 class UserDetail(BaseDetailResource):
