@@ -20,7 +20,9 @@ from .api.base import BaseRequestParser
 from .api.util import clean_attrs
 from .models.auth import User
 from .server import APP, CONFIG, DB, MAIL, redis_pool
-from .util import is_api_request
+from .util import (check_auth_fail,
+                   is_api_request,
+                   )
 
 
 SECURITY_STATE = APP.extensions['security']
@@ -68,12 +70,38 @@ def unauthorized_handler():
 
 
 @LOGIN_MANAGER.request_loader
-def request_loader(_):  # has request as arg
+def request_loader(req):  # has request as arg
     """
     Request loader that first tries the ``LOGIN_FORM`` request parser (see
     ``try_reqparser``), then basic auth (see ``try_basic_auth``)
     """
-    return try_reqparser() or try_basic_auth()
+    with redis_pool() as redis_pool_:
+        reqWindows, unthrottled = check_auth_fail(
+            (req.remote_addr,), redis_pool_,
+        )
+        if not unthrottled:
+            return None
+
+        identsSet = set()
+        user = try_reqparser(identsSet) or try_basic_auth(identsSet)
+
+        identWindows, unthrottled = check_auth_fail(
+            identsSet, redis_pool_,
+        )
+        if not unthrottled:
+            return None
+
+        if user is not None:
+            return user
+
+        # Only update where a login attempt was made
+        if len(identsSet) > 0:
+            # Unique value in all windows
+            value = str(hash(req))
+
+            ipWindow.add(value)
+            for window in identWindows:
+                window.add(value)
 
 
 @SECURITY_STATE.send_mail_task
@@ -85,7 +113,7 @@ def security_mail_task(message):
         flash("Couldn't send email message", 'danger')
 
 
-def try_jwt(token):
+def try_jwt(token, identsSet):
     """ Check a JWT token """
     if token is None:
         return None
@@ -96,15 +124,22 @@ def try_jwt(token):
         return None
 
     else:
-        return User.query.get(jwt_data['sub'])
+        identsSet.add(str(jwt_data['sub']))
+        user = User.query.get(jwt_data['sub'])
+        if user is not None:
+            identsSet.add(user.email.lower())
+        return user
 
 
-def try_user_pass(password, lookup):
+def try_user_pass(password, lookup, identsSet):
     """
     Try to authenticate a user based on first a user ID, if ``lookup`` can be
     parsed into an ``int``, othewise it's treated as a user email. Uses
     ``verify_and_update_password`` to check the password
     """
+    if lookup is not None:
+        identsSet.add(str(lookup).lower())
+
     if password is None or lookup is None:
         return None
 
@@ -113,26 +148,29 @@ def try_user_pass(password, lookup):
     if not user:
         return None
 
+    identsSet.add(user.email.lower())
+    identsSet.add(user.id)
+
     if verify_and_update_password(password, user):
         return user
 
     return None
 
 
-def try_all_auth(api_key, password, username):
+def try_all_auth(api_key, password, username, identsSet):
     """ Attempt auth with the API key, then username/password """
-    user = try_jwt(api_key)
+    user = try_jwt(api_key, identsSet)
     if user is not None:
         return user
 
-    user = try_user_pass(password, username)
+    user = try_user_pass(password, username, identsSet)
     if user is not None:
         return user
 
     return None
 
 
-def try_reqparser():
+def try_reqparser(identsSet):
     """
     Use ``try_all_auth`` to attempt authorization from the ``LOGIN_FORM``
     ``RequestParser``. Will take JWT keys from ``x_dockci_api_key``, and
@@ -143,10 +181,11 @@ def try_reqparser():
         args['x_dockci_api_key'] or args['hx_dockci_api_key'],
         args['x_dockci_password'] or args['hx_dockci_password'],
         args['x_dockci_username'] or args['hx_dockci_username'],
+        identsSet,
     )
 
 
-def try_basic_auth():
+def try_basic_auth(identsSet):
     """
     Use ``try_all_auth`` to attempt authorization from HTTP basic auth. Only
     the password is used for API key
@@ -159,6 +198,7 @@ def try_basic_auth():
         auth.password,
         auth.password,
         auth.username,
+        identsSet,
     )
 
 

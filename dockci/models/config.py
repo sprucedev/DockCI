@@ -109,6 +109,15 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
 
     security_recoverable = LoadOnAccess(default=True)
 
+    auth_fail_ttl_sec = LoadOnAccess(
+        default=60,
+        input_transform=int,
+    )
+    auth_fail_max = LoadOnAccess(
+        default=5,
+        input_transform=int,
+    )
+
     live_log_message_timeout = LoadOnAccess(
         default=1000 * 60 * 60,  # 1hr
         input_transform=int,

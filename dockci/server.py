@@ -142,12 +142,25 @@ def app_init():
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
+    from .forms import (ChangePasswordForm,
+                        ForgotPasswordForm,
+                        LoginForm,
+                        RegisterForm,
+                        ResetPasswordForm)
     from .models.auth import DockciUserDatastore, User, Role
     from .models.job import Job  # pylint:disable=unused-variable
     from .models.project import Project  # pylint:disable=unused-variable
 
     if 'security' not in APP.blueprints:
-        SECURITY.init_app(APP, DockciUserDatastore(DB, User, Role))
+        SECURITY.init_app(
+            APP,
+            datastore=DockciUserDatastore(DB, User, Role),
+            login_form=LoginForm,
+            register_form=RegisterForm,
+            forgot_password_form=ForgotPasswordForm,
+            reset_password_form=ResetPasswordForm,
+            change_password_form=ChangePasswordForm,
+        )
 
     MAIL.init_app(APP)
     DB.init_app(APP)
