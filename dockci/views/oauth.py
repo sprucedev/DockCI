@@ -289,7 +289,7 @@ def existing_user_from_oauth(name, response):
             "Couldn't get email address from %s" % name.title())
 
     return (
-        SECURITY_STATE.datastore.find_user(email=user_email),
+        SECURITY_STATE.datastore.get_user(user_email),
         user_email,
         oauth_token,
     )
