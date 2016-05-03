@@ -128,13 +128,24 @@ def check_redirect_url(url):
 def oauth_redir(next_url=None, user_id=None):
     """ Get the OAuth redirection URL """
     if next_url is None:
-        next_url = request.args.get('next') or url_for('index_view')
+        next_url = request.args.get('next')
 
-    if 'jwt' in next_url and user_id is not None:
-        match = JWT_URL_RE.search(next_url)
-        if match is not None:
-            token = jwt_token(sub=user_id, **match.groupdict())
-            next_url = JWT_URL_RE.sub(token, next_url, 1)
+    if next_url is None:
+        next_url = url_for('index_view')
+
+    next_authorized = check_redirect_url(next_url)
+    if not next_authorized:
+        logging.error("Unauthorized OAuth URL: %s", next_url)
+
+    elif (
+        next_authorized and
+        'jwt' in next_url and
+        user_id is not None
+    ):
+            match = JWT_URL_RE.search(next_url)
+            if match is not None:
+                token = jwt_token(sub=user_id, **match.groupdict())
+                next_url = JWT_URL_RE.sub(token, next_url, 1)
 
     return redirect(next_url)
 
@@ -397,14 +408,15 @@ def oauth_response(oauth_app):
     """
     Build an authorization for the given OAuth service, and return the response
     """
+    ext_next = request.args.get('next') or request.referrer
+    if ext_next is not None and not check_redirect_url(ext_next):
+        logging.error("Unauthorized OAuth URL: %s", ext_next)
+        return redirect(ext_next)
+
     callback_uri = ext_url_for(
         'oauth_authorized',
         name=oauth_app.name,
-        next=(
-            request.args.get('next') or
-            request.referrer or
-            url_for('index_view')
-        ),
+        next=ext_next or url_for('index_view'),
     )
 
     return oauth_app.authorize(callback=callback_uri)
