@@ -16,11 +16,11 @@ from flask import (abort,
 from flask_login import login_url
 from flask_security.utils import verify_and_update_password
 
-from dockci.api.base import BaseRequestParser
-from dockci.api.util import clean_attrs
-from dockci.models.auth import User
-from dockci.server import APP, CONFIG, DB, MAIL
-from dockci.util import is_api_request
+from .api.base import BaseRequestParser
+from .api.util import clean_attrs
+from .models.auth import User
+from .server import APP, CONFIG, DB, MAIL, redis_pool
+from .util import is_api_request
 
 
 SECURITY_STATE = APP.extensions['security']
