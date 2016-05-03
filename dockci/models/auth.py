@@ -21,7 +21,13 @@ class DockciUserDatastore(SQLAlchemyUserDatastore):
     Flask-security datastore to add ``UserEmail`` objects for users, and
     get users by all attached emails
     """
-    def get_user(self, identifier):
+    def get_user_unthrottled(self, identifier):
+        """
+        See ``flask_security.datastore.SQLAlchemyUserDatastore.get_user``
+
+        If ``identifier`` is non-numeric, the email field is searched on for
+        all emails that a user has
+        """
         if self._is_numeric(identifier):
             return self.user_model.query.get(identifier)
 
@@ -31,21 +37,45 @@ class DockciUserDatastore(SQLAlchemyUserDatastore):
         if email_obj is not None:
             return email_obj.user
 
-    def find_user(self, **kwargs):
+    def get_user(self, identifier):
+        """ Throttled version of ``get_user_unthrottled`` """
+        return self.get_user_unthrottled(identifier)
+
+    def find_user_unthrottled(self, **kwargs):
+        """
+        See ``flask_security.datastore.SQLAlchemyUserDatastore.find_user``
+
+        The ``email`` field, if present, is searched on for all emails that
+        a user has
+        """
         email_val = kwargs.pop('email', None)
         base_query = self.user_model.query.filter_by(**kwargs)
 
         if email_val is None:
             return base_query.first()
 
+        # TODO ilike
         return base_query.join(self.user_model.emails).filter(
             UserEmail.email == email_val,
         ).first()
 
-    def create_user(self, **kwargs):
+    def find_user(self, **kwargs):
+        """ Throttled version of ``find_user_unthrottled`` """
+        return self.find_user_unthrottled(**kwargs)
+
+    def create_user_unthrottled(self, **kwargs):
+        """
+        See ``flask_security.datastore.SQLAlchemyUserDatastore.create_user``
+
+        Creates a ``UserEmail`` in addition to the ``User``
+        """
         user = super(DockciUserDatastore, self).create_user(**kwargs)
         self.put(UserEmail(email=user.email, user=user))
         return user
+
+    def create_user(self, **kwargs):
+        """ Throttled version of ``create_user_unthrottled`` """
+        return self.create_user_unthrottled(**kwargs)
 
 
 class Role(DB.Model, RoleMixin):
