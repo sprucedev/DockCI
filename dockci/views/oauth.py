@@ -289,7 +289,7 @@ def existing_user_from_oauth(name, response):
             "Couldn't get email address from %s" % name.title())
 
     return (
-        SECURITY_STATE.datastore.find_user(email=user_email),
+        SECURITY_STATE.datastore.get_user_unthrottled(user_email),
         user_email,
         oauth_token,
     )
@@ -318,7 +318,7 @@ def user_from_oauth(name, response):
             raise OAuthRegError("A user is already registered "
                                 "with the email '%s'" % user_email)
 
-    user_obj = SECURITY_STATE.datastore.create_user(
+    user_obj = SECURITY_STATE.datastore.create_user_unthrottled(
         active=True,
         email=user_email,
     )

@@ -75,7 +75,7 @@ class UserDetail(BaseDetailResource):
     @classmethod
     def user_or_404(cls, user_id):
         """ Return a user from the security store, or 404 """
-        user = SECURITY_STATE.datastore.get_user(user_id)
+        user = SECURITY_STATE.datastore.get_user_unthrottled(user_id)
         if user is None:
             return abort(404)
 
