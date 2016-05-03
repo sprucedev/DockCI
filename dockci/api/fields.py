@@ -8,6 +8,7 @@ import re
 from functools import reduce, wraps
 
 from flask_restful import fields
+from werkzeug.routing import BuildError
 
 from dockci.util import gravatar_url
 
@@ -64,7 +65,10 @@ class RewriteUrl(fields.Url):
         for field_set, field_from in self.rewrites.items():
             data[field_set] = value_path(obj, field_from)
 
-        return super(RewriteUrl, self).output(key, data)
+        try:
+            return super(RewriteUrl, self).output(key, data)
+        except BuildError:
+            return None
 
 
 class GravatarUrl(fields.String):
