@@ -4,7 +4,7 @@ from datetime import datetime
 import jwt
 
 from flask import url_for
-from flask_restful import fields, Resource
+from flask_restful import Resource
 from flask_security import current_user, login_required
 
 from .base import BaseRequestParser
@@ -24,6 +24,9 @@ JWT_NEW_PARSER.add_argument('name',
 JWT_NEW_PARSER.add_argument('exp',
                             type=DT_FORMATTER,
                             help="Expiration time of the token")
+
+
+# pylint:disable=no-self-use
 
 
 class JwtNew(Resource):

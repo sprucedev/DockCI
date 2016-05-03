@@ -780,7 +780,7 @@ def check_auth_fail_window(window):
     ...         self.count_raw = count
     ...     def count(self):
     ...         return self.count_raw
-    
+
     >>> CONFIG.auth_fail_max = 10
     >>> check_auth_fail_window(MockWindow(10))
     False
@@ -821,7 +821,7 @@ def check_auth_fail(suffixes, redis_pool_):
     ]
 
     return windows, all(check_auth_fail_window(window) for window in windows)
-    
+
 
 class RedisWindow(object):
     """ Sliding window, using Redis to store data """
@@ -847,7 +847,7 @@ class RedisWindow(object):
         return self.head_score - self.ttl
 
     @property
-    def head_score(self):
+    def head_score(self):  # pylint:disable=no-self-use
         """ Score for the head of the window """
         return int(datetime.datetime.utcnow().timestamp())
 

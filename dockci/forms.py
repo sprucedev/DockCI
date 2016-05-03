@@ -14,6 +14,9 @@ THROTTLE_ERROR = ('Too many incorrect attempts have been made. Temporarily '
 
 
 def field_for_throttle_error(form):
+    """
+    Given a form, returns the field that throttle errors should be added to
+    """
     for name in ('email', 'password'):
         try:
             return getattr(form, name)
@@ -56,31 +59,59 @@ def sec_form_throttle(func):
     return inner
 
 
+# pylint:disable=too-many-ancestors
+
+
 class ForgotPasswordForm(sec_forms.ForgotPasswordForm):
+    """
+    See ``flask_security.forms.ForgotPasswordForm``
+
+    Wraps validation throttling around the default form
+    """
     @sec_form_throttle
     def validate(self):
         return super(ForgotPasswordForm, self).validate()
 
 
 class LoginForm(sec_forms.LoginForm):
+    """
+    See ``flask_security.forms.LoginForm``
+
+    Wraps validation throttling around the default faorm
+    """
     @sec_form_throttle
     def validate(self):
         return super(LoginForm, self).validate()
 
 
 class RegisterForm(sec_forms.RegisterForm):
+    """
+    See ``flask_security.forms.RegisterForm``
+
+    Wraps validation throttling around the default form
+    """
     @sec_form_throttle
     def validate(self):
         return super(RegisterForm, self).validate()
 
 
 class ResetPasswordForm(sec_forms.ResetPasswordForm):
+    """
+    See ``flask_security.forms.ResetPasswordForm``
+
+    Wraps validation throttling around the default form
+    """
     @sec_form_throttle
     def validate(self):
         return super(ResetPasswordForm, self).validate()
 
 
 class ChangePasswordForm(sec_forms.ChangePasswordForm):
+    """
+    See ``flask_security.forms.ChangePasswordForm``
+
+    Wraps validation throttling around the default form
+    """
     @sec_form_throttle
     def validate(self):
         return super(ChangePasswordForm, self).validate()

@@ -76,17 +76,17 @@ def request_loader(req):  # has request as arg
     ``try_reqparser``), then basic auth (see ``try_basic_auth``)
     """
     with redis_pool() as redis_pool_:
-        reqWindows, unthrottled = check_auth_fail(
+        req_windows, unthrottled = check_auth_fail(
             (req.remote_addr,), redis_pool_,
         )
         if not unthrottled:
             return None
 
-        identsSet = set()
-        user = try_reqparser(identsSet) or try_basic_auth(identsSet)
+        idents_set = set()
+        user = try_reqparser(idents_set) or try_basic_auth(idents_set)
 
-        identWindows, unthrottled = check_auth_fail(
-            identsSet, redis_pool_,
+        ident_windows, unthrottled = check_auth_fail(
+            idents_set, redis_pool_,
         )
         if not unthrottled:
             return None
@@ -95,12 +95,11 @@ def request_loader(req):  # has request as arg
             return user
 
         # Only update where a login attempt was made
-        if len(identsSet) > 0:
+        if len(idents_set) > 0:
             # Unique value in all windows
             value = str(hash(req))
 
-            ipWindow.add(value)
-            for window in identWindows:
+            for window in req_windows + ident_windows:
                 window.add(value)
 
 
@@ -113,7 +112,7 @@ def security_mail_task(message):
         flash("Couldn't send email message", 'danger')
 
 
-def try_jwt(token, identsSet):
+def try_jwt(token, idents_set):
     """ Check a JWT token """
     if token is None:
         return None
@@ -124,21 +123,21 @@ def try_jwt(token, identsSet):
         return None
 
     else:
-        identsSet.add(str(jwt_data['sub']))
+        idents_set.add(str(jwt_data['sub']))
         user = User.query.get(jwt_data['sub'])
         if user is not None:
-            identsSet.add(user.email.lower())
+            idents_set.add(user.email.lower())
         return user
 
 
-def try_user_pass(password, lookup, identsSet):
+def try_user_pass(password, lookup, idents_set):
     """
     Try to authenticate a user based on first a user ID, if ``lookup`` can be
     parsed into an ``int``, othewise it's treated as a user email. Uses
     ``verify_and_update_password`` to check the password
     """
     if lookup is not None:
-        identsSet.add(str(lookup).lower())
+        idents_set.add(str(lookup).lower())
 
     if password is None or lookup is None:
         return None
@@ -148,8 +147,8 @@ def try_user_pass(password, lookup, identsSet):
     if not user:
         return None
 
-    identsSet.add(user.email.lower())
-    identsSet.add(user.id)
+    idents_set.add(user.email.lower())
+    idents_set.add(user.id)
 
     if verify_and_update_password(password, user):
         return user
@@ -157,20 +156,20 @@ def try_user_pass(password, lookup, identsSet):
     return None
 
 
-def try_all_auth(api_key, password, username, identsSet):
+def try_all_auth(api_key, password, username, idents_set):
     """ Attempt auth with the API key, then username/password """
-    user = try_jwt(api_key, identsSet)
+    user = try_jwt(api_key, idents_set)
     if user is not None:
         return user
 
-    user = try_user_pass(password, username, identsSet)
+    user = try_user_pass(password, username, idents_set)
     if user is not None:
         return user
 
     return None
 
 
-def try_reqparser(identsSet):
+def try_reqparser(idents_set):
     """
     Use ``try_all_auth`` to attempt authorization from the ``LOGIN_FORM``
     ``RequestParser``. Will take JWT keys from ``x_dockci_api_key``, and
@@ -181,11 +180,11 @@ def try_reqparser(identsSet):
         args['x_dockci_api_key'] or args['hx_dockci_api_key'],
         args['x_dockci_password'] or args['hx_dockci_password'],
         args['x_dockci_username'] or args['hx_dockci_username'],
-        identsSet,
+        idents_set,
     )
 
 
-def try_basic_auth(identsSet):
+def try_basic_auth(idents_set):
     """
     Use ``try_all_auth`` to attempt authorization from HTTP basic auth. Only
     the password is used for API key
@@ -198,7 +197,7 @@ def try_basic_auth(identsSet):
         auth.password,
         auth.password,
         auth.username,
-        identsSet,
+        idents_set,
     )
 
 
