@@ -7,11 +7,13 @@ import logging
 import re
 
 from functools import wraps
+from urllib.parse import urlparse
 
 from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
 from flask_security import current_user, login_required
 from flask_security.utils import url_for_security
+from py.path import local
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from dockci.models.auth import OAuthToken, UserEmail
@@ -21,7 +23,7 @@ from dockci.server import (APP,
                            OAUTH_APPS,
                            OAUTH_APPS_SCOPE_SERIALIZERS,
                            )
-from dockci.util import ext_url_for, get_token_for, jwt_token
+from dockci.util import ext_url_for, get_token_for, jwt_token, path_contained
 
 
 RE_VALID_OAUTH = re.compile(r'^[a-z]+$')
@@ -57,6 +59,70 @@ def check_oauth_enabled(name):
         getattr(CONFIG, 'security_login_%s' % name),
     )
 
+
+def check_redirect_url(url):
+    """
+    Ensure a redirect URL is authorized
+
+    Examples:
+
+    >>> CONFIG.oauth_authorized_redirects = []
+    >>> check_redirect_url('http://fail')
+    False
+
+    >>> CONFIG.oauth_authorized_redirects = ['okay']
+    >>> check_redirect_url('http://okay')
+    True
+
+    >>> CONFIG.oauth_authorized_redirects = ['^https']
+    >>> check_redirect_url('http://test')
+    False
+    >>> check_redirect_url('https://test')
+    True
+
+    >>> CONFIG.oauth_authorized_redirects = ['^https', '^http://localhost']
+    >>> check_redirect_url('http://localhost/test')
+    True
+    >>> check_redirect_url('https://other/test')
+    True
+    >>> check_redirect_url('http://other/test')
+    False
+
+    >>> CONFIG.oauth_authorized_redirects = []
+    >>> CONFIG.external_url = 'http://localhost:5000/testdockci/'
+    >>> check_redirect_url('http://localhost:5000/testdockci/test')
+    True
+    >>> check_redirect_url('http://localhost:5000/testdockci')
+    True
+    >>> check_redirect_url('http://localhost:5000/testdockci/')
+    True
+    >>> check_redirect_url('http://a:b@localhost:5000/testdockci/')
+    True
+    >>> check_redirect_url('http://localhost:5000/test')
+    False
+    >>> check_redirect_url('http://localhost:5000/testdockci/../other')
+    False
+    >>> check_redirect_url('http://localhost:3000/testdockci/test')
+    False
+    >>> check_redirect_url('https://localhost:5000/testdockci/test')
+    False
+    >>> check_redirect_url('http://localhost/testdockci/test')
+    False
+    """
+    url_parse = urlparse(url)
+    ext_parse = urlparse(CONFIG.external_url)
+    if (
+        url_parse.scheme == ext_parse.scheme and
+        url_parse.hostname == ext_parse.hostname and
+        url_parse.port == ext_parse.port and
+        path_contained(local(ext_parse.path), local(url_parse.path))
+    ):
+        return True
+
+    return any(
+        re.search(re_string, url)
+        for re_string in CONFIG.oauth_authorized_redirects
+    )
 
 def oauth_redir(next_url=None, user_id=None):
     """ Get the OAuth redirection URL """
