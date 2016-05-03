@@ -68,6 +68,9 @@ class UserList(BaseDetailResource):
     @marshal_with(DETAIL_FIELDS)
     def post(self):
         """ Create a new user """
+        if not CONFIG.security_registerable_form:
+            rest_abort(403, message="API user registration disabled")
+
         args = USER_NEW_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
 
