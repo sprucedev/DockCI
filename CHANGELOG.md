@@ -30,6 +30,16 @@
 - Users may have multiple emails #446
 - OAuth registrations are associated with current user #446
 - OAuth registrations with a new email add to current user #446
+- Authentication throttling #450
+  - Forgot password, login, register, reset password, change password forms
+  - Basic auth, header fields, JWT token auth
+  - Can't have more than `n` failed auths in the last `o` seconds
+    - Defaults are 5 failures in 60 seconds but is configurable
+  - Throttling based on both IP address, and attempt user separately
+- Redis connection timeouts #450
+- OAuth next URLs can include the template `{jwt:<name>}` where `<name>` is
+  the name of the service for the JWT. A JWT token for the user will be added
+  to the redirected URL #450
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
