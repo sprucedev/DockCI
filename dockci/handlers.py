@@ -15,6 +15,7 @@ from flask import (abort,
                    )
 from flask_login import login_url
 from flask_security.utils import verify_and_update_password
+from redis.exceptions import RedisError
 
 from .api.base import BaseRequestParser
 from .api.util import clean_attrs
@@ -75,32 +76,37 @@ def request_loader(req):  # has request as arg
     Request loader that first tries the ``LOGIN_FORM`` request parser (see
     ``try_reqparser``), then basic auth (see ``try_basic_auth``)
     """
-    with redis_pool() as redis_pool_:
-        req_windows, unthrottled = check_auth_fail(
-            (req.remote_addr,), redis_pool_,
-        )
-        if not unthrottled:
-            return None
+    idents_set = set()
+    try:
+        with redis_pool() as redis_pool_:
+            req_windows, unthrottled = check_auth_fail(
+                (req.remote_addr,), redis_pool_,
+            )
+            if not unthrottled:
+                return None
 
-        idents_set = set()
-        user = try_reqparser(idents_set) or try_basic_auth(idents_set)
+            user = try_reqparser(idents_set) or try_basic_auth(idents_set)
 
-        ident_windows, unthrottled = check_auth_fail(
-            idents_set, redis_pool_,
-        )
-        if not unthrottled:
-            return None
+            ident_windows, unthrottled = check_auth_fail(
+                idents_set, redis_pool_,
+            )
+            if not unthrottled:
+                return None
 
-        if user is not None:
-            return user
+            if user is not None:
+                return user
 
-        # Only update where a login attempt was made
-        if len(idents_set) > 0:
-            # Unique value in all windows
-            value = str(hash(req))
+            # Only update where a login attempt was made
+            if len(idents_set) > 0:
+                # Unique value in all windows
+                value = str(hash(req))
 
-            for window in req_windows + ident_windows:
-                window.add(value)
+                for window in req_windows + ident_windows:
+                    window.add(value)
+
+    except RedisError:
+        logging.exception("Authentication throttling disabled")
+        return try_reqparser(idents_set) or try_basic_auth(idents_set)
 
 
 @SECURITY_STATE.send_mail_task

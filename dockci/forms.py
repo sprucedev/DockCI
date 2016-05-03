@@ -4,6 +4,7 @@ from functools import wraps
 import flask_security.forms as sec_forms
 
 from flask import request
+from redis.exceptions import RedisError
 
 from .server import redis_pool
 from .util import check_auth_fail
@@ -34,27 +35,32 @@ def sec_form_throttle(func):
         Validates as normal if not throttled. If validation fails, throttle
         counter is incremented
         """
-        field = field_for_throttle_error(self)
-        with redis_pool() as redis_pool_:
-            suffixes = [request.remote_addr]
-            if hasattr(self, 'email'):
-                suffixes.append(self.email.data)
+        try:
+            field = field_for_throttle_error(self)
+            with redis_pool() as redis_pool_:
+                suffixes = [request.remote_addr]
+                if hasattr(self, 'email'):
+                    suffixes.append(self.email.data)
 
-            windows, unthrottled = check_auth_fail(
-                suffixes, redis_pool_,
-            )
-            if not unthrottled:
-                field.errors = (THROTTLE_ERROR,)
-                return False
+                windows, unthrottled = check_auth_fail(
+                    suffixes, redis_pool_,
+                )
+                if not unthrottled:
+                    field.errors = (THROTTLE_ERROR,)
+                    return False
 
-        valid = func(self)
+            valid = func(self)
 
-        if not valid:
-            value = str(hash(request))
-            for window in windows:
-                window.add(value)
+            if not valid:
+                value = str(hash(request))
+                for window in windows:
+                    window.add(value)
 
-        return valid
+            return valid
+
+        except RedisError:
+            logging.exception("Authentication throttling disabled")
+            return func(self)
 
     return inner
 
