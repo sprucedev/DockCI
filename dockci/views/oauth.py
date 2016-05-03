@@ -124,6 +124,7 @@ def check_redirect_url(url):
         for re_string in CONFIG.oauth_authorized_redirects
     )
 
+
 def oauth_redir(next_url=None, user_id=None):
     """ Get the OAuth redirection URL """
     if next_url is None:
