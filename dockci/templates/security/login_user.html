@@ -2,7 +2,7 @@
 {% block title %}Login{% endblock %}
 {% block header %}Login{% endblock %}
 {% block content %}
-  {% if config.model.security_registerable_form %}
+  {% if config.model.security_login_form %}
     {% from "forms/_macros.html" import render_field, render_field_check %}
     <form class="form-horizontal" role="form" action="{{ url_for_security('login') }}" method="POST">
       {{ login_user_form.hidden_tag() }}
@@ -26,17 +26,17 @@
     </form>
   {% endif %}
   {% if config.model.security_oauth_enabled %}
-    <div class="col-sm-{{ 2 if config.model.security_registerable_form else 12 }}">
+    <div class="col-sm-{{ 2 if config.model.security_login_form else 12 }}">
       <div class="panel panel-default">
-        <div class="panel-heading">{{ 'Or...' if config.model.security_registerable_form else 'External User' }}</div>
+        <div class="panel-heading">{{ 'Or...' if config.model.security_login_form else 'External User' }}</div>
         <div class="panel-body">
           {% if config.model.security_github_enabled %}
-            <a class="col-sm-{{ 12 if config.model.security_registerable_form else 2 }}" href="{{ url_for('oauth_login', name='github') }}">
+            <a class="col-sm-{{ 12 if config.model.security_login_form else 2 }}" href="{{ url_for('oauth_login', name='github') }}">
               <img style="width:100%" src="/static/img/octocat.svg" title="Login/Register with GitHub" />
             </a>
           {% endif %}
           {% if config.model.security_gitlab_enabled %}
-            <a class="col-sm-{{ 12 if config.model.security_registerable_form else 2 }}" href="{{ url_for('oauth_login', name='gitlab') }}">
+            <a class="col-sm-{{ 12 if config.model.security_login_form else 2 }}" href="{{ url_for('oauth_login', name='gitlab') }}">
               <img style="width:100%" src="/static/img/gitlab.svg" title="Login/Register with GitLab" />
             </a>
           {% endif %}

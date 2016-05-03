@@ -30,7 +30,7 @@ def config_edit_view():
         'docker_use_env_vars', 'docker_hosts',
         'mail_host_string', 'mail_use_tls', 'mail_use_ssl',
         'mail_username', 'mail_password', 'mail_default_sender',
-        'security_registerable_form',
+        'security_registerable_form', 'security_login_form',
         'security_registerable_github', 'security_login_github',
         'security_registerable_gitlab', 'security_login_gitlab',
         'security_recoverable',

@@ -108,6 +108,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
     # TODO remove after v0.0.10
     security_registerable = LoadOnAccess(default=lambda _: None)
 
+    security_login_form = LoadOnAccess(default=True)
     security_registerable_form = LoadOnAccess(default=True)
     security_login_github = LoadOnAccess(default=True)
     security_registerable_github = LoadOnAccess(default=True)
