@@ -41,6 +41,8 @@
   the name of the service for the JWT. A JWT token for the user will be added
   to the redirected URL #450
 - OAuth will only execute if `next` URL is authorized (configurable) #451
+- Login and registration forms disablable separately #456
+- User API respects disabled registration flag #454
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
