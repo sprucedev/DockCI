@@ -142,9 +142,9 @@ def app_init():
 
     mimetypes.add_type('application/x-yaml', 'yaml')
 
-    from dockci.models.auth import DockciUserDatastore, User, Role
-    from dockci.models.job import Job  # pylint:disable=unused-variable
-    from dockci.models.project import Project  # pylint:disable=unused-variable
+    from .models.auth import DockciUserDatastore, User, Role
+    from .models.job import Job  # pylint:disable=unused-variable
+    from .models.project import Project  # pylint:disable=unused-variable
 
     if 'security' not in APP.blueprints:
         SECURITY.init_app(APP, DockciUserDatastore(DB, User, Role))
