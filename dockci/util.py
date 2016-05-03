@@ -22,7 +22,9 @@ from ipaddress import ip_address
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import docker.errors
+import jwt
 import py.error  # pylint:disable=import-error
+import redis
 import yaml_model
 
 from flask import current_app, flash, request
@@ -726,3 +728,146 @@ def is_api_request(check_request=None):
         check_request = request
 
     return API_RE.match(check_request.url_rule.rule) is not None
+
+
+def jwt_token(**kwargs):
+    """
+    Create a new JWT token with the given args
+
+    Examples:
+
+    >>> from .server import CONFIG
+
+    >>> token = jwt_token()
+    >>> jwt.decode(token, CONFIG.secret)
+    {'iat': ...}
+
+    >>> token = jwt_token(name='test')
+    >>> data = jwt.decode(token, CONFIG.secret)
+    >>> sorted(list(data.items()))
+    [('iat', ...), ('name', 'test')]
+
+    >>> token = jwt_token(iat=1111)
+    >>> jwt.decode(token, CONFIG.secret)
+    {'iat': 1111}
+    """
+    from .server import CONFIG
+
+    jwt_kwargs = kwargs.copy()
+    if 'sub' not in jwt_kwargs and current_user.is_authenticated():
+        jwt_kwargs['sub'] = current_user.id
+    if 'iat' not in jwt_kwargs:
+        jwt_kwargs['iat'] = datetime.datetime.utcnow()
+
+    jwt_kwargs = {
+        key: value
+        for key, value in jwt_kwargs.items()
+        if value is not None
+    }
+
+    return jwt.encode(jwt_kwargs, CONFIG.secret).decode()
+
+
+def check_auth_fail_window(window):
+    """
+    Check an auth fail window for throttling
+
+    Examples:
+
+    >>> from .server import CONFIG
+    >>> class MockWindow(object):
+    ...     def __init__(self, count):
+    ...         self.count_raw = count
+    ...     def count(self):
+    ...         return self.count_raw
+
+    >>> CONFIG.auth_fail_max = 10
+    >>> check_auth_fail_window(MockWindow(10))
+    False
+
+    >>> check_auth_fail_window(MockWindow(11))
+    False
+
+    >>> check_auth_fail_window(MockWindow(9))
+    True
+
+    >>> CONFIG.auth_fail_max = 5
+    >>> check_auth_fail_window(MockWindow(5))
+    False
+
+    >>> check_auth_fail_window(MockWindow(6))
+    False
+
+    >>> check_auth_fail_window(MockWindow(4))
+    True
+    """
+    from .server import CONFIG
+    if window.count() >= CONFIG.auth_fail_max:
+        return False
+    return True
+
+
+def check_auth_fail(suffixes, redis_pool_):
+    """ Check the auth fail windows for a set of window suffixes """
+    from .server import CONFIG
+
+    windows = [
+        RedisWindow(
+            'auth_fail_%s' % suffix,
+            CONFIG.auth_fail_ttl_sec,
+            redis_pool_,
+        )
+        for suffix in suffixes
+    ]
+
+    return windows, all(check_auth_fail_window(window) for window in windows)
+
+
+class RedisWindow(object):
+    """ Sliding window, using Redis to store data """
+
+    def __init__(self, key, ttl, redis_pool=None):
+        self.key = key
+        self.ttl = ttl
+        self.redis_pool = redis_pool
+
+    _redis = None
+
+    @property
+    def redis(self):
+        """ Get a Redis object """
+        if self._redis is None:
+            self._redis = redis.Redis(connection_pool=self.redis_pool)
+
+        return self._redis
+
+    @property
+    def tail_score(self):
+        """ Score for the tail of the window """
+        return self.head_score - self.ttl
+
+    @property
+    def head_score(self):  # pylint:disable=no-self-use
+        """ Score for the head of the window """
+        return int(datetime.datetime.utcnow().timestamp())
+
+    def remove_old(self, pipe):
+        """ Remove old values from the window """
+        pipe.zremrangebyscore(self.key, '-inf', self.tail_score)
+
+    def add(self, value):
+        """ Add a value to the window """
+        with self.redis.pipeline() as pipe:
+            self.remove_old(pipe)
+            pipe.zadd(self.key, **{value: self.head_score})
+            pipe.expire(self.key, self.ttl)
+
+            return all(pipe.execute())
+
+    def count(self):
+        """ Count the number of values currently in the window """
+        with self.redis.pipeline() as pipe:
+            self.remove_old(pipe)
+            pipe.zcard(self.key)
+
+            return pipe.execute()[1]

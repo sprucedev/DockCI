@@ -39,6 +39,7 @@ def config_edit_view():
         'gitlab_key', 'gitlab_secret', 'gitlab_base_url',
         'live_log_message_timeout', 'live_log_session_timeout',
         'redis_len_expire',
+        'auth_fail_max', 'auth_fail_ttl_sec',
     )
     all_fields = restart_fields + ()
     blanks = (
