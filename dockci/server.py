@@ -180,6 +180,8 @@ def get_redis_pool():
     """ Create a configured Redis connection pool """
     return redis.ConnectionPool(host=APP.config['REDIS_HOST'],
                                 port=APP.config['REDIS_PORT'],
+                                socket_timeout=1,
+                                socket_connect_timeout=1,
                                 )
 
 
