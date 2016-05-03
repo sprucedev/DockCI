@@ -152,7 +152,7 @@ def try_user_pass(password, lookup, idents_set):
         return None
 
     idents_set.add(user.email.lower())
-    idents_set.add(user.id)
+    idents_set.add(str(user.id))
 
     if verify_and_update_password(password, user):
         return user
