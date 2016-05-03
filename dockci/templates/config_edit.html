@@ -58,6 +58,18 @@
           </div>
         </div>
       </div>
+      <div class="form-group">
+        <label for="inputAuthFailMax" class="col-sm-2 control-label">Throttling threshold</label>
+        <div class="col-sm-4">
+          <input class="form-control" id="inputAuthFailMax" name="auth_fail_max" value="{{ config.model.auth_fail_max }}">
+          <div class="help-block">Incorrect logins before throttling occurs</div>
+        </div>
+        <label for="inputAuthFailTtlSec" class="col-sm-2 control-label">Failure timeout</label>
+        <div class="col-sm-4">
+          <input class="form-control" id="inputAuthFailTtlSec" name="auth_fail_ttl_sec" value="{{config.model.auth_fail_ttl_sec }}">
+          <div class="help-block">Number of seconds before a login failure is forgotten</div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="panel panel-default">
