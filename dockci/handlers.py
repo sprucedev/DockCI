@@ -71,7 +71,7 @@ def unauthorized_handler():
 
 
 @LOGIN_MANAGER.request_loader
-def request_loader(req):  # has request as arg
+def request_loader(request_):
     """
     Request loader that first tries the ``LOGIN_FORM`` request parser (see
     ``try_reqparser``), then basic auth (see ``try_basic_auth``)
@@ -80,7 +80,7 @@ def request_loader(req):  # has request as arg
     try:
         with redis_pool() as redis_pool_:
             req_windows, unthrottled = check_auth_fail(
-                (req.remote_addr,), redis_pool_,
+                (request_.remote_addr,), redis_pool_,
             )
             if not unthrottled:
                 return None
@@ -99,7 +99,7 @@ def request_loader(req):  # has request as arg
             # Only update where a login attempt was made
             if len(idents_set) > 0:
                 # Unique value in all windows
-                value = str(hash(req))
+                value = str(hash(request_))
 
                 for window in req_windows + ident_windows:
                     window.add(value)
