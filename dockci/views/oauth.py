@@ -13,7 +13,7 @@ from flask import abort, flash, redirect, request, Response, url_for
 from flask_login import login_user
 from flask_security import current_user, login_required
 from flask_security.utils import url_for_security
-from py.path import local
+from py.path import local  # pylint:disable=import-error
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from dockci.models.auth import OAuthToken, UserEmail

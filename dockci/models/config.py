@@ -6,6 +6,7 @@ import os
 import re
 import socket
 
+from sre_constants import error as RegexError
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -237,7 +238,7 @@ class Config(SingletonModel):  # pylint:disable=too-few-public-methods
             for url_re in self.oauth_authorized_redirects:
                 try:
                     re.compile(url_re)
-                except Exception as ex:
+                except RegexError as ex:
                     errors.append(
                         "Authorized OAuth URL regex error: %s in '%s'" % (
                             ex, url_re,
