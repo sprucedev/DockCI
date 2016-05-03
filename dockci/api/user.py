@@ -71,6 +71,7 @@ class UserList(BaseDetailResource):
         args = USER_NEW_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
 
+        # TODO throttle before error
         user = SECURITY_STATE.datastore.get_user(args['email'])
         if user is not None:
             rest_abort(400, message={
