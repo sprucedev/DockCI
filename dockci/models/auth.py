@@ -54,9 +54,8 @@ class DockciUserDatastore(SQLAlchemyUserDatastore):
         if email_val is None:
             return base_query.first()
 
-        # TODO ilike
         return base_query.join(self.user_model.emails).filter(
-            UserEmail.email == email_val,
+            UserEmail.email.ilike(email_val),
         ).first()
 
     def find_user(self, **kwargs):
