@@ -21,9 +21,7 @@ from .api.base import BaseRequestParser
 from .api.util import clean_attrs
 from .models.auth import User
 from .server import APP, CONFIG, DB, MAIL, redis_pool
-from .util import (check_auth_fail,
-                   is_api_request,
-                   )
+from .util import check_auth_fail, is_api_request
 
 
 SECURITY_STATE = APP.extensions['security']
