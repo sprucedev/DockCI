@@ -56,6 +56,7 @@ SECURITY_STATE = APP.extensions['security']
 
 # pylint:disable=no-self-use
 
+
 class UserList(BaseDetailResource):
     """ API resource that handles listing users, and creating new users """
     @login_required
@@ -80,6 +81,7 @@ class UserList(BaseDetailResource):
         DB.session.add(user)
         DB.session.commit()
         return user
+
 
 class UserDetail(BaseDetailResource):
     """ API resource that handles getting user details, and updating users """
