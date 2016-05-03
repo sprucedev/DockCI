@@ -1,4 +1,6 @@
 """ WTForms for DockCI (including Flask-Security overrides) """
+import logging
+
 from functools import wraps
 
 import flask_security.forms as sec_forms
