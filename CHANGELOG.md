@@ -24,6 +24,7 @@
 - API requests don't create new sessions #436
 - Add 'order' option to projects list API #438
   - Value of 'recent' will order, descending by latest job create timestamps
+    - Projects with no jobs are included, but ordered last #457
 - Job stream gives `null` for `init_*` when a job has no stages #444
 - Change OAuth `return_to` param to `next` #445
 - Add more error handling to OAuth #445
