@@ -231,9 +231,9 @@ class ProjectList(Resource):
         if opts['order'] == 'recent':
             query = (
                 query.
-                join(Project.jobs).
+                join(Project.jobs, isouter=True).
                 group_by(Project).
-                order_by(sql_func.max(Job.create_ts).desc())
+                order_by(sql_func.max(Job.create_ts).desc().nullslast())
             )
 
         if filters:
