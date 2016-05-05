@@ -3,6 +3,7 @@ from flask import abort
 from flask_restful import abort as rest_abort
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
+from flask_security.changeable import change_user_password
 
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
@@ -111,7 +112,17 @@ class UserDetail(BaseDetailResource):
         if user is None:
             user = self.user_or_404(user_id)
 
-        return self.handle_write(user, USER_EDIT_PARSER)
+        args = USER_EDIT_PARSER.parse_args(strict=True)
+        args = clean_attrs(args)
+
+        try:
+            new_password = args.pop('password')
+        except KeyError:
+            pass
+        else:
+            change_user_password(user, new_password)
+
+        return self.handle_write(user, data=args)
 
 
 class MeDetail(Resource):
