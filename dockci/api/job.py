@@ -39,6 +39,14 @@ LIST_FIELDS = {
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
+ITEMS_MARSHALER = fields.List(fields.Nested(LIST_FIELDS))
+ALL_LIST_ROOT_FIELDS = {
+    'items': ITEMS_MARSHALER,
+    'meta': fields.Nested({
+        'total': fields.Integer(default=None),
+    }),
+}
+
 STAGE_LIST_FIELDS = {
     'slug': fields.String(),
     'success': fields.Boolean(),
@@ -130,11 +138,15 @@ def filter_jobs_by_request(project):
 
 class JobList(BaseDetailResource):
     """ API resource that handles listing, and creating jobs """
-    @marshal_with(LIST_FIELDS)
+    @marshal_with(ALL_LIST_ROOT_FIELDS)
     def get(self, project_slug):
         """ List all jobs for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
-        return filter_jobs_by_request(project).all()
+        base_query = filter_jobs_by_request(project)
+        return {
+            'items': base_query.paginate().items,
+            'meta': {'total': base_query.count()},
+        }
 
     @login_required
     @marshal_with(CREATE_FIELDS)
