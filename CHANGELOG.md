@@ -45,6 +45,7 @@
 - Login and registration forms disablable separately #456
 - User API respects disabled registration flag #456
 - Change password API uses Flask-Security #459
+- Paginated jobs list #460
 
 ### v0.0.9
 - Exception reported to Rollbar on git push hook `ValidationError` #322
