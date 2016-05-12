@@ -27,12 +27,13 @@ rabbitmq:
   ports:
     - "15674:15674"  # Web STOMP
     - "5672"         # AMQP
-    - "15672"        # Management interface
+    - "15672:15672"  # Management interface
   environment:
     FRONTEND_USER: dockcife
     FRONTEND_PASSWORD: letmein
     BACKEND_USER: dockcibe
     BACKEND_PASSWORD: changeme
+    KEEP_GUEST: 1
 redis:
   image: redis
 registry:
