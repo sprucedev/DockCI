@@ -10,6 +10,7 @@ from itertools import chain
 
 import py.error  # pylint:disable=import-error
 import py.path  # pylint:disable=import-error
+import pygit2
 
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
@@ -350,41 +351,140 @@ class GitMtimeStage(JobStageBase):
         return 0 if success else 1
 
 
-class TagVersionStage(CommandJobStage):
-    """
-    Try and add a version to the job, based on git tag
-    """
+class TagVersionStage(JobStageBase):
+    """ Try and add a version to the job, based on git tag """
 
     slug = 'git_tag'
-    tag_re = re.compile(r'[a-z0-9_.]')
 
     def __init__(self, job, workdir):
-        super(TagVersionStage, self).__init__(
-            job, workdir,
-            ['git', 'describe', '--tags', '--exact-match'],
+        super(TagVersionStage, self).__init__(job)
+        self.workdir = workdir
+
+    def runnable(self, handle):
+        """
+        Examples:
+        
+        >>> from io import StringIO
+        >>> from subprocess import check_call
+
+        >>> test_path = getfixture('tmpdir')
+        >>> test_file = test_path.join('test.txt')
+        >>> test_file.write('test')
+        >>> _ = test_path.chdir()
+        >>> _ = check_call(['git', 'init'])
+        >>> _ = check_call(['git', 'add', '.'])
+        >>> _ = check_call(['git', 'commit', '-m', 'First'])
+
+        Identifies untagged commits:
+
+        >>> output = StringIO()
+        >>> TagVersionStage(None, test_path).runnable(output)
+        True
+        >>> print(output.getvalue())
+        Untagged commit
+        <BLANKLINE>
+
+        Finds all annotated commits, warns when multiple, ignores light tags:
+
+        >>> _ = check_call(['git', 'tag', '-a', 'test-1', '-m', 'Test 1'])
+        >>> _ = check_call(['git', 'tag', '-a', 'test-2', '-m', 'Test 2'])
+        >>> _ = check_call(['git', 'tag', 'test-3'])
+        >>> output = StringIO()
+        >>> TagVersionStage(None, test_path).runnable(output)
+        True
+        >>> print(output.getvalue())
+        Tag: Test 1 (test-1)
+        Tag: Test 2 (test-2)
+        WARNING: Multiple tags; using "test-1"
+        <BLANKLINE>
+
+        Deals with untagged commits, where tags exist elsewhere:
+
+        >>> test_file.write('other')
+        >>> _ = check_call(['git', 'commit', '-m', 'Second', '.'])
+        >>> output = StringIO()
+        >>> TagVersionStage(None, test_path).runnable(output)
+        True
+        >>> print(output.getvalue())
+        Untagged commit
+        <BLANKLINE>
+
+
+        Finds only tags associated with the commit:
+
+        >>> test_file.write('more')
+        >>> _ = check_call(['git', 'commit', '-m', 'Third', '.'])
+        >>> _ = check_call('GIT_COMMITTER_DATE=2016-01-01T12:00:00 '
+        ...                'git tag -a test-4 -m "Test 4"', shell=True)
+        >>> output = StringIO()
+        >>> TagVersionStage(None, test_path).runnable(output)
+        True
+        >>> print(output.getvalue())
+        Tag: Test 4 (test-4)
+        <BLANKLINE>
+
+        Uses the tag created at the latest time:
+
+        >>> _ = check_call('GIT_COMMITTER_DATE=2016-01-01T13:00:00 '
+        ...                'git tag -a zzz-later -m "ZZZ"', shell=True)
+        >>> output = StringIO()
+        >>> TagVersionStage(None, test_path).runnable(output)
+        True
+        >>> print(output.getvalue())
+        Tag: Test 4 (test-4)
+        Tag: ZZZ (zzz-later)
+        WARNING: Multiple tags; using "zzz-later"
+        <BLANKLINE>
+        """
+        repo = pygit2.Repository(self.workdir.join('.git').strpath)
+        head_oid = repo.head.get_object().oid
+
+        repo_tag_refs = (
+            repo.lookup_reference(ref_str)
+            for ref_str in repo.listall_references()
+            if ref_str.startswith('refs/tags/')
+        )
+        repo_ref_targets = (
+            repo[ref.target] for ref in repo_tag_refs
+        )
+        repo_ann_tags = (
+            git_obj for git_obj in repo_ref_targets
+            if isinstance(git_obj, pygit2.Tag)
+        )
+        head_tags = (
+            tag for tag in repo_ann_tags
+            if tag.target == head_oid
         )
 
-    def runnable(self, out_handle):
-        returncode = super(TagVersionStage, self).runnable(out_handle)
-        if returncode != 0:
-            return returncode
+        tag_count = 0
+        commit_tag = None
+        for tag in head_tags:
+            tag_count += 1
 
-        try:
-            # TODO opening file to get this is kinda awful
-            with StageIO.open(self, mode='r') as in_handle:
-                last_line = None
-                for line in in_handle:
-                    _, line = bytes_str(line)
-                    line = line.strip()
-                    if line and self.tag_re.match(line):
-                        last_line = line
+            if commit_tag is None:
+                commit_tag = tag
+            elif tag.tagger.time > commit_tag.tagger.time:
+                commit_tag = tag
 
-                if last_line:
-                    self.job.tag = last_line
-                    self.job.db_session.add(self.job)
-                    self.job.db_session.commit()
+            handle.write("Tag: {message} ({name})\n".format(
+                message=tag.message.strip(),
+                name=tag.name,
+            ))
+            handle.flush()
 
-        except KeyError:
-            pass
+        if tag_count == 0:
+            handle.write("Untagged commit\n")
 
-        return returncode
+        elif tag_count > 1:
+            handle.write("WARNING: Multiple tags; using \"{name}\"\n".format(
+                name=commit_tag.name,
+            ))
+
+        handle.flush()
+
+        if tag_count > 0 and self.job is not None:
+            self.job.tag = commit_tag.name
+            self.job.db_session.add(self.job)
+            self.job.db_session.commit()
+
+        return True
