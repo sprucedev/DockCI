@@ -64,7 +64,7 @@ class WorkdirStage(JobStageBase):
 
         handle.write("Finding %s\n" % job.commit)
         try:
-            git_obj = repo.revparse_single(job.commit)
+            git_obj = repo.revparse_single(job.commit)  # noqa pylint:disable=no-member
         except KeyError:
             handle.write("Can't find that ref anywhere!\n")
             return False
@@ -76,7 +76,7 @@ class WorkdirStage(JobStageBase):
 
         elif git_obj.type == pygit2.GIT_OBJ_COMMIT:
             remote_ref, local_ref = origin_pair(job.commit)
-            branch = repo.lookup_branch(
+            branch = repo.lookup_branch(  # pylint:disable=no-member
                 remote_ref,
                 pygit2.GIT_BRANCH_REMOTE,
             )
@@ -109,7 +109,7 @@ class WorkdirStage(JobStageBase):
         )
 
         handle.write("Checking out %s %s\n" % (ref_type_str, ref_name_str))
-        repo.reset(
+        repo.reset(  # pylint:disable=no-member
             oid,
             pygit2.GIT_RESET_HARD,
         )
