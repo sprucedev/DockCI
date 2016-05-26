@@ -203,7 +203,7 @@ class StageIO(FileIO):
         Obtain the stage lock, update the byte total, write to RMQ,
         write to file, release the stage lock
         """
-        if isinstance(data, str) and 'b' in self.mode:
+        if isinstance(data, str) and 'b' in self.mode:  # noqa pylint:disable=no-member
             super(StageIO, self).write(data.encode())
         else:
             super(StageIO, self).write(data)
