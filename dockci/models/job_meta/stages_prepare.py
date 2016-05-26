@@ -12,50 +12,116 @@ import py.path  # pylint:disable=import-error
 import pygit2
 
 from dockci.models.job_meta.config import JobConfig
-from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
+from dockci.models.job_meta.stages import CommandJobStage, JobStageBase
 from dockci.util import (git_head_ref_name,
                          path_contained,
                          write_all,
                          )
 
 
-class WorkdirStage(CommandJobStage):
+def origin_pair(ref_str):
+    """
+    Ensure one ref string starts with ``'origin/'``, and one not
+
+    Examples:
+
+    >>> origin_pair('master')
+    ('origin/master', 'master')
+    >>> origin_pair('origin/master')
+    ('origin/master', 'master')
+    >>> origin_pair('upstream/master')
+    ('origin/upstream/master', 'upstream/master')
+    >>> origin_pair('origin/upstream/master')
+    ('origin/upstream/master', 'upstream/master')
+    """
+    with_origin = (
+        ref_str if ref_str.startswith('origin/')
+        else 'origin/%s' % ref_str
+    )
+    without_origin = with_origin[7:]
+    return with_origin, without_origin
+
+
+class WorkdirStage(JobStageBase):
     """ Prepare the working directory """
 
     slug = 'git_prepare'
 
     def __init__(self, job, workdir):
-        super(WorkdirStage, self).__init__(
-            job, workdir, (
-                dict(
-                    command=['git', 'clone',
-                             job.command_repo,
-                             workdir.strpath],
-                    display=['git', 'clone',
-                             job.display_repo,
-                             workdir.strpath],
-                ),
-                ['git',
-                 '-c', 'advice.detachedHead=false',
-                 'checkout', job.commit
-                 ],
-            )
-        )
+        super(WorkdirStage, self).__init__(job)
+        self.workdir = workdir
 
     def runnable(self, handle):
         """
         Clone and checkout the job
         """
-        result = super(WorkdirStage, self).runnable(handle)
+        job = self.job
+        handle.write("Cloning from %s\n" % job.display_repo)
+        repo = pygit2.clone_repository(
+            job.command_repo,
+            self.workdir.join('.git').strpath,
+        )
+
+        handle.write("Finding %s\n" % job.commit)
+        try:
+            git_obj = repo.revparse_single(job.commit)  # noqa pylint:disable=no-member
+        except KeyError:
+            handle.write("Can't find that ref anywhere!\n")
+            return False
+
+        ref_type_str = 'unknown ref type'
+
+        if git_obj.type == pygit2.GIT_OBJ_BLOB:
+            ref_type_str = 'blob'
+
+        elif git_obj.type == pygit2.GIT_OBJ_COMMIT:
+            remote_ref, local_ref = origin_pair(job.commit)
+            branch = repo.lookup_branch(  # pylint:disable=no-member
+                remote_ref,
+                pygit2.GIT_BRANCH_REMOTE,
+            )
+            if branch is not None:
+                git_obj = branch
+                ref_type_str = 'branch'
+                if job.git_branch is None:
+                    job.git_branch = local_ref
+            else:
+                ref_type_str = 'commit'
+
+        elif git_obj.type == pygit2.GIT_OBJ_TAG:
+            ref_type_str = 'tag'
+            if job.tag is None:
+                job.tag = git_obj.name
+
+        elif git_obj.type == pygit2.GIT_OBJ_TREE:
+            ref_type_str = 'treeish'
+
+        oid = getattr(git_obj, 'oid', None) or git_obj.target
+        job.commit = oid.hex
+
+        job.db_session.add(job)
+        job.db_session.commit()
+
+        ref_name_str = (
+            getattr(git_obj, 'shorthand', None) or
+            getattr(git_obj, 'name', None) or
+            job.commit
+        )
+
+        handle.write("Checking out %s %s\n" % (ref_type_str, ref_name_str))
+        repo.reset(  # pylint:disable=no-member
+            oid,
+            pygit2.GIT_RESET_HARD,
+        )
 
         # check for, and load job config
         job_config_file = self.workdir.join(JobConfig.slug)
         if job_config_file.check(file=True):
             # pylint:disable=no-member
-            self.job.job_config.load(data_file=job_config_file)
-            self.job.job_config.save()
+            job.job_config.load(data_file=job_config_file)
+            job.job_config.save()
 
-        return result
+        return True
 
 
 class GitInfoStage(JobStageBase):
