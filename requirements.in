@@ -1,6 +1,7 @@
 alembic==0.8.3
 bcrypt==2.0.0
 blinker==1.4
+cffi==1.6.0  # Unspecified dep for pygit2
 docker-py==1.5.0
 Flask-Login==0.2.11  # Only required until https://github.com/mattupstate/flask-security/pull/429
 Flask-Mail==0.9.1
@@ -16,6 +17,7 @@ hiredis
 pika==0.10.0
 psycopg2==2.6.1
 py==1.4.30
+pygit2==0.21.1  # Pinned for Debian version of libgit2
 PyJWT==1.4.0
 python-redis-lock==2.3.0
 PyYAML==3.11
