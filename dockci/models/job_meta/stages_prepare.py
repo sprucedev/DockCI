@@ -363,7 +363,7 @@ class TagVersionStage(JobStageBase):
     def runnable(self, handle):
         """
         Examples:
-        
+
         >>> from io import StringIO
         >>> from subprocess import check_call
 
