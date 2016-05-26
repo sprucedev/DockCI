@@ -10,7 +10,7 @@ alembic==0.8.3
 aniso8601==1.1.0          # via flask-restful
 bcrypt==2.0.0
 blinker==1.4
-cffi==1.4.2               # via bcrypt
+cffi==1.6.0               # via bcrypt, pygit2
 docker-py==1.5.0
 flask-login==0.2.11
 flask-mail==0.9.1
@@ -34,6 +34,7 @@ pika==0.10.0
 psycopg2==2.6.1
 py==1.4.30
 pycparser==2.14           # via cffi
+pygit2==0.21.1
 PyJWT==1.4.0
 python-dateutil==2.4.2    # via aniso8601
 python-editor==0.5        # via alembic

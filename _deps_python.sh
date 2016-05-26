@@ -10,8 +10,10 @@ function env_create {
 function env_install_reqs {
     [[ -e python_env ]] || env_create
     if [[ $WHEELS_ONLY -eq 0 ]]; then
+        python_env/bin/pip install --use-wheel --no-index --find-links=wheelhouse cffi
         python_env/bin/pip install --use-wheel --no-index --find-links=wheelhouse -r "$1"
     else
+        python_env/bin/pip install 'cffi==1.6.0'
         python_env/bin/pip install -r "$1"
     fi
 }

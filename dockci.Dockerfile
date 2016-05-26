@@ -2,7 +2,7 @@ FROM debian:jessie
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
-        git libffi6 libpq5 locales python3 python3-setuptools
+        git libffi6 libgit2-21 libpq5 locales python3 python3-setuptools
 RUN easy_install3 pip wheel virtualenv
 
 RUN echo 'en_AU.UTF-8 UTF-8' > /etc/locale.gen && locale-gen && update-locale LANG=en_AU.UTF-8
