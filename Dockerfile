@@ -21,7 +21,6 @@ ADD _deps_collectstatic.sh /code/_deps_collectstatic.sh
 RUN ./_deps_collectstatic.sh
 
 ENV WHEELS_ONLY=1
-RUN pip3 install cffi==1.6.0  # manually install before libgit2
 ADD requirements.txt /code/requirements.txt
 ADD test-requirements.txt /code/test-requirements.txt
 ADD _deps_python.sh /code/_deps_python.sh
