@@ -1,9 +1,10 @@
 """ IO for handling stage output/logging """
 
 import logging
+import warnings
 
 from contextlib import contextmanager
-from io import FileIO
+from io import RawIOBase
 
 import redis
 import redis_lock
@@ -29,18 +30,12 @@ def redis_lock_name(job):
     )
 
 
-class StageIO(FileIO):
+class StageIO(RawIOBase):
     """
-    Handle IO for stage output. This includes writing the log file, updating
-    the total bytes count, handling locking, and sending data to any RabbitMQ
-    queues that are needed
+    Handle IO for stage output. This includes total bytes count, handling
+    locking, and sending data to any RabbitMQ queues that are needed
 
     Examples:
-
-    >>> test_path = getfixture('tmpdir')
-    >>> old_path = test_path.chdir()
-    >>> test_path.join('data', 'testproj', '00002a').ensure_dir()
-    local('.../data/testproj/00002a')
 
     >>> from dockci.models.project import Project
     >>> from dockci.models.job import Job
@@ -50,113 +45,30 @@ class StageIO(FileIO):
     >>> job = Job(id=0x2a, project=project)
     >>> stage = ExternalStatusStage(job, 'test')
 
-    >>> StageIO(stage, mode='wb', redis_pool=None, pika_conn='not none')
+    >>> StageIO(stage, redis_pool=None, pika_conn='not none')
     Traceback (most recent call last):
       ...
     ValueError: Can't write to a stage stream without Redis
 
-    >>> StageIO(stage, mode='wb', redis_pool='not none', pika_conn=None)
+    >>> StageIO(stage, redis_pool='not none', pika_conn=None)
     Traceback (most recent call last):
       ...
     ValueError: Can't write to a stage stream without RabbitMQ
 
-    >>> StageIO(stage, mode='wb', redis_pool='not none', pika_conn='not none')
+    >>> StageIO(stage, redis_pool='not none', pika_conn='not none')
     <StageIO: ...>
-
-    >>> StageIO(stage, mode='rb', redis_pool=None, pika_conn=None)
-    <StageIO: ...>
-
-    >>> old_path.chdir()
-    local(...)
     """
-    def __init__(self, stage, mode='wb', redis_pool=None, pika_conn=None):
-        if 'w' in mode and redis_pool is None:
+    def __init__(self, stage, redis_pool=None, pika_conn=None):
+        if redis_pool is None:
             raise ValueError("Can't write to a stage stream without Redis")
-        if 'w' in mode and pika_conn is None:
+        if pika_conn is None:
             raise ValueError("Can't write to a stage stream without RabbitMQ")
 
         self.stage = stage
         self.redis_pool = redis_pool
         self.pika_conn = pika_conn
 
-        super(StageIO, self).__init__(
-            self._log_path.strpath,
-            mode=mode,
-        )
-
-    @classmethod
-    @contextmanager
-    def open(cls, stage, mode='wb', redis_pool=None, pika_conn=None):
-        """
-        Context manager for getting a stage log
-
-        Examples:
-
-        >>> test_path = getfixture('tmpdir')
-        >>> old_path = test_path.chdir()
-        >>> test_path.join('data', 'testproj', '00002a').ensure_dir()
-        local('.../data/testproj/00002a')
-
-        >>> from dockci.models.project import Project
-        >>> from dockci.models.job import Job
-        >>> from dockci.models.job_meta.stages_main import ExternalStatusStage
-
-        >>> project = Project(slug='testproj')
-        >>> job = Job(id=0x2a, project=project)
-        >>> stage = ExternalStatusStage(job, 'test')
-
-        >>> with StageIO.open(stage, redis_pool='red', pika_conn='pika') as h:
-        ...     h.pika_conn
-        'pika'
-
-        >>> with StageIO.open(stage, redis_pool='red', pika_conn='pika') as h:
-        ...     h.redis_pool
-        'red'
-
-        >>> with StageIO.open(stage, mode='rb') as h:
-        ...     h.mode
-        'rb'
-        """
-        handle = cls(
-            stage,
-            mode=mode,
-            redis_pool=redis_pool,
-            pika_conn=pika_conn,
-        )
-        try:
-            yield handle
-        finally:
-            handle.close()  # pylint:disable=no-member
-
-    @property
-    def _log_path(self):
-        """
-        Path to the stage log being written
-
-        Examples:
-
-        >>> test_path = getfixture('tmpdir')
-        >>> old_path = test_path.chdir()
-        >>> test_path.join('data', 'testproj', '00002a').ensure_dir()
-        local('.../data/testproj/00002a')
-
-        >>> from dockci.models.project import Project
-        >>> from dockci.models.job import Job
-        >>> from dockci.models.job_meta.stages_main import ExternalStatusStage
-
-        >>> project = Project(slug='testproj')
-        >>> job = Job(id=0x2a, project=project)
-        >>> stage = ExternalStatusStage(job, 'test')
-
-        >>> StageIO(stage, redis_pool='test', pika_conn='test')._log_path
-        local('.../testproj/00002a/external_status_test.log')
-
-        >>> old_path.chdir()
-        local(...)
-        """
-        return self.stage.job.job_output_path().join(
-            '%s.log' % self.stage.slug
-        )
+        super(StageIO, self).__init__()
 
     _redis = None
 
@@ -201,13 +113,8 @@ class StageIO(FileIO):
     def write(self, data):
         """
         Obtain the stage lock, update the byte total, write to RMQ,
-        write to file, release the stage lock
+        release the stage lock
         """
-        if isinstance(data, str) and 'b' in self.mode:  # noqa pylint:disable=no-member
-            super(StageIO, self).write(data.encode())
-        else:
-            super(StageIO, self).write(data)
-
         try:
             redis_conn = self.redis
             with redis_lock.Lock(
@@ -238,14 +145,16 @@ class StageIO(FileIO):
         except Exception:  # pylint:disable=broad-except
             logging.exception("Error writing live logs")
 
+    def flush(self):
+        """ Deprecated flush placeholder to save exceptions """
+        warnings.warn(
+            "StageIO is no longer buffered. Flushing is unnecessary",
+            DeprecationWarning,
+        )
+
     def __repr__(self):
         """
         Examples:
-
-        >>> test_path = getfixture('tmpdir')
-        >>> old_path = test_path.chdir()
-        >>> test_path.join('data', 'testproj', '00002a').ensure_dir()
-        local('.../data/testproj/00002a')
 
         >>> from dockci.models.project import Project
         >>> from dockci.models.job import Job
@@ -255,14 +164,13 @@ class StageIO(FileIO):
         >>> job = Job(id=0x2a, project=project)
         >>> stage = ExternalStatusStage(job, 'test')
 
-        >>> StageIO(stage, mode='wb', redis_pool='test', pika_conn='test')
-        <StageIO: project=testproj, job=...2a, stage=...test, mode=wb>
+        >>> StageIO(stage, redis_pool='test', pika_conn='test')
+        <StageIO: project=testproj, job=...2a, stage=...test>
         """
         return ('<{klass}: project={project_slug}, job={job_slug}, '
-                'stage={stage_slug}, mode={mode}>').format(
+                'stage={stage_slug}>').format(
             klass=self.__class__.__name__,
             project_slug=self.stage.job.project.slug,
             job_slug=self.stage.job.slug,
             stage_slug=self.stage.slug,
-            mode=self.mode,  # pylint:disable=no-member
         )
