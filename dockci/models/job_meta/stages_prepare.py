@@ -2,7 +2,6 @@
 
 import glob
 import json
-import re
 import subprocess
 
 from datetime import datetime
@@ -14,9 +13,7 @@ import pygit2
 
 from dockci.models.job_meta.config import JobConfig
 from dockci.models.job_meta.stages import JobStageBase, CommandJobStage
-from dockci.stage_io import StageIO
-from dockci.util import (bytes_str,
-                         git_head_ref_name,
+from dockci.util import (git_head_ref_name,
                          path_contained,
                          write_all,
                          )
@@ -436,6 +433,8 @@ class TagVersionStage(JobStageBase):
         WARNING: Multiple tags; using "zzz-later"
         <BLANKLINE>
         """
+        # pygit2 fails member checks because it's CFFI
+        # pylint:disable=no-member
         repo = pygit2.Repository(self.workdir.join('.git').strpath)
         head_oid = repo.head.get_object().oid
 
