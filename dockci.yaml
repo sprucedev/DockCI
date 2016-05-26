@@ -9,6 +9,7 @@ utilities:
       sh -c '
         apt-get update &&
         apt-get install -y libffi-dev libgit2-dev libpq-dev &&
+        pip install cffi &&
         pip wheel -r requirements.txt &&
         pip wheel -r test-requirements.txt
       '
