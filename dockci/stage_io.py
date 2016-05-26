@@ -203,7 +203,10 @@ class StageIO(FileIO):
         Obtain the stage lock, update the byte total, write to RMQ,
         write to file, release the stage lock
         """
-        super(StageIO, self).write(data)
+        if isinstance(data, str) and 'b' in self.mode:
+            super(StageIO, self).write(data.encode())
+        else:
+            super(StageIO, self).write(data)
 
         try:
             redis_conn = self.redis
