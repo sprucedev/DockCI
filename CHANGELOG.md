@@ -4,6 +4,8 @@
 - Libgit2 for many git operations, including:
   - Finding tags from a commit #463
   - Cloned and checkout in git prepare #465
+  - Author, and committer details
+  - Branch resolution
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
