@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.0.11
+- Libgit2 for many git operations, including:
+  - Finding tags from a commit #463
+
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
 - Messages when images will and won't be cleaned up #397
