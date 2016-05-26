@@ -369,6 +369,8 @@ class TagVersionStage(JobStageBase):
         >>> test_file.write('test')
         >>> _ = test_path.chdir()
         >>> _ = check_call(['git', 'init'])
+        >>> _ = check_call(['git', 'config', 'user.email', 'a@example.com'])
+        >>> _ = check_call(['git', 'config', 'user.name', 'Test'])
         >>> _ = check_call(['git', 'add', '.'])
         >>> _ = check_call(['git', 'commit', '-m', 'First'])
 
