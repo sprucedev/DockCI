@@ -139,7 +139,7 @@ class GitInfoStage(JobStageBase):
         """
         job = self.job
         repo = pygit2.Repository(self.workdir.join('.git').strpath)
-        commit = repo[repo.head.target]
+        commit = repo[repo.head.target]  # pylint:disable=no-member
 
         job.git_author_name = commit.author.name
         job.git_author_email = commit.author.email
@@ -162,9 +162,7 @@ class GitInfoStage(JobStageBase):
             job.ancestor_job_id = ancestor_job.id
 
         if job.git_branch is None:
-            job.git_branch = git_head_ref_name(
-                self.workdir, stderr=handle,
-            )
+            job.git_branch = git_head_ref_name(self.workdir)
 
         if self.job.git_branch is None:
             handle.write("Branch name could not be determined\n".encode())
@@ -174,7 +172,7 @@ class GitInfoStage(JobStageBase):
         self.job.db_session.add(self.job)
         self.job.db_session.commit()
 
-        return proc.returncode
+        return True
 
 
 class GitChangesStage(CommandJobStage):

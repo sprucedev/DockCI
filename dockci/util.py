@@ -24,6 +24,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import docker.errors
 import jwt
 import py.error  # pylint:disable=import-error
+import pygit2
 import redis
 import yaml_model
 
@@ -204,23 +205,23 @@ def is_git_ancestor(workdir, parent_check, child_check):
     return proc.returncode == 0
 
 
-def git_head_ref_name(workdir, stderr=None):
+def git_head_ref_name(workdir, branch_type=pygit2.GIT_BRANCH_REMOTE):
     """ Gets the full git ref name of the HEAD ref """
-    proc = subprocess.Popen([
-            'git', 'name-rev',
-            '--name-only', '--no-undefined',
-            '--ref', 'refs/heads/*',
-            'HEAD',
-        ],
-        stdout=subprocess.PIPE,
-        stderr=stderr,
-        cwd=workdir.strpath,
+    repo = pygit2.Repository(workdir.join('.git').strpath)
+    origin_branch_refs = (
+        repo.lookup_branch(ref_str, branch_type)  # pylint:disable=no-member
+        for ref_str in repo.listall_branches(branch_type)  # noqa pylint:disable=no-member
+        if not ref_str.endswith('/HEAD')
     )
-    proc.wait()
-    if proc.returncode == 0:
-        return parse_branch_from_ref(
-            proc.stdout.read().decode().strip(), strict=False,
-        )
+    head_branches = (
+        a for a in origin_branch_refs
+        if a.get_object().oid == repo.head.target  # pylint:disable=no-member
+    )
+
+    for branch in head_branches:
+        # TODO return multiple branches
+        # XXX return branch object
+        return branch.name.split('/')[-1]
 
     return None
 
