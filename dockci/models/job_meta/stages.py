@@ -136,15 +136,6 @@ class JobStage(JobStageBase):
         """ Wrapper for runnable to avoid ambiguity """
         return self._runnable(*args, **kwargs)
 
-    @classmethod
-    def from_command(cls, job, slug, cwd, cmd_args):
-        """
-        Create a JobStage object from a system command
-        """
-        stage = CommandJobStage(job, cwd, cmd_args)
-        setattr(stage, 'slug', slug)
-        return stage
-
 
 class CommandJobStage(JobStageBase):  # pylint:disable=abstract-method
     """
