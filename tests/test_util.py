@@ -3,7 +3,6 @@ import json
 import subprocess
 
 import docker
-import pygit2
 import pytest
 
 from dockci.util import (add_to_url_path,
@@ -167,7 +166,7 @@ class TestGitRefNameOf(object):
         subprocess.check_call(['git', 'add', '.'])
         subprocess.check_call(['git', 'commit', '-m', 'first'])
 
-        assert git_head_ref_name(tmpgitdir, pygit2.GIT_BRANCH_LOCAL) == branch
+        assert git_head_ref_name(tmpgitdir) == branch
 
     def test_multiple_branches(self, tmpgitdir):
         """ Test when branch is not master """
@@ -185,7 +184,7 @@ class TestGitRefNameOf(object):
         subprocess.check_call(['git', 'add', '.'])
         subprocess.check_call(['git', 'commit', '-m', 'second'])
 
-        assert git_head_ref_name(tmpgitdir, pygit2.GIT_BRANCH_LOCAL) == 'testbranch'
+        assert git_head_ref_name(tmpgitdir) == 'testbranch'
 
     @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
     def test_tagged(self, tmpgitdir, branch):
@@ -200,7 +199,7 @@ class TestGitRefNameOf(object):
         subprocess.check_call(['git', 'commit', '-m', 'first'])
         subprocess.check_call(['git', 'tag', '-a', 'v0', '-m', 'v0 first'])
 
-        assert git_head_ref_name(tmpgitdir, pygit2.GIT_BRANCH_LOCAL) == branch
+        assert git_head_ref_name(tmpgitdir) == branch
 
     @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
     def test_detached_head(self, tmpgitdir, branch):
@@ -219,7 +218,7 @@ class TestGitRefNameOf(object):
         ).decode()
 
         assert "You are in 'detached HEAD' state" in detached_output
-        assert git_head_ref_name(tmpgitdir, pygit2.GIT_BRANCH_LOCAL) == branch
+        assert git_head_ref_name(tmpgitdir) == branch
 
     @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
     def test_tagged_detached_head(self, tmpgitdir, branch):
@@ -239,7 +238,7 @@ class TestGitRefNameOf(object):
         ).decode()
 
         assert "You are in 'detached HEAD' state" in detached_output
-        assert git_head_ref_name(tmpgitdir, pygit2.GIT_BRANCH_LOCAL) == branch
+        assert git_head_ref_name(tmpgitdir) == branch
 
 
 class TestGitAncestor(object):
