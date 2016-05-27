@@ -891,7 +891,7 @@ class Job(DB.Model, RepoFsMixin):
         try:
             git_info = (stage() for stage in (
                 lambda: self._stage_objects['git_prepare'].run(True),
-                lambda: self._stage_objects['git_info'].run(0),
+                lambda: self._stage_objects['git_info'].run(True),
             ))
 
             if not all(git_info):
