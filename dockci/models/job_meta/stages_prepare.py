@@ -96,17 +96,20 @@ class WorkdirStage(JobStageBase):
         elif git_obj.type == pygit2.GIT_OBJ_TREE:
             ref_type_str = 'treeish'
 
-        oid = getattr(git_obj, 'oid', None) or git_obj.target
-        job.commit = oid.hex
-
-        job.db_session.add(job)
-        job.db_session.commit()
-
         ref_name_str = (
             getattr(git_obj, 'shorthand', None) or
             getattr(git_obj, 'name', None) or
             job.commit
         )
+
+        while git_obj.type != pygit2.GIT_OBJ_COMMIT:
+            git_obj = git_obj.get_object()
+
+        oid = getattr(git_obj, 'oid', None) or getattr(git_obj, 'target')
+        job.commit = oid.hex
+
+        job.db_session.add(job)
+        job.db_session.commit()
 
         handle.write("Checking out %s %s\n" % (ref_type_str, ref_name_str))
         repo.reset(  # pylint:disable=no-member
