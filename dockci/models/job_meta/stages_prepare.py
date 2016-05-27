@@ -96,17 +96,20 @@ class WorkdirStage(JobStageBase):
         elif git_obj.type == pygit2.GIT_OBJ_TREE:
             ref_type_str = 'treeish'
 
-        oid = getattr(git_obj, 'oid', None) or git_obj.target
-        job.commit = oid.hex
-
-        job.db_session.add(job)
-        job.db_session.commit()
-
         ref_name_str = (
             getattr(git_obj, 'shorthand', None) or
             getattr(git_obj, 'name', None) or
             job.commit
         )
+
+        while git_obj.type != pygit2.GIT_OBJ_COMMIT:
+            git_obj = git_obj.get_object()
+
+        oid = getattr(git_obj, 'oid', None) or getattr(git_obj, 'target')
+        job.commit = oid.hex
+
+        job.db_session.add(job)
+        job.db_session.commit()
 
         handle.write("Checking out %s %s\n" % (ref_type_str, ref_name_str))
         repo.reset(  # pylint:disable=no-member
@@ -137,79 +140,42 @@ class GitInfoStage(JobStageBase):
         """
         Execute git to retrieve info
         """
-        def run_proc(*args):
-            """
-            Run, and wait for a process with default args
-            """
-            proc = subprocess.Popen(args,
-                                    stdout=subprocess.PIPE,
-                                    stderr=handle,
-                                    cwd=self.workdir.strpath,
-                                    )
-            proc.wait()
-            return proc
+        job = self.job
+        repo = pygit2.Repository(self.workdir.join('.git').strpath)
+        commit = repo[repo.head.target]  # pylint:disable=no-member
 
-        largest_returncode = 0
-        properties_empty = True
+        job.git_author_name = commit.author.name
+        job.git_author_email = commit.author.email
+        job.git_committer_name = commit.committer.name
+        job.git_committer_email = commit.committer.email
 
-        properties = {
-            'Author name': ('git_author_name', '%an'),
-            'Author email': ('git_author_email', '%ae'),
-            'Committer name': ('git_committer_name', '%cn'),
-            'Committer email': ('git_committer_email', '%ce'),
-            'Full SHA-1 hash': ('commit', '%H'),
-        }
-        for display_name, (attr_name, format_string) in properties.items():
-            proc = run_proc('git', 'show',
-                            '-s',
-                            '--format=format:%s' % format_string,
-                            'HEAD')
-
-            largest_returncode = max(largest_returncode, proc.returncode)
-            value = proc.stdout.read().decode().strip()
-
-            if value != '' and proc.returncode == 0:
-                setattr(self.job, attr_name, value)
-                properties_empty = False
-                handle.write((
-                    "%s is %s\n" % (display_name, value)
-                ).encode())
+        handle.write("Author name is %s\n" % job.git_author_name)
+        handle.write("Author email is %s\n" % job.git_author_email)
+        handle.write("Committer name is %s\n" % job.git_committer_name)
+        handle.write("Committer email is %s\n" % job.git_committer_email)
 
         ancestor_job = self.job.project.latest_job_ancestor(
             self.workdir,
-            self.job.commit,
+            job.commit,
         )
         if ancestor_job:
-            properties_empty = False
             handle.write((
                 "Ancestor job is %s\n" % ancestor_job.slug
             ).encode())
-            self.job.ancestor_job_id = ancestor_job.id
+            job.ancestor_job_id = ancestor_job.id
 
-        if self.job.git_branch is None:
-            self.job.git_branch = git_head_ref_name(
-                self.workdir, stderr=handle,
-            )
-            if self.job.git_branch is not None:
-                properties_empty = False
-
-        else:
-            properties_empty = False
+        if job.git_branch is None:
+            job.git_branch = git_head_ref_name(self.workdir)
 
         if self.job.git_branch is None:
             handle.write("Branch name could not be determined\n".encode())
         else:
             handle.write(("Branch is %s\n" % self.job.git_branch).encode())
 
-        if properties_empty:
-            handle.write("No information about the git commit could be "
-                         "derived\n".encode())
+        self.job.db_session.add(self.job)
+        self.job.db_session.commit()
 
-        else:
-            self.job.db_session.add(self.job)
-            self.job.db_session.commit()
-
-        return proc.returncode
+        return True
 
 
 class GitChangesStage(CommandJobStage):
