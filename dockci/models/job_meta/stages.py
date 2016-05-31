@@ -88,24 +88,24 @@ class JobStageBase(object):
             self.pika_conn = pika_conn_
             self.update_status({'state': 'starting'})
             with redis_pool() as redis_pool_:
-                with StageIO.open(
+                handle = StageIO(
                     self,
                     redis_pool=redis_pool_,
                     pika_conn=pika_conn_,
-                ) as handle:
-                    self.job.db_session.add(stage)
-                    self.job.db_session.commit()
+                )
+                self.job.db_session.add(stage)
+                self.job.db_session.commit()
 
-                    try:
-                        self.returncode = self.runnable(handle)
+                try:
+                    self.returncode = self.runnable(handle)
 
-                    except StageFailedError as ex:
-                        if not ex.handled:
-                            handle.write(("FAILED: %s\n" % ex).encode())
-                            handle.flush()
+                except StageFailedError as ex:
+                    if not ex.handled:
+                        handle.write(("FAILED: %s\n" % ex).encode())
+                        handle.flush()
 
-                        self.update_status_complete(stage, False)
-                        return False
+                    self.update_status_complete(stage, False)
+                    return False
 
             if expected_rc is None:
                 self.update_status_complete(stage, True)

@@ -236,7 +236,15 @@ class StageStreamDetail(Resource):
                         bytes_read = 0
 
                     else:
-                        bytes_read = redis_conn.get(redis_len_key(stage))
+                        bytes_read = redis_conn.get(
+                            redis_len_key(stage)
+                        )
+
+                        # Sometimes Redis gives us bytes :\
+                        try:
+                            bytes_read = bytes_read.decode()
+                        except AttributeError:
+                            pass
 
         return {
             'init_stage': None if stage is None else stage.slug,
