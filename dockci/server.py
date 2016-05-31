@@ -205,6 +205,7 @@ def get_pika_conn():
             APP.config['RABBITMQ_USER'],
             APP.config['RABBITMQ_PASSWORD'],
         ),
+        heartbeat_interval=60 * 30,  # 30min
     ))
 
 
