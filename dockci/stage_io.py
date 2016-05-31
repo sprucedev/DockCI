@@ -3,7 +3,6 @@
 import logging
 import warnings
 
-from contextlib import contextmanager
 from io import RawIOBase
 
 import redis
@@ -145,7 +144,7 @@ class StageIO(RawIOBase):
         except Exception:  # pylint:disable=broad-except
             logging.exception("Error writing live logs")
 
-    def flush(self):
+    def flush(self):  # pylint:disable=no-self-use
         """ Deprecated flush placeholder to save exceptions """
         warnings.warn(
             "StageIO is no longer buffered. Flushing is unnecessary",
