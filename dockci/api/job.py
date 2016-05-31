@@ -238,7 +238,7 @@ class StageStreamDetail(Resource):
                     else:
                         bytes_read = redis_conn.get(
                             redis_len_key(stage)
-                        ).decode()
+                        )
 
         return {
             'init_stage': None if stage is None else stage.slug,
