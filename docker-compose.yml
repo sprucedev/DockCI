@@ -1,3 +1,13 @@
+router:
+  build: ../dockci-router
+  ports:
+   - 80:80
+  links:
+   - web:dockci
+   - logserve-http:logserve
+   - rabbitmq
+  volumes:
+   - ../dockci-router/nginx.conf:/etc/nginx/nginx.conf
 web:
   build: .
   command: run --debug --collect-static --db-migrate --timeout 15 --bind 0.0.0.0:5000
@@ -17,8 +27,22 @@ web:
    - /Users:/Users
   environment:
     OAUTHLIB_INSECURE_TRANSPORT: 1
+logserve-consumer:
+  build: ../dockci-logserve
+  command: run-consumer
+  links:
+   - rabbitmq
+  volumes:
+   - ../dockci-logserve/data:/code/data
+   - ../dockci-logserve/dockci:/code/dockci
+logserve-http:
+  build: ../dockci-logserve
+  command: run-http
+  volumes:
+   - ../dockci-logserve/data:/code/data
+   - ../dockci-logserve/dockci:/code/dockci
 postgres:
-  image: postgres
+  image: postgres:9.4
   environment:
     POSTGRES_USER: dockci
     POSTGRES_PASSWORD: letmein
