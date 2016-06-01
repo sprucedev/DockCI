@@ -11,6 +11,7 @@
   - Router - sits on top of the DockCI API, routing URLs to services #467
 - DockCI core doesn't handle logs directly #467
 - Admin role protection for config #473
+- Fix user emails list output #474
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
