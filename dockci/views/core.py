@@ -5,7 +5,7 @@ Core app views
 import py.error  # pylint:disable=import-error
 
 from flask import abort, render_template, request
-from flask_security import login_required
+from flask_security import login_required, roles_required
 
 from dockci.server import APP, CONFIG
 from dockci.util import request_fill
@@ -21,6 +21,7 @@ def index_view():
 
 @APP.route('/config', methods=('GET', 'POST'))
 @login_required
+@roles_required('admin')
 def config_edit_view():
     """
     View to edit global config
@@ -76,6 +77,7 @@ def config_edit_view():
 
 @APP.route('/config/<page>', methods=('GET',))
 @login_required
+@roles_required('admin')
 def config_page_view(page):
     """ View and edit misc config """
     if page not in ('registries',):
