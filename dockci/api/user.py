@@ -28,6 +28,10 @@ DETAIL_FIELDS = {
     'avatar': GravatarUrl(attr_name='email'),
     'confirmed_at': DT_FORMATTER,
     'emails': fields.List(fields.String(attribute='email')),
+    'roles': fields.List(fields.Nested({
+        'name': fields.String(),
+        'description': fields.String(),
+    })),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
