@@ -27,7 +27,7 @@ LIST_FIELDS.update(BASIC_FIELDS)
 DETAIL_FIELDS = {
     'avatar': GravatarUrl(attr_name='email'),
     'confirmed_at': DT_FORMATTER,
-    'emails': fields.List(fields.String()),
+    'emails': fields.List(fields.String(attribute='email')),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
