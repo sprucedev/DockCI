@@ -152,9 +152,11 @@
       <ul class="navbar-right nav navbar-nav">
         {% if current_user.is_authenticated() %}
           <li class="navbar-brand">{{ current_user.email }}</li>
-          {% if not config.model.exists() %}<li><i class="navbar-brand glyphicon glyphicon-warning-sign text-error"></i></li>{% endif %}
-          {% if config.model.restart_needed %}<li><i class="navbar-brand glyphicon glyphicon-warning-sign text-warning"></i></li>{% endif %}
-          <li><a href="/config"><i class="glyphicon glyphicon-cog"></i></a></li>
+          {% if current_user.has_role('admin') %}
+            {% if not config.model.exists() %}<li><i class="navbar-brand glyphicon glyphicon-warning-sign text-error"></i></li>{% endif %}
+            {% if config.model.restart_needed %}<li><i class="navbar-brand glyphicon glyphicon-warning-sign text-warning"></i></li>{% endif %}
+            <li><a href="/config"><i class="glyphicon glyphicon-cog"></i></a></li>
+          {% endif %}
           <li class="dropdown">
             <a href="#" data-target="#" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-user"></i> {{ current_user.slug }}</a>
             <ul class="dropdown-menu">
