@@ -8,7 +8,7 @@ from flask_security.changeable import change_user_password
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import clean_attrs, DT_FORMATTER, new_edit_parsers
-from dockci.models.auth import User, UserEmail
+from dockci.models.auth import Role, User, UserEmail
 from dockci.server import API, APP, CONFIG, DB
 
 
@@ -44,7 +44,11 @@ SHARED_PARSER_ARGS = {
     'password': dict(
         help="Password for user to authenticate",
         required=None, type=NonBlankInput(),
-    )
+    ),
+    'roles': dict(
+        help="List of roles for the user",
+        required=False, action='append'
+    ),
 }
 
 USER_NEW_PARSER = BaseRequestParser()
@@ -60,6 +64,26 @@ SECURITY_STATE = APP.extensions['security']
 
 
 # pylint:disable=no-self-use
+
+
+def rest_add_roles(user, role_names):
+    """
+    Add given roles to the user, aborting with error if some roles don't exist
+    """
+    role_names = set(role_names)
+    roles = Role.query.filter(Role.name.in_(role_names)).all()
+    if len(roles) != len(role_names):
+        found_role_names = set(role.name for role in roles)
+        rest_abort(400, message={
+            "roles": "Roles not found: %s" % ", ".join(
+                role_names.difference(found_role_names)
+            )
+        })
+
+    existing_role_names = set(role.name for role in user.roles)
+    role_names_to_add = role_names.difference(existing_role_names)
+    roles_to_add = (role for role in roles if role.name in role_names_to_add)
+    user.roles.extend(roles_to_add)
 
 
 class UserList(BaseDetailResource):
@@ -87,6 +111,7 @@ class UserList(BaseDetailResource):
             })
 
         user = SECURITY_STATE.datastore.create_user(**args)
+        rest_add_roles(user, args['roles'])
         DB.session.add(user)
         DB.session.commit()
         return user
@@ -126,6 +151,7 @@ class UserDetail(BaseDetailResource):
         else:
             change_user_password(user, new_password)
 
+        rest_add_roles(user, args.pop('roles'))
         return self.handle_write(user, data=args)
 
 
