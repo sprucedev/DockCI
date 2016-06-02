@@ -134,7 +134,7 @@ class UserList(BaseDetailResource):
 class UserDetail(BaseDetailResource):
     """ API resource that handles getting user details, and updating users """
     @classmethod
-    def user_or_404(cls, user_id):
+    def user_or_404(cls, user_id=None):
         """ Return a user from the security store, or 404 """
         user = SECURITY_STATE.datastore.get_user(user_id)
         if user is None:
@@ -144,13 +144,15 @@ class UserDetail(BaseDetailResource):
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
-    def get(self, user_id):
+    def get(self, user_id=None, user=None):
         """ Get a user's details """
+        if user is not None:
+            return user
         return self.user_or_404(user_id)
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
-    def post(self, user_id, user=None):
+    def post(self, user_id=None, user=None):
         """ Update a user """
         if user is None:
             user = self.user_or_404(user_id)
@@ -169,26 +171,16 @@ class UserDetail(BaseDetailResource):
         return self.handle_write(user, data=args)
 
 
-class MeDetail(Resource):
-    """ Wrapper around ``UserDetail`` to user the current user """
-    @login_required
-    @marshal_with(DETAIL_FIELDS)
-    def get(self):
-        """ Get details of the current user """
-        return current_user
-
-    @login_required
-    def post(self):
-        """ Update the current user """
-        return UserDetail().post(None, current_user)
-
-
-class MeEmailDetail(Resource):
+class UserEmailDetail(Resource):
     """ Deletion of user email addresses """
     @login_required
-    def delete(self, email):
-        """ Delete an email from the current user """
-        email = current_user.emails.filter(
+    @require_me_or_admin
+    def delete(self, email, user_id=None, user=None):
+        """ Delete an email from a user """
+        if user is None:
+            user = self.user_or_404(user_id)
+
+        email = user.emails.filter(
             UserEmail.email.ilike(email),
         ).first_or_404()
         DB.session.delete(email)
@@ -196,15 +188,38 @@ class MeEmailDetail(Resource):
         return {'message': '%s deleted' % email.email}
 
 
+class MeDetail(Resource):
+    """ Wrapper around ``UserDetail`` to user the current user """
+    def get(self):
+        """ Get details of the current user """
+        return UserDetail().get(user=current_user)
+
+    def post(self):
+        """ Update the current user """
+        return UserDetail().post(user=current_user)
+
+
+class MeEmailDetail(Resource):
+    """ Deletion of user email addresses """
+    def delete(self, email):
+        """ Delete an email from the current user """
+        return UserEmailDetail().delete(email, user=current_user)
+
+
+
+
 API.add_resource(UserList,
                  '/users',
                  endpoint='user_list')
-API.add_resource(UserDetail,
-                 '/users/<int:user_id>',
-                 endpoint='user_detail')
-API.add_resource(MeDetail,
-                 '/me',
-                 endpoint='me_detail')
-API.add_resource(MeEmailDetail,
-                 '/me/<string:email>',
-                 endpoint='me_email_detail')
+
+for endpoint_suffix, url_suffix, klass_user, klass_me in (
+    ('detail', '', UserDetail, MeDetail),
+    ('email_detail', '/emails/<string:email>', UserEmailDetail, MeEmailDetail),
+):
+    print('adding /me%s' % url_suffix, klass_me)
+    API.add_resource(klass_user,
+                     '/users/<int:user_id>%s' % url_suffix,
+                     'user_%s' % endpoint_suffix)
+    API.add_resource(klass_me,
+                     '/me%s' % url_suffix,
+                     'me_%s' % endpoint_suffix)
