@@ -46,9 +46,10 @@ def base_db_conn():
             APP.config['SQLALCHEMY_DATABASE_URI'] = DB.engine.url
             app_init()
 
-            yield conn
-
-            conn.execute('DROP DATABASE %s' % db_name)
+            try:
+                yield conn
+            finally:
+                conn.execute('DROP DATABASE %s' % db_name)
 
 
 @pytest.yield_fixture
@@ -63,3 +64,40 @@ def db(base_db_conn):
         yield
     finally:
         session.rollback()
+
+
+@pytest.yield_fixture
+def admin_user(db):
+    """ Admin user in the DB """
+    from dockci.models.auth import Role
+    user = APP.extensions['security'].datastore.create_user(
+        email='admin@example.com',
+        password='testpass',
+        roles=[Role.query.filter_by(name='admin').first()]
+    )
+    DB.session.add(user)
+    DB.session.commit()
+    yield user
+
+
+@pytest.yield_fixture
+def user(db):
+    """ Normal user in the DB """
+    user = APP.extensions['security'].datastore.create_user(
+        email='user@example.com',
+        password='testpass',
+    )
+    DB.session.add(user)
+    DB.session.commit()
+    yield user
+
+
+@pytest.yield_fixture
+def client():
+    """ Flask app test client """
+    old_testing = APP.config['TESTING']
+    APP.config['TESTING'] = True
+    try:
+        yield APP.test_client()
+    finally:
+        APP.config['TESTING'] = old_testing

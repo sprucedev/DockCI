@@ -1,5 +1,6 @@
 """ API relating to User model objects """
 from flask import abort
+from flask_principal import Permission, RoleNeed
 from flask_restful import abort as rest_abort
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
@@ -62,6 +63,8 @@ USER_EDIT_PARSER.add_argument('active',
 
 SECURITY_STATE = APP.extensions['security']
 
+ADMIN_PERMISSION = Permission(RoleNeed('admin'))
+
 
 # pylint:disable=no-self-use
 
@@ -84,6 +87,17 @@ def rest_add_roles(user, role_names):
     role_names_to_add = role_names.difference(existing_role_names)
     roles_to_add = (role for role in roles if role.name in role_names_to_add)
     user.roles.extend(roles_to_add)
+
+
+def rest_add_roles_perms(user, role_names):
+    """ Check user permissions before adding roles """
+    if not role_names:
+        return
+    if not ADMIN_PERMISSION.can():
+        rest_abort(401, message={
+            "roles": "Only administators can assign roles",
+        })
+    rest_add_roles(user, role_names)
 
 
 class UserList(BaseDetailResource):
@@ -111,7 +125,7 @@ class UserList(BaseDetailResource):
             })
 
         user = SECURITY_STATE.datastore.create_user(**args)
-        rest_add_roles(user, args['roles'])
+        rest_add_roles_perms(user, args['roles'])
         DB.session.add(user)
         DB.session.commit()
         return user
@@ -151,7 +165,7 @@ class UserDetail(BaseDetailResource):
         else:
             change_user_password(user, new_password)
 
-        rest_add_roles(user, args.pop('roles'))
+        rest_add_roles_perms(user, args.pop('roles'))
         return self.handle_write(user, data=args)
 
 
