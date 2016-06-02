@@ -62,19 +62,20 @@ class TestUserAPI(object):
     def test_me(self, client, admin_user):
         """ User accessing me API sees correct data """
         response = client.get('/api/v1/me', headers={
-            'x_dockci_username': 'admin@example.com',
+            'x_dockci_username': admin_user.email,
             'x_dockci_password': 'testpass',
         })
 
         assert response.status_code == 200
-        assert json.loads(response.data.decode()) == dict(
+        response_data = json.loads(response.data.decode())
+        response_data.pop('avatar')  # gravatar is too hard
+        assert response_data == dict(
             id=admin_user.id,
             confirmed_at=None,
             active=True,
-            email='admin@example.com',
-            emails=['admin@example.com'],
+            email=admin_user.email,
+            emails=[admin_user.email],
             roles=[{'name': 'admin', 'description': 'Administrators'}],
-            avatar='https://s.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61',
         )
 
     @pytest.mark.usefixtures('db')
@@ -90,7 +91,7 @@ class TestUserAPI(object):
         DB.session.commit()
 
         response = client.post('/api/v1/me', headers={
-            'x_dockci_username': 'admin@example.com',
+            'x_dockci_username': admin_user.email,
             'x_dockci_password': 'testpass',
         }, data={
             'roles': ['test'],
@@ -111,7 +112,7 @@ class TestUserAPI(object):
         DB.session.commit()
 
         response = client.post('/api/v1/me', headers={
-            'x_dockci_username': 'user@example.com',
+            'x_dockci_username': user.email,
             'x_dockci_password': 'testpass',
         }, data={
             'roles': ['test2'],

@@ -1,3 +1,4 @@
+import random
 import subprocess
 
 from urllib.parse import urlparse, urlunparse
@@ -71,7 +72,7 @@ def admin_user(db):
     """ Admin user in the DB """
     from dockci.models.auth import Role
     user = APP.extensions['security'].datastore.create_user(
-        email='admin@example.com',
+        email='admin%s@example.com' % random.randint(0, 1000000),
         password='testpass',
         roles=[Role.query.filter_by(name='admin').first()]
     )
@@ -84,7 +85,7 @@ def admin_user(db):
 def user(db):
     """ Normal user in the DB """
     user = APP.extensions['security'].datastore.create_user(
-        email='user@example.com',
+        email='user%s@example.com' % random.randint(0, 1000000),
         password='testpass',
     )
     DB.session.add(user)
