@@ -1,6 +1,5 @@
 """ API relating to User model objects """
 from flask import abort
-from flask_principal import Permission, RoleNeed
 from flask_restful import abort as rest_abort
 from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import current_user, login_required
@@ -11,6 +10,7 @@ from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import clean_attrs, DT_FORMATTER, new_edit_parsers
 from dockci.models.auth import Role, User, UserEmail
 from dockci.server import API, APP, CONFIG, DB
+from dockci.util import ADMIN_PERMISSION, require_me_or_admin
 
 
 BASIC_FIELDS = {
@@ -62,8 +62,6 @@ USER_EDIT_PARSER.add_argument('active',
 
 
 SECURITY_STATE = APP.extensions['security']
-
-ADMIN_PERMISSION = Permission(RoleNeed('admin'))
 
 
 # pylint:disable=no-self-use
@@ -151,6 +149,7 @@ class UserDetail(BaseDetailResource):
         return self.user_or_404(user_id)
 
     @login_required
+    @require_me_or_admin
     @marshal_with(DETAIL_FIELDS)
     def post(self, user_id=None, user=None):
         """ Update a user """
