@@ -43,9 +43,12 @@ logserve-http:
    - ../dockci-logserve/dockci:/code/dockci
 postgres:
   image: postgres:9.4
+  volumes:
+    - ./data/_pgdata:/var/lib/postgresql/data/pgdata
   environment:
     POSTGRES_USER: dockci
     POSTGRES_PASSWORD: letmein
+    PGDATA: /var/lib/postgresql/data/pgdata
 rabbitmq:
   image: sprucedev/dockci-rabbitmq
   ports:
@@ -64,3 +67,5 @@ registry:
   image: registry:2
   ports:
    - "5000:5000"
+  volumes:
+    - ./data/_regdata:/var/lib/registry
