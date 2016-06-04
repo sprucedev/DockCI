@@ -884,6 +884,10 @@ ADMIN_PERMISSION = Permission(RoleNeed('admin'))
 
 
 def show_error(status, message):
+    """
+    If API request, do a REST abort with JSON message. Otherwise, flash the
+    error
+    """
     if is_api_request():
         rest_abort(status, message=message)
 
