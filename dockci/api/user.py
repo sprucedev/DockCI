@@ -2,7 +2,7 @@
 from flask import abort
 from flask_restful import abort as rest_abort
 from flask_restful import fields, inputs, marshal_with, Resource
-from flask_security import current_user, login_required
+from flask_security import current_user, login_required, roles_required
 from flask_security.changeable import change_user_password
 
 from .base import BaseDetailResource, BaseRequestParser
@@ -24,15 +24,16 @@ LIST_FIELDS = {
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
+ROLE_DETAIL_FIELDS = {
+    'name': fields.String(),
+    'description': fields.String(),
+}
 
 DETAIL_FIELDS = {
     'avatar': GravatarUrl(attr_name='email'),
     'confirmed_at': DT_FORMATTER,
     'emails': fields.List(fields.String(attribute='email')),
-    'roles': fields.List(fields.Nested({
-        'name': fields.String(),
-        'description': fields.String(),
-    })),
+    'roles': fields.List(fields.Nested(ROLE_DETAIL_FIELDS)),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
@@ -66,6 +67,8 @@ SECURITY_STATE = APP.extensions['security']
 
 # pylint:disable=no-self-use
 
+ONLY_ADMIN_MSG_FS = "Only administators can %s"
+
 
 def rest_add_roles(user, role_names):
     """
@@ -93,7 +96,7 @@ def rest_add_roles_perms(user, role_names):
         return
     if not ADMIN_PERMISSION.can():
         rest_abort(401, message={
-            "roles": "Only administators can assign roles",
+            "roles": ONLY_ADMIN_MSG_FS % "assign roles",
         })
     rest_add_roles(user, role_names)
 
@@ -187,6 +190,31 @@ class UserEmailDetail(Resource):
         return {'message': '%s deleted' % email.email}
 
 
+class UserRoleDetail(Resource):
+    """ Removal of user roles """
+    @login_required
+    def delete(self, role_name, user_id=None, user=None):
+        """ Remove a role from a user """
+        if not ADMIN_PERMISSION.can():
+            rest_abort(401, message=ONLY_ADMIN_MSG_FS % "remove roles")
+
+        if user is None:
+            user = self.user_or_404(user_id)
+
+        role = Role.query.filter(
+            Role.name.ilike(role_name),
+        ).first_or_404()
+
+        user.roles.remove(role)
+        DB.session.add(user)
+        DB.session.commit()
+
+        return {'message': '%s removed from %s' % (
+            role.name,
+            user.email,
+        )}
+
+
 class MeDetail(Resource):
     """ Wrapper around ``UserDetail`` to user the current user """
     def get(self):
@@ -205,6 +233,11 @@ class MeEmailDetail(Resource):
         return UserEmailDetail().delete(email, user=current_user)
 
 
+class MeRoleDetail(Resource):
+    """ Removal of user roles """
+    def delete(self, role_name):
+        """ Remove a role from the current user """
+        return UserRoleDetail().delete(role_name, user=current_user)
 
 
 API.add_resource(UserList,
@@ -214,8 +247,8 @@ API.add_resource(UserList,
 for endpoint_suffix, url_suffix, klass_user, klass_me in (
     ('detail', '', UserDetail, MeDetail),
     ('email_detail', '/emails/<string:email>', UserEmailDetail, MeEmailDetail),
+    ('role_detail', '/roles/<string:role_name>', UserRoleDetail, MeRoleDetail),
 ):
-    print('adding /me%s' % url_suffix, klass_me)
     API.add_resource(klass_user,
                      '/users/<int:user_id>%s' % url_suffix,
                      'user_%s' % endpoint_suffix)

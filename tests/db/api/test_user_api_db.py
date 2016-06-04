@@ -118,3 +118,35 @@ class TestUserAPI(object):
 
         DB.session.delete(role)
         DB.session.commit()
+
+    @pytest.mark.usefixtures('db')
+    def test_admin_delete_role(self, client, admin_user):
+        """ Admin user deletes roles """
+        response = client.delete('/api/v1/me/roles/admin', headers={
+            'x_dockci_username': admin_user.email,
+            'x_dockci_password': 'testpass',
+        })
+
+        assert response.status_code == 200
+
+        DB.session.refresh(admin_user)
+        assert len(admin_user.roles) == 0
+
+    @pytest.mark.usefixtures('db')
+    def test_no_admin_delete_role(self, client, user, role):
+        """ Non-admin user deletes roles """
+        user.roles.append(role)
+        DB.session.add(user)
+        DB.session.commit()
+
+        response = client.delete('/api/v1/me/roles/%s' % role.name, headers={
+            'x_dockci_username': user.email,
+            'x_dockci_password': 'testpass',
+        })
+
+        assert response.status_code == 401
+
+        DB.session.refresh(user)
+        assert set(
+            role.name for role in user.roles
+        ) == set((role.name,))
