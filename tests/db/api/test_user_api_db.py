@@ -84,38 +84,30 @@ class TestUserAPI(object):
         assert client.get('/api/v1/me').status_code == 401
 
     @pytest.mark.usefixtures('db')
-    def test_admin_update_roles(self, client, admin_user):
+    def test_admin_update_roles(self, client, admin_user, role):
         """ Admin user updates roles """
-        role = Role(name='test')
-        DB.session.add(role)
-        DB.session.commit()
-
         response = client.post('/api/v1/me', headers={
             'x_dockci_username': admin_user.email,
             'x_dockci_password': 'testpass',
         }, data={
-            'roles': ['test'],
+            'roles': [role.name],
         })
 
         assert response.status_code == 200
 
         DB.session.refresh(admin_user)
         assert set(
-            role.name for role in admin_user.roles
-        ) == set(('admin', 'test'))
+            irole.name for irole in admin_user.roles
+        ) == set(('admin', role.name))
 
     @pytest.mark.usefixtures('db')
-    def test_no_admin_update_roles(self, client, user):
-        """ Admin user updates roles """
-        role = Role(name='test2')
-        DB.session.add(role)
-        DB.session.commit()
-
+    def test_no_admin_update_roles(self, client, user, role):
+        """ Non-admin user updates roles """
         response = client.post('/api/v1/me', headers={
             'x_dockci_username': user.email,
             'x_dockci_password': 'testpass',
         }, data={
-            'roles': ['test2'],
+            'roles': [role.name],
         })
 
         print(response.data)
@@ -123,3 +115,6 @@ class TestUserAPI(object):
 
         DB.session.refresh(user)
         assert list(user.roles) == []
+
+        DB.session.delete(role)
+        DB.session.commit()
