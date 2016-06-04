@@ -2,7 +2,7 @@
 from flask import abort
 from flask_restful import abort as rest_abort
 from flask_restful import fields, inputs, marshal_with, Resource
-from flask_security import current_user, login_required, roles_required
+from flask_security import current_user, login_required
 from flask_security.changeable import change_user_password
 
 from .base import BaseDetailResource, BaseRequestParser
@@ -132,24 +132,24 @@ class UserList(BaseDetailResource):
         return user
 
 
+def user_or_404(user_id=None):
+    """ Return a user from the security store, or 404 """
+    user = SECURITY_STATE.datastore.get_user(user_id)
+    if user is None:
+        return abort(404)
+
+    return user
+
+
 class UserDetail(BaseDetailResource):
     """ API resource that handles getting user details, and updating users """
-    @classmethod
-    def user_or_404(cls, user_id=None):
-        """ Return a user from the security store, or 404 """
-        user = SECURITY_STATE.datastore.get_user(user_id)
-        if user is None:
-            return abort(404)
-
-        return user
-
     @login_required
     @marshal_with(DETAIL_FIELDS)
     def get(self, user_id=None, user=None):
         """ Get a user's details """
         if user is not None:
             return user
-        return self.user_or_404(user_id)
+        return user_or_404(user_id)
 
     @login_required
     @require_me_or_admin
@@ -157,7 +157,7 @@ class UserDetail(BaseDetailResource):
     def post(self, user_id=None, user=None):
         """ Update a user """
         if user is None:
-            user = self.user_or_404(user_id)
+            user = user_or_404(user_id)
 
         args = USER_EDIT_PARSER.parse_args(strict=True)
         args = clean_attrs(args)
@@ -180,7 +180,7 @@ class UserEmailDetail(Resource):
     def delete(self, email, user_id=None, user=None):
         """ Delete an email from a user """
         if user is None:
-            user = self.user_or_404(user_id)
+            user = user_or_404(user_id)
 
         email = user.emails.filter(
             UserEmail.email.ilike(email),
@@ -199,7 +199,7 @@ class UserRoleDetail(Resource):
             rest_abort(401, message=ONLY_ADMIN_MSG_FS % "remove roles")
 
         if user is None:
-            user = self.user_or_404(user_id)
+            user = user_or_404(user_id)
 
         role = Role.query.filter(
             Role.name.ilike(role_name),
