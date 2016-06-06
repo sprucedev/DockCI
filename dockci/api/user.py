@@ -64,10 +64,10 @@ USER_EDIT_PARSER.add_argument('active',
 
 SECURITY_STATE = APP.extensions['security']
 
+ONLY_ADMIN_MSG_FS = "Only administators can %s"
+
 
 # pylint:disable=no-self-use
-
-ONLY_ADMIN_MSG_FS = "Only administators can %s"
 
 
 def rest_add_roles(user, role_names):
