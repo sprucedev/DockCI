@@ -12,7 +12,7 @@
 - DockCI core doesn't handle logs directly #467
 - Admin role protection for config #473
 - Fix user emails list output #474
-- Roles list for user detail API #475
+- Roles in user API #475, #477
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
