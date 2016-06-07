@@ -66,8 +66,11 @@ class WorkdirStage(JobStageBase):
         try:
             git_obj = repo.revparse_single(job.commit)  # noqa pylint:disable=no-member
         except KeyError:
-            handle.write("Can't find that ref anywhere!\n")
-            return False
+            try:
+                git_obj = repo.revparse_single('origin/%s' % job.commit)  # noqa pylint:disable=no-member
+            except KeyError:
+                handle.write("Can't find that ref anywhere!\n")
+                return False
 
         ref_type_str = 'unknown ref type'
 
