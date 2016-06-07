@@ -1,3 +1,4 @@
+import random
 import subprocess
 
 from urllib.parse import urlparse, urlunparse
@@ -7,6 +8,7 @@ import pytest
 
 from flask_migrate import migrate
 
+from dockci.models.auth import Role
 from dockci.server import APP, app_init, DB, MIGRATE
 
 
@@ -46,9 +48,10 @@ def base_db_conn():
             APP.config['SQLALCHEMY_DATABASE_URI'] = DB.engine.url
             app_init()
 
-            yield conn
-
-            conn.execute('DROP DATABASE %s' % db_name)
+            try:
+                yield conn
+            finally:
+                conn.execute('DROP DATABASE %s' % db_name)
 
 
 @pytest.yield_fixture
@@ -57,9 +60,63 @@ def db(base_db_conn):
     config = MIGRATE.get_config(None)
     alembic.command.upgrade(config, 'head')
 
-    session = DB.session
-    session.begin_nested()
+    DB.session.begin(nested=True)
     try:
         yield
     finally:
-        session.rollback()
+        DB.session.rollback()
+
+
+@pytest.fixture
+def randid():
+    """ Random ID """
+    return random.randint(0, 1000000)
+
+
+@pytest.fixture
+def admin_user(db, randid):
+    """ Admin user in the DB """
+    from dockci.models.auth import Role
+    user = APP.extensions['security'].datastore.create_user(
+        email='admin%s@example.com' % randid,
+        password='testpass',
+        roles=[Role.query.filter_by(name='admin').first()]
+    )
+    DB.session.add(user)
+    DB.session.commit()
+    return user
+
+
+@pytest.fixture
+def user(db, randid):
+    """ Normal user in the DB """
+    user = APP.extensions['security'].datastore.create_user(
+        email='user%s@example.com' % randid,
+        password='testpass',
+    )
+    DB.session.add(user)
+    DB.session.commit()
+    return user
+
+
+@pytest.fixture
+def role(db, randid):
+    """ Role in the DB """
+    role = Role(
+        name="testrole%s" % randid,
+        description='Test role %s' % randid,
+    )
+    DB.session.add(role)
+    DB.session.commit()
+    return role
+
+
+@pytest.yield_fixture
+def client():
+    """ Flask app test client """
+    old_testing = APP.config['TESTING']
+    APP.config['TESTING'] = True
+    try:
+        yield APP.test_client()
+    finally:
+        APP.config['TESTING'] = old_testing
