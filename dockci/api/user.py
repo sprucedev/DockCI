@@ -250,7 +250,7 @@ for endpoint_suffix, url_suffix, klass_user, klass_me in (
     ('role_detail', '/roles/<string:role_name>', UserRoleDetail, MeRoleDetail),
 ):
     API.add_resource(klass_user,
-                     '/users/<int:user_id>%s' % url_suffix,
+                     '/users/<user_id>%s' % url_suffix,
                      'user_%s' % endpoint_suffix)
     API.add_resource(klass_me,
                      '/me%s' % url_suffix,
