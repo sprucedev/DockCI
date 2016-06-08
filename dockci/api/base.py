@@ -31,12 +31,14 @@ class BaseDetailResource(Resource):
             for name, value in args.items()
             if name in unique_columns
         }
+
         conflicts = {
             field_name: "Duplicate value '%s'" % getattr(
                 query.first(), field_name,
             )
             for field_name, query in unique_model_conflicts(
                 model.__class__,
+                ignored_id=model.id,
                 **conflict_checks
             ).items()
         }

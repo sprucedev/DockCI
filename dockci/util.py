@@ -660,12 +660,19 @@ def add_to_url_path(url, more_path):
     return urlunparse(url)
 
 
-def unique_model_conflicts(klass, **fields):
+def unique_model_conflicts(klass, ignored_id=None, **fields):
     """ Find any models that have values in fields """
     queries = {
         field_name: klass.query.filter_by(**{field_name: field_value})
         for field_name, field_value in fields.items()
     }
+
+    if ignored_id is not None:
+        queries = {
+            field_name: query.filter(klass.id != ignored_id)
+            for field_name, query in queries.items()
+        }
+
     return {
         field_name: query
         for field_name, query in queries.items()
