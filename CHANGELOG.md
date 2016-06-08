@@ -13,6 +13,7 @@
 - Admin role protection for config #473
 - Fix user emails list output #474
 - Roles in user API #475, #477
+- API conflict checks don't apply to model being saved #479
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
