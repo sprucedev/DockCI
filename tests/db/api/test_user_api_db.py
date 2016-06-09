@@ -4,18 +4,18 @@ import json
 import pytest
 import werkzeug.exceptions
 
-from dockci.api.user import rest_add_roles, SECURITY_STATE
+from dockci.api.user import rest_set_roles, SECURITY_STATE
 from dockci.models.auth import User, Role
 from dockci.server import DB
 
 
-class TestRestAddRoles(object):
-    """ Test the ``rest_add_roles`` function """
+class TestRestSetRoles(object):
+    """ Test the ``rest_set_roles`` function """
     @pytest.mark.usefixtures('db')
     def test_add_to_empty(self):
         """ Add a role to a user with no roles """
         user = User()
-        rest_add_roles(user, ['admin'])
+        rest_set_roles(user, ['admin'])
 
         assert [role.name for role in user.roles] == ['admin']
 
@@ -27,12 +27,12 @@ class TestRestAddRoles(object):
         DB.session.commit()
 
         user = User()
-        rest_add_roles(user, ['admin', 'test'])
+        rest_set_roles(user, ['admin', 'test'])
         assert [role.name for role in user.roles] == ['admin', 'test']
 
     @pytest.mark.usefixtures('db')
-    def test_add_to_existing(self):
-        """ Add a role to a user with an existing role """
+    def test_set_with_existing(self):
+        """ Set roles on a user with an existing role """
         role = Role(name='test')
         user = SECURITY_STATE.datastore.create_user(
             email='test@example.com',
@@ -42,15 +42,15 @@ class TestRestAddRoles(object):
         DB.session.add(user)
         DB.session.commit()
 
-        rest_add_roles(user, ['test'])
-        assert [role.name for role in user.roles] == ['admin', 'test']
+        rest_set_roles(user, ['test'])
+        assert [role.name for role in user.roles] == ['test']
 
     @pytest.mark.usefixtures('db')
     def test_add_fake(self):
         """ Add a fake role to a user causes 400 and error message """
         user = User()
         with pytest.raises(werkzeug.exceptions.BadRequest) as excinfo:
-            rest_add_roles(user, ['testfake', 'testmore'])
+            rest_set_roles(user, ['testfake', 'testmore'])
 
         assert 'testfake' in excinfo.value.data['message']['roles']
         assert 'testmore' in excinfo.value.data['message']['roles']
@@ -90,7 +90,7 @@ class TestUserAPI(object):
             'x_dockci_username': admin_user.email,
             'x_dockci_password': 'testpass',
         }, data={
-            'roles': [role.name],
+            'roles': ['admin', role.name],
         })
 
         assert response.status_code == 200

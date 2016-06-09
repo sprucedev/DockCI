@@ -70,9 +70,9 @@ ONLY_ADMIN_MSG_FS = "Only administators can %s"
 # pylint:disable=no-self-use
 
 
-def rest_add_roles(user, role_names):
+def rest_set_roles(user, role_names):
     """
-    Add given roles to the user, aborting with error if some roles don't exist
+    Set given roles on the user, aborting with error if some roles don't exist
     """
     role_names = set(role_names)
     roles = Role.query.filter(Role.name.in_(role_names)).all()
@@ -84,21 +84,19 @@ def rest_add_roles(user, role_names):
             )
         })
 
-    existing_role_names = set(role.name for role in user.roles)
-    role_names_to_add = role_names.difference(existing_role_names)
-    roles_to_add = (role for role in roles if role.name in role_names_to_add)
-    user.roles.extend(roles_to_add)
+    user.roles.clear()
+    user.roles.extend(roles)
 
 
-def rest_add_roles_perms(user, role_names):
-    """ Check user permissions before adding roles """
+def rest_set_roles_perms(user, role_names):
+    """ Check user permissions before setting roles """
     if not role_names:
         return
     if not ADMIN_PERMISSION.can():
         rest_abort(401, message={
             "roles": ONLY_ADMIN_MSG_FS % "assign roles",
         })
-    rest_add_roles(user, role_names)
+    rest_set_roles(user, role_names)
 
 
 class UserList(BaseDetailResource):
@@ -126,7 +124,7 @@ class UserList(BaseDetailResource):
             })
 
         user = SECURITY_STATE.datastore.create_user(**args)
-        rest_add_roles_perms(user, args['roles'])
+        rest_set_roles_perms(user, args['roles'])
         DB.session.add(user)
         DB.session.commit()
         return user
@@ -177,7 +175,7 @@ class UserDetail(BaseDetailResource):
         else:
             change_user_password(user, new_password)
 
-        rest_add_roles_perms(user, args.pop('roles'))
+        rest_set_roles_perms(user, args.pop('roles'))
         return self.handle_write(user, data=args)
 
 
