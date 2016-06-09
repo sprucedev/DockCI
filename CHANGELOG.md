@@ -10,9 +10,10 @@
   - Logserve consumer - consumes content messages from RMQ and persists #467
   - Router - sits on top of the DockCI API, routing URLs to services #467
 - DockCI core doesn't handle logs directly #467
-- Admin role protection for config #473
+- Minimal permissions via roles:
+  - Configuration pages and APIs protected from non-admins #473
+  - User API includes display and editing of user roles #475, #477
 - Fix user emails list output #474
-- Roles in user API #475, #477
 - API conflict checks don't apply to model being saved #479
 
 ### v0.0.10
