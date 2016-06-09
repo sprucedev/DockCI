@@ -24,7 +24,7 @@ LIST_FIELDS = {
 }
 LIST_FIELDS.update(BASIC_FIELDS)
 
-ROLE_DETAIL_FIELDS = {
+ROLE_FIELDS = {
     'name': fields.String(),
     'description': fields.String(),
 }
@@ -33,7 +33,7 @@ DETAIL_FIELDS = {
     'avatar': GravatarUrl(attr_name='email'),
     'confirmed_at': DT_FORMATTER,
     'emails': fields.List(fields.String(attribute='email')),
-    'roles': fields.List(fields.Nested(ROLE_DETAIL_FIELDS)),
+    'roles': fields.List(fields.Nested(ROLE_FIELDS)),
 }
 DETAIL_FIELDS.update(BASIC_FIELDS)
 
@@ -130,6 +130,13 @@ class UserList(BaseDetailResource):
         DB.session.add(user)
         DB.session.commit()
         return user
+
+
+class RoleList(Resource):
+    """ API resource that handles listing roles """
+    @marshal_with(ROLE_FIELDS)
+    def get(self):
+        return Role.query.all()
 
 
 def user_or_404(user_id=None):
@@ -243,6 +250,9 @@ class MeRoleDetail(Resource):
 API.add_resource(UserList,
                  '/users',
                  endpoint='user_list')
+API.add_resource(RoleList,
+                 '/roles',
+                 endpoint='role_list')
 
 for endpoint_suffix, url_suffix, klass_user, klass_me in (
     ('detail', '', UserDetail, MeDetail),
