@@ -1,0 +1,14 @@
+<a
+  href="javascript:void(0)"
+  class="tag-pill label label-editable-group"
+  data-bind="
+      click:handleClick
+    , css:{
+          'label-primary': enabled
+        , 'label-default': !enabled()
+      }
+  "
+>
+  <!-- ko template: { nodes: $componentTemplateNodes } --><!-- /ko -->
+  <span class="glyphicon glyphicon-remove"></span>
+</a>

@@ -80,6 +80,6 @@ def config_edit_view():
 @roles_required('admin')
 def config_page_view(page):
     """ View and edit misc config """
-    if page not in ('registries',):
+    if page not in ('registries', 'users'):
         abort(404)
     return render_template('config_page.html', page=page)

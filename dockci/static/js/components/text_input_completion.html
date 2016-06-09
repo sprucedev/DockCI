@@ -1,0 +1,9 @@
+<span class="dropdown" data-bind="css:{open:inputFocus}">
+  <input type="text" data-bind="textInput:value, hasFocus:inputFocus"/>
+  <ul class="dropdown-menu" data-bind="foreach:validCompletions">
+    <li><a href="javascript:void(0)" data-bind="click:$parent.completionClick">
+      <span data-bind="text:$data[0]"></span> -
+      <em data-bind="text:$data[1]"></em>
+    </a></li>
+  </ul>
+</span>
