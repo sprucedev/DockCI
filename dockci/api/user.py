@@ -136,6 +136,7 @@ class RoleList(Resource):
     """ API resource that handles listing roles """
     @marshal_with(ROLE_FIELDS)
     def get(self):
+        """ List all roles """
         return Role.query.all()
 
 
