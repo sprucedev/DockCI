@@ -1,0 +1,26 @@
+<style>
+  .tag-pill {
+    margin-right: 10px;
+  }
+</style>
+<table class="col-sm-12 table table-striped">
+  <tbody>
+  <!-- ko foreach:users -->
+      <!-- ko component: {
+          name: "config-user-row"
+        , params: {
+            user: $data
+          , editMode: false
+          , messages: $parent.pageModel.messages
+          , userList: $parent.users
+        }
+      } --><!-- /ko -->
+  <!-- /ko -->
+
+  <!-- ko if:loading -->
+    <tr class="row"><td>
+      <loading-bar></loading-bar>
+    </td></tr>
+  <!-- /ko -->
+  </tbody>
+</table>

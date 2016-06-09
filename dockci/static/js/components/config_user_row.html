@@ -1,0 +1,77 @@
+<tr class="row"><td>
+
+  <form data-bind="submit:saveHandler"><fieldset data-bind="disable:saving() || loading()">
+    <div>
+      <!-- ko if:editMode -->
+        <!-- ko if:user().active -->
+          <span data-bind="text:user().email || ''" />
+        <!-- /ko -->
+        <!-- ko if:!user().active() -->
+          <del><span data-bind="text:user().email || ''" /></del>
+        <!-- /ko -->
+        <button class="btn btn-sm pull-right" data-bind="disable:saving(), click:editToggle">
+          <i class="glyphicon glyphicon-remove"></i>
+        </button>
+        <button class="btn btn-sm btn-success pull-right" data-bind="disable:saving() || !savable() || loading()" type="submit">
+          <span data-bind="visible: !saving()"><i class="glyphicon glyphicon-ok"></i></span>
+          <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
+        </button>
+      <!-- /ko -->
+      <!-- ko if:!editMode() -->
+        <!-- ko if:user().active -->
+          <a href="javascript:void(0)" data-bind="text:user().email() || '', click:editToggle" ></a>
+        <!-- /ko -->
+        <!-- ko if:!user().active() -->
+          <del><a href="javascript:void(0)" data-bind="text:user().email() || '', click:editToggle" ></a></del>
+        <!-- /ko -->
+        <button class="btn btn-sm pull-right" data-bind="
+            click:userActiveToggle
+          , disable:saving
+          , css: {
+              'btn-danger': user().active()
+            , 'btn-primary': !user().active()
+          }
+        ">
+          <span data-bind="visible: !saving()">
+            <i class="glyphicon" data-bind="
+                css: {
+                    'glyphicon-ban-circle': user().active()
+                  , 'glyphicon-ok-sign': !user().active()
+                }
+            "></i></span>
+          <span data-bind="visible: saving"><i class="glyphicon glyphicon-refresh spin"></i></span>
+        </button>
+      <!-- /ko -->
+    </div>
+    <!-- ko if:loading -->
+      <loading-bar></loading-bar>
+    <!-- /ko -->
+    <!-- ko if:editMode() && !loading() -->
+      <div class="form-group">
+        <div class="col-sm-2">
+          <label>Roles</label>
+        </div>
+        <div class="col-sm-10">
+          <!-- ko foreach:user().roles() -->
+            <tag-pill params="
+                click:function() { $parent.roleRemoveClick(this) }.bind($data)
+              , enabled:!$parent.saving()
+            "><span data-bind="text:$parent.description()">...</span></tag-pill>
+          <!-- /ko -->
+          <text-input-completion params="
+              completions:roleCompletions
+            , click:roleAddClick
+            , value:roleAddValue
+          "></text-input-completion>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+
+        </div>
+      </div>
+    <!-- /ko -->
+  </fieldset></form>
+  <!-- /ko -->
+
+</td></tr>
