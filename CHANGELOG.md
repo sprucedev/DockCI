@@ -13,6 +13,7 @@
 - Minimal permissions via roles:
   - Configuration pages and APIs protected from non-admins #473
   - User API includes display and editing of user roles #475, #477
+  - API to list all roles available at `/roles` #480
 - Fix user emails list output #474
 - API conflict checks don't apply to model being saved #479
 
