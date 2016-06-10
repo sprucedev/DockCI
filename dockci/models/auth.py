@@ -61,6 +61,26 @@ class Role(DB.Model, RoleMixin):
         )
 
 
+class InternalRole(RoleMixin):
+    """ Virtual role that's not in the DB """
+    singletons = {}
+
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+        InternalRole.singletons[name] = self
+
+    def __str__(self):
+        return '<{klass}: {name}>'.format(
+            klass=self.__class__.__name__,
+            name=self.name,
+        )
+
+
+AGENT_ROLE = InternalRole('agent', 'Build agents')
+
+
 class OAuthToken(DB.Model):  # pylint:disable=no-init
     """ An OAuth token from a service, for a user """
     id = DB.Column(DB.Integer(), primary_key=True)
@@ -230,6 +250,27 @@ class User(DB.Model, UserMixin):  # pylint:disable=no-init
 
         if self.email_obj is not None:
             return self.email_obj.email
+
+
+def lookup_role(name):
+    """ Try to get a role from internal singletons, then try the DB """
+    if isinstance(name, RoleMixin):
+        return name
+
+    try:
+        return InternalRole.singletons[name]
+    except KeyError:
+        return Role.query.filter(Role.name.ilike(name)).first()
+
+
+class InternalUser(UserMixin):
+    """ Virtual user that's not in the DB """
+    id = None
+    active = True
+
+    def __init__(self, email, roles=None):
+        self.email = email
+        self.roles = [lookup_role(role) for role in (roles or [])]
 
 
 class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init

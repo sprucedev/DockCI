@@ -19,7 +19,7 @@ from redis.exceptions import RedisError
 
 from .api.base import BaseRequestParser
 from .api.util import clean_attrs
-from .models.auth import User
+from .models.auth import User, InternalUser
 from .server import APP, CONFIG, DB, MAIL, redis_pool
 from .util import check_auth_fail, is_api_request
 
@@ -128,7 +128,12 @@ def try_jwt(token, idents_set):
 
     else:
         idents_set.add(str(jwt_data['sub']))
-        user = User.query.get(jwt_data['sub'])
+
+        if jwt_data['sub'] == 'service':
+            user = InternalUser('service', jwt_data['roles'])
+        else:
+            user = User.query.get(jwt_data['sub'])
+
         if user is not None:
             idents_set.add(user.email.lower())
         return user
