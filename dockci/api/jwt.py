@@ -27,8 +27,8 @@ JWT_NEW_PARSER.add_argument('exp',
 
 JWT_SERVICE_NEW_PARSER = JWT_NEW_PARSER.copy()
 JWT_SERVICE_NEW_PARSER.add_argument('roles',
-                                   required=True, action='append',
-                                   help="Roles the service is given")
+                                    required=True, action='append',
+                                    help="Roles the service is given")
 
 
 # pylint:disable=no-self-use
@@ -51,6 +51,7 @@ class JwtServiceNew(Resource):
     @login_required
     @require_admin
     def post(self):
+        """ Create a JWT token for a service user """
         args = JWT_SERVICE_NEW_PARSER.parse_args(strict=True)
         return {'token': jwt_token(sub='service', **args)}, 201
 

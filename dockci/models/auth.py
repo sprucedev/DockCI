@@ -270,7 +270,7 @@ class InternalUser(UserMixin):
 
     def __init__(self, email, roles=None):
         self.email = email
-        self.roles = [lookup_role(role) for role in (roles or [])]
+        self.roles = [lookup_role(role) for role in roles or []]
 
 
 class AuthenticatedRegistry(DB.Model):  # pylint:disable=no-init
