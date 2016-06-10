@@ -48,3 +48,21 @@ class TestJwtServiceNew(object):
         })
 
         assert response.status_code == 401
+
+    @pytest.mark.usefixtures('db')
+    def test_unknown_role(self, client, admin_user):
+        """ Test creating a service token with the agent internal role """
+        response = client.post('/api/v1/jwt/service', headers={
+            'x_dockci_username': admin_user.email,
+            'x_dockci_password': 'testpass',
+        }, data={
+            'name': 'test',
+            'roles': ['faketest'],
+        })
+
+        assert response.status_code == 400
+
+        response_data = json.loads(response.data.decode())
+        assert response_data == {
+            'message': {'roles': 'Roles not found: faketest'}
+        }
