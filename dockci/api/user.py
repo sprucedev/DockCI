@@ -260,7 +260,7 @@ for endpoint_suffix, url_suffix, klass_user, klass_me in (
 ):
     API.add_resource(klass_user,
                      '/users/<user_id>%s' % url_suffix,
-                     'user_%s' % endpoint_suffix)
+                     endpoint='user_%s' % endpoint_suffix)
     API.add_resource(klass_me,
                      '/me%s' % url_suffix,
-                     'me_%s' % endpoint_suffix)
+                     endpoint='me_%s' % endpoint_suffix)
