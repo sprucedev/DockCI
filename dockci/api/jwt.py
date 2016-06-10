@@ -44,6 +44,10 @@ class JwtNew(Resource):
             raise OnlyMeError("create JWT tokens")
 
         args = JWT_NEW_PARSER.parse_args(strict=True)
+        args = {
+            'name': args['name'],
+            'exp': args['exp'],
+        }
         return {'token': jwt_token(**args)}, 201
 
 
@@ -54,6 +58,11 @@ class JwtServiceNew(Resource):
     def post(self):
         """ Create a JWT token for a service user """
         args = JWT_SERVICE_NEW_PARSER.parse_args(strict=True)
+        args = {
+            'name': args['name'],
+            'exp': args['exp'],
+            'roles': args['roles'],
+        }
         found_roles = [
             role for role in [
                 lookup_role(name)
