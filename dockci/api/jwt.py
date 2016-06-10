@@ -10,7 +10,7 @@ from flask_security import current_user, login_required
 from .base import BaseRequestParser
 from .exceptions import OnlyMeError, WrappedTokenError, WrongAuthMethodError
 from .fields import NonBlankInput
-from .util import DT_FORMATTER, ensure_roles_found
+from .util import clean_attrs, DT_FORMATTER, ensure_roles_found
 from dockci.models.auth import lookup_role
 from dockci.server import API, CONFIG
 from dockci.util import require_admin, jwt_token
@@ -44,10 +44,10 @@ class JwtNew(Resource):
             raise OnlyMeError("create JWT tokens")
 
         args = JWT_NEW_PARSER.parse_args(strict=True)
-        args = {
+        args = clean_attrs({
             'name': args['name'],
             'exp': args['exp'],
-        }
+        })
         return {'token': jwt_token(**args)}, 201
 
 
@@ -58,11 +58,11 @@ class JwtServiceNew(Resource):
     def post(self):
         """ Create a JWT token for a service user """
         args = JWT_SERVICE_NEW_PARSER.parse_args(strict=True)
-        args = {
+        args = clean_attrs({
             'name': args['name'],
             'exp': args['exp'],
             'roles': args['roles'],
-        }
+        })
         found_roles = [
             role for role in [
                 lookup_role(name)
