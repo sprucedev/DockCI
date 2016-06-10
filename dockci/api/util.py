@@ -2,7 +2,7 @@
 from copy import copy
 
 from flask import request
-from flask_restful import fields
+from flask_restful import abort as rest_abort, fields
 
 
 DT_FORMATTER = fields.DateTime('iso8601')
@@ -54,3 +54,17 @@ def filter_query_args(parser, query):
         return query.filter_by(**args)
     else:
         return query
+
+
+def ensure_roles_found(wanted_names, found_roles, roles_field="roles"):
+    """
+    Ensure that all wanted roles are in the roles array, aborting with HTTP 400
+    and an appropriate field error if some weren't found
+    """
+    if len(found_roles) != len(wanted_names):
+        found_names = set(role.name for role in found_roles)
+        rest_abort(400, message={
+            roles_field: "Roles not found: %s" % ", ".join(
+                wanted_names.difference(found_names)
+            )
+        })

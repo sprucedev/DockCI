@@ -7,7 +7,11 @@ from flask_security.changeable import change_user_password
 
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
-from .util import clean_attrs, DT_FORMATTER, new_edit_parsers
+from .util import (clean_attrs,
+                   DT_FORMATTER,
+                   ensure_roles_found,
+                   new_edit_parsers,
+                   )
 from dockci.models.auth import Role, User, UserEmail
 from dockci.server import API, APP, CONFIG, DB
 from dockci.util import ADMIN_PERMISSION, require_me_or_admin
@@ -76,13 +80,7 @@ def rest_set_roles(user, role_names):
     """
     role_names = set(role_names)
     roles = Role.query.filter(Role.name.in_(role_names)).all()
-    if len(roles) != len(role_names):
-        found_role_names = set(role.name for role in roles)
-        rest_abort(400, message={
-            "roles": "Roles not found: %s" % ", ".join(
-                role_names.difference(found_role_names)
-            )
-        })
+    ensure_roles_found(role_names, roles)
 
     user.roles.clear()
     user.roles.extend(roles)
