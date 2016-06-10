@@ -50,7 +50,7 @@ class JwtServiceNew(Resource):
     """ API resource that handles creating new JWT tokens for services """
     @login_required
     @require_admin
-    def post(self, perm_template=None):  # XXX implement perm templates
+    def post(self):
         args = JWT_SERVICE_NEW_PARSER.parse_args(strict=True)
         return {'token': jwt_token(sub='service', **args)}, 201
 
@@ -105,9 +105,6 @@ API.add_resource(JwtNew,
 API.add_resource(JwtServiceNew,
                  '/jwt/service',
                  endpoint='jwt_service_new')
-API.add_resource(JwtServiceNew,
-                 '/jwt/service/<string:perm_template>',
-                 endpoint='jwt_service_template_new')
 API.add_resource(JwtMeDetail,
                  '/me/jwt',
                  endpoint='jwt_me_detail')
