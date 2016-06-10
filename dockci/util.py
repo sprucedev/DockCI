@@ -901,6 +901,17 @@ def show_error(status, message):
     flash(message)
 
 
+def require_admin(func):
+    """ Decorator to require ``ADMIN_PERMISSION`` """
+    @wraps(func)
+    def inner(*args, **kwargs):
+        """ Check for admin """
+        if not ADMIN_PERMISSION.can():
+            show_error(401, 'Only an administrator can do this')
+        return func(*args, **kwargs)
+    return inner
+
+
 def require_me_or_admin(func):
     """
     Decorator to require ``ADMIN_PERMISSION``, or the current user to be the

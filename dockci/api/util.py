@@ -2,7 +2,7 @@
 from copy import copy
 
 from flask import request
-from flask_restful import fields
+from flask_restful import abort as rest_abort, fields
 
 
 DT_FORMATTER = fields.DateTime('iso8601')
@@ -54,3 +54,33 @@ def filter_query_args(parser, query):
         return query.filter_by(**args)
     else:
         return query
+
+
+def ensure_roles_found(wanted_names, found_roles, roles_field="roles"):
+    """
+    Ensure that all wanted roles are in the roles array, aborting with HTTP 400
+    and an appropriate field error if some weren't found
+
+    Examples:
+      >>> from werkzeug.exceptions import BadRequest
+      >>> class MockRole(object):
+      ...     def __init__(self, name):
+      ...         self.name = name
+
+      >>> ensure_roles_found(['a', 'b'], [MockRole('a'), MockRole('b')])
+      >>> try:
+      ...     ensure_roles_found(['a', 'b'], [MockRole('a')])
+      ... except BadRequest as ex:
+      ...     print('Code:', ex.code)
+      ...     print('Data:', ex.data)
+      Code: 400
+      Data: {'message': {'roles': 'Roles not found: b'}}
+    """
+    wanted_names = set(wanted_names)
+    if len(found_roles) != len(wanted_names):
+        found_names = set(role.name for role in found_roles)
+        rest_abort(400, message={
+            roles_field: "Roles not found: %s" % ", ".join(
+                wanted_names.difference(found_names)
+            )
+        })

@@ -10,9 +10,10 @@ from flask_security import current_user, login_required
 from .base import BaseRequestParser
 from .exceptions import OnlyMeError, WrappedTokenError, WrongAuthMethodError
 from .fields import NonBlankInput
-from .util import DT_FORMATTER
+from .util import clean_attrs, DT_FORMATTER, ensure_roles_found
+from dockci.models.auth import lookup_role
 from dockci.server import API, CONFIG
-from dockci.util import jwt_token
+from dockci.util import require_admin, jwt_token
 
 
 JWT_ME_DETAIL_PARSER = BaseRequestParser()
@@ -25,12 +26,17 @@ JWT_NEW_PARSER.add_argument('exp',
                             type=DT_FORMATTER,
                             help="Expiration time of the token")
 
+JWT_SERVICE_NEW_PARSER = JWT_NEW_PARSER.copy()
+JWT_SERVICE_NEW_PARSER.add_argument('roles',
+                                    required=True, action='append',
+                                    help="Roles the service is given")
+
 
 # pylint:disable=no-self-use
 
 
 class JwtNew(Resource):
-    """ API resource that handles creating JWT tokens """
+    """ API resource that handles creating JWT tokens for users """
     @login_required
     def post(self, user_id):
         """ Create a JWT token for a user """
@@ -38,7 +44,34 @@ class JwtNew(Resource):
             raise OnlyMeError("create JWT tokens")
 
         args = JWT_NEW_PARSER.parse_args(strict=True)
+        args = clean_attrs({
+            'name': args['name'],
+            'exp': args['exp'],
+        })
         return {'token': jwt_token(**args)}, 201
+
+
+class JwtServiceNew(Resource):
+    """ API resource that handles creating new JWT tokens for services """
+    @login_required
+    @require_admin
+    def post(self):
+        """ Create a JWT token for a service user """
+        args = JWT_SERVICE_NEW_PARSER.parse_args(strict=True)
+        args = clean_attrs({
+            'name': args['name'],
+            'exp': args['exp'],
+            'roles': args['roles'],
+        })
+        found_roles = [
+            role for role in [
+                lookup_role(name)
+                for name in args['roles']
+            ]
+            if role is not None
+        ]
+        ensure_roles_found(args['roles'], found_roles)
+        return {'token': jwt_token(sub='service', **args)}, 201
 
 
 class JwtMeDetail(Resource):
@@ -88,6 +121,9 @@ class JwtDetail(Resource):
 API.add_resource(JwtNew,
                  '/users/<int:id>/jwt',
                  endpoint='jwt_user_new')
+API.add_resource(JwtServiceNew,
+                 '/jwt/service',
+                 endpoint='jwt_service_new')
 API.add_resource(JwtMeDetail,
                  '/me/jwt',
                  endpoint='jwt_me_detail')
