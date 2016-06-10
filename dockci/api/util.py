@@ -61,6 +61,7 @@ def ensure_roles_found(wanted_names, found_roles, roles_field="roles"):
     Ensure that all wanted roles are in the roles array, aborting with HTTP 400
     and an appropriate field error if some weren't found
     """
+    wanted_names = set(wanted_names)
     if len(found_roles) != len(wanted_names):
         found_names = set(role.name for role in found_roles)
         rest_abort(400, message={
