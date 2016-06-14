@@ -141,6 +141,7 @@ def stage_from_job(job, stage_slug):
     except StopIteration:
         return None
 
+
 def get_validate_stage(project_slug, job_slug, stage_slug):
     """ Get a stage from a validated job """
     job = get_validate_job(project_slug, job_slug)
