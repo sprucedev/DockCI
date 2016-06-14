@@ -918,7 +918,7 @@ def require_agent(func):
     @wraps(func)
     def inner(*args, **kwargs):
         """ Check for agent """
-        if not ADMIN_PERMISSION.can():
+        if not AGENT_PERMISSION.can():
             show_error(401, 'Only an agent can do this')
         return func(*args, **kwargs)
     return inner
