@@ -6,7 +6,7 @@ import redis
 import redis_lock
 
 from flask import abort, request, url_for
-from flask_restful import fields, marshal_with, Resource
+from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import login_required
 
 from . import fields as fields_
@@ -47,6 +47,9 @@ ALL_LIST_ROOT_FIELDS = {
     }),
 }
 
+STAGE_DETAIL_FIELDS = {
+    'success': fields.Boolean(),
+}
 STAGE_LIST_FIELDS = {
     'slug': fields.String(),
     'success': fields.Boolean(),
@@ -114,6 +117,9 @@ JOB_EDIT_PARSER.add_argument('git_committer_name')
 JOB_EDIT_PARSER.add_argument('git_committer_email')
 JOB_EDIT_PARSER.add_argument('ancestor_job_id')
 
+STAGE_EDIT_PARSER = BaseRequestParser()
+STAGE_EDIT_PARSER.add_argument('success', type=inputs.boolean)
+
 
 def get_validate_job(project_slug, job_slug):
     """ Get the job object, validate that project slug matches expected """
@@ -123,6 +129,25 @@ def get_validate_job(project_slug, job_slug):
         abort(404)
 
     return job
+
+
+def stage_from_job(job, stage_slug):
+    """ Get a stage object from a job """
+    try:
+        return next(
+            stage for stage in job.job_stages
+            if stage.slug == stage_slug
+        )
+    except StopIteration:
+        return None
+
+def get_validate_stage(project_slug, job_slug, stage_slug):
+    """ Get a stage from a validated job """
+    job = get_validate_job(project_slug, job_slug)
+    stage = stage_from_job(job, stage_slug)
+    if stage is None:
+        abort(404)
+    return stage
 
 
 def filter_jobs_by_request(project):
@@ -209,6 +234,25 @@ class StageList(Resource):
             get_validate_job(project_slug, job_slug).job_stages
             if match(stage)
         ]
+
+
+class StageDetail(BaseDetailResource):
+    """ API resource to handle getting stage details """
+    @marshal_with(STAGE_DETAIL_FIELDS)
+    def get(self, project_slug, job_slug, stage_slug):
+        """ Show job stage details """
+        return get_validate_stage(project_slug, job_slug, stage_slug)
+
+    @require_agent
+    @marshal_with(STAGE_DETAIL_FIELDS)
+    def put(self, project_slug, job_slug, stage_slug):
+        """ Update a job stage """
+        job = get_validate_job(project_slug, job_slug)
+        stage = stage_from_job(job, stage_slug)
+        if stage is None:
+            stage = JobStageTmp(job=job)
+
+        return self.handle_write(stage, STAGE_EDIT_PARSER)
 
 
 class ArtifactList(Resource):
@@ -301,6 +345,12 @@ API.add_resource(
     StageList,
     '/projects/<string:project_slug>/jobs/<string:job_slug>/stages',
     endpoint='stage_list',
+)
+API.add_resource(
+    StageDetail,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>'
+    '/stages/<string:stage_slug>',
+    endpoint='stage_detail',
 )
 API.add_resource(
     ArtifactList,
