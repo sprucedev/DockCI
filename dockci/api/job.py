@@ -250,8 +250,9 @@ class StageDetail(BaseDetailResource):
         """ Update a job stage """
         job = get_validate_job(project_slug, job_slug)
         stage = stage_from_job(job, stage_slug)
-        if stage is None:
-            stage = JobStageTmp(job=job)
+        created = True if stage is None else False
+        if created:
+            stage = JobStageTmp(slug=stage_slug, job=job)
 
         return self.handle_write(stage, STAGE_EDIT_PARSER)
 
