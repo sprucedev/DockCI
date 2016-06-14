@@ -17,6 +17,7 @@
 - Fix user emails list output #474
 - API conflict checks don't apply to model being saved #479
 - User management admin UI #482
+- Agent-only API to update jobs, and stages #485
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
