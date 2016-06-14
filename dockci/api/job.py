@@ -13,7 +13,7 @@ from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
-from dockci.models.job import Job, JobResult
+from dockci.models.job import Job, JobResult, JobStageTmp
 from dockci.models.project import Project
 from dockci.server import API, CONFIG, pika_conn, redis_pool
 from dockci.stage_io import redis_len_key, redis_lock_name
