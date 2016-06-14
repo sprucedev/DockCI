@@ -6,18 +6,18 @@ import redis
 import redis_lock
 
 from flask import abort, request, url_for
-from flask_restful import fields, marshal_with, Resource
+from flask_restful import fields, inputs, marshal_with, Resource
 from flask_security import login_required
 
 from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
 from .fields import GravatarUrl, NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
-from dockci.models.job import Job
+from dockci.models.job import Job, JobResult, JobStageTmp
 from dockci.models.project import Project
 from dockci.server import API, CONFIG, pika_conn, redis_pool
 from dockci.stage_io import redis_len_key, redis_lock_name
-from dockci.util import str2bool
+from dockci.util import str2bool, require_agent
 
 
 BASIC_FIELDS = {
@@ -47,6 +47,9 @@ ALL_LIST_ROOT_FIELDS = {
     }),
 }
 
+STAGE_DETAIL_FIELDS = {
+    'success': fields.Boolean(),
+}
 STAGE_LIST_FIELDS = {
     'slug': fields.String(),
     'success': fields.Boolean(),
@@ -98,6 +101,25 @@ JOB_NEW_PARSER.add_argument('commit',
                             type=fields_.strip(NonBlankInput()),
                             help="Git ref to check out")
 
+JOB_EDIT_PARSER = BaseRequestParser()
+JOB_EDIT_PARSER.add_argument('start_ts', type=inputs.datetime_from_iso8601)
+JOB_EDIT_PARSER.add_argument('complete_ts', type=inputs.datetime_from_iso8601)
+JOB_EDIT_PARSER.add_argument('result', choices=JobResult.__members__)
+JOB_EDIT_PARSER.add_argument('commit')
+JOB_EDIT_PARSER.add_argument('tag')
+JOB_EDIT_PARSER.add_argument('image_id')
+JOB_EDIT_PARSER.add_argument('container_id')
+JOB_EDIT_PARSER.add_argument('exit_code')
+JOB_EDIT_PARSER.add_argument('git_branch')
+JOB_EDIT_PARSER.add_argument('git_author_name')
+JOB_EDIT_PARSER.add_argument('git_author_email')
+JOB_EDIT_PARSER.add_argument('git_committer_name')
+JOB_EDIT_PARSER.add_argument('git_committer_email')
+JOB_EDIT_PARSER.add_argument('ancestor_job_id')
+
+STAGE_EDIT_PARSER = BaseRequestParser()
+STAGE_EDIT_PARSER.add_argument('success', type=inputs.boolean)
+
 
 def get_validate_job(project_slug, job_slug):
     """ Get the job object, validate that project slug matches expected """
@@ -107,6 +129,26 @@ def get_validate_job(project_slug, job_slug):
         abort(404)
 
     return job
+
+
+def stage_from_job(job, stage_slug):
+    """ Get a stage object from a job """
+    try:
+        return next(
+            stage for stage in job.job_stages
+            if stage.slug == stage_slug
+        )
+    except StopIteration:
+        return None
+
+
+def get_validate_stage(project_slug, job_slug, stage_slug):
+    """ Get a stage from a validated job """
+    job = get_validate_job(project_slug, job_slug)
+    stage = stage_from_job(job, stage_slug)
+    if stage is None:
+        abort(404)
+    return stage
 
 
 def filter_jobs_by_request(project):
@@ -167,6 +209,14 @@ class JobDetail(BaseDetailResource):
         """ Show job details """
         return get_validate_job(project_slug, job_slug)
 
+    @require_agent
+    @marshal_with(DETAIL_FIELDS)
+    def patch(self, project_slug, job_slug):
+        """ Update a job """
+        job = get_validate_job(project_slug, job_slug)
+        self.handle_write(job, JOB_EDIT_PARSER)
+        return job
+
 
 class StageList(Resource):
     """ API resource that handles listing stages for a job """
@@ -185,6 +235,26 @@ class StageList(Resource):
             get_validate_job(project_slug, job_slug).job_stages
             if match(stage)
         ]
+
+
+class StageDetail(BaseDetailResource):
+    """ API resource to handle getting stage details """
+    @marshal_with(STAGE_DETAIL_FIELDS)
+    def get(self, project_slug, job_slug, stage_slug):
+        """ Show job stage details """
+        return get_validate_stage(project_slug, job_slug, stage_slug)
+
+    @require_agent
+    @marshal_with(STAGE_DETAIL_FIELDS)
+    def put(self, project_slug, job_slug, stage_slug):
+        """ Update a job stage """
+        job = get_validate_job(project_slug, job_slug)
+        stage = stage_from_job(job, stage_slug)
+        created = True if stage is None else False
+        if created:
+            stage = JobStageTmp(slug=stage_slug, job=job)
+
+        return self.handle_write(stage, STAGE_EDIT_PARSER)
 
 
 class ArtifactList(Resource):
@@ -277,6 +347,12 @@ API.add_resource(
     StageList,
     '/projects/<string:project_slug>/jobs/<string:job_slug>/stages',
     endpoint='stage_list',
+)
+API.add_resource(
+    StageDetail,
+    '/projects/<string:project_slug>/jobs/<string:job_slug>'
+    '/stages/<string:stage_slug>',
+    endpoint='stage_detail',
 )
 API.add_resource(
     ArtifactList,

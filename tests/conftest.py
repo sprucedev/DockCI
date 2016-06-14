@@ -1,6 +1,7 @@
 import random
 import subprocess
 
+from contextlib import contextmanager
 from urllib.parse import urlparse, urlunparse
 
 import alembic
@@ -9,6 +10,8 @@ import pytest
 from flask_migrate import migrate
 
 from dockci.models.auth import Role
+from dockci.models.job import Job, JobStageTmp
+from dockci.models.project import Project
 from dockci.server import APP, app_init, DB, MIGRATE
 
 
@@ -67,48 +70,95 @@ def db(base_db_conn):
         DB.session.rollback()
 
 
+@contextmanager
+def db_fixture_helper(model, delete=False):
+    """ Common DB fixture logic """
+    DB.session.add(model)
+    DB.session.commit()
+    try:
+        yield model
+    finally:
+        if delete:
+            DB.session.delete(model)
+            DB.session.commit()
+
+
 @pytest.fixture
 def randid():
     """ Random ID """
     return random.randint(0, 1000000)
 
 
-@pytest.fixture
+@pytest.yield_fixture
 def admin_user(db, randid):
     """ Admin user in the DB """
     from dockci.models.auth import Role
-    user = APP.extensions['security'].datastore.create_user(
-        email='admin%s@example.com' % randid,
-        password='testpass',
-        roles=[Role.query.filter_by(name='admin').first()]
-    )
-    DB.session.add(user)
-    DB.session.commit()
-    return user
+    with db_fixture_helper(
+        APP.extensions['security'].datastore.create_user(
+            email='admin%s@example.com' % randid,
+            password='testpass',
+            roles=[Role.query.filter_by(name='admin').first()]
+        )
+    ) as model:
+        yield model
 
 
-@pytest.fixture
+@pytest.yield_fixture
 def user(db, randid):
     """ Normal user in the DB """
-    user = APP.extensions['security'].datastore.create_user(
-        email='user%s@example.com' % randid,
-        password='testpass',
-    )
-    DB.session.add(user)
-    DB.session.commit()
-    return user
+    with db_fixture_helper(
+        APP.extensions['security'].datastore.create_user(
+            email='user%s@example.com' % randid,
+            password='testpass',
+        )
+    ) as model:
+        yield model
 
 
 @pytest.fixture
+def agent_token(db):
+    """ A service token with agent role """
+    from dockci.util import jwt_token
+    return jwt_token(sub='service', name='test', roles=['agent'])
+
+
+@pytest.yield_fixture
 def role(db, randid):
     """ Role in the DB """
-    role = Role(
+    with db_fixture_helper(Role(
         name="testrole%s" % randid,
         description='Test role %s' % randid,
-    )
-    DB.session.add(role)
-    DB.session.commit()
-    return role
+    )) as model:
+        yield model
+
+
+@pytest.yield_fixture
+def project(db, randid):
+    """ Project in the DB """
+    with db_fixture_helper(Project(
+        slug=randid,
+        name=randid,
+        repo='test',
+        utility=False,
+    ), delete=True) as model:
+        yield model
+
+@pytest.yield_fixture
+def job(db, project):
+    """ Job in the DB """
+    with db_fixture_helper(Job(
+        project=project,
+        repo_fs=project.repo_fs,
+        commit='test',
+    ), delete=True) as model:
+        yield model
+
+
+@pytest.yield_fixture
+def stage(db, job, randid):
+    """ Stage in the DB """
+    with db_fixture_helper(JobStageTmp(job=job), delete=True) as model:
+        yield model
 
 
 @pytest.yield_fixture

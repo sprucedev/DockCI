@@ -888,6 +888,7 @@ class RedisWindow(object):
 
 
 ADMIN_PERMISSION = Permission(RoleNeed('admin'))
+AGENT_PERMISSION = Permission(RoleNeed('agent'))
 
 
 def show_error(status, message):
@@ -908,6 +909,17 @@ def require_admin(func):
         """ Check for admin """
         if not ADMIN_PERMISSION.can():
             show_error(401, 'Only an administrator can do this')
+        return func(*args, **kwargs)
+    return inner
+
+
+def require_agent(func):
+    """ Decorator to require ``AGENT_PERMISSION`` """
+    @wraps(func)
+    def inner(*args, **kwargs):
+        """ Check for agent """
+        if not AGENT_PERMISSION.can():
+            show_error(401, 'Only an agent can do this')
         return func(*args, **kwargs)
     return inner
 
