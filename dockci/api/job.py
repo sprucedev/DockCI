@@ -102,8 +102,8 @@ JOB_NEW_PARSER.add_argument('commit',
                             help="Git ref to check out")
 
 JOB_EDIT_PARSER = BaseRequestParser()
-JOB_EDIT_PARSER.add_argument('start_ts', type=fields.DateTime())
-JOB_EDIT_PARSER.add_argument('complete_ts', type=fields.DateTime())
+JOB_EDIT_PARSER.add_argument('start_ts', type=inputs.datetime_from_iso8601)
+JOB_EDIT_PARSER.add_argument('complete_ts', type=inputs.datetime_from_iso8601)
 JOB_EDIT_PARSER.add_argument('result', choices=JobResult.__members__)
 JOB_EDIT_PARSER.add_argument('commit')
 JOB_EDIT_PARSER.add_argument('tag')
