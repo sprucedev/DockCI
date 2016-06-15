@@ -1,6 +1,6 @@
 [![Build Status](https://demo.dock.ci/project/dockci.svg)](https://demo.dock.ci/projects/dockci)[![Requirements Status](https://requires.io/github/sprucedev/DockCI/requirements.svg?branch=master&style=flat-square)](https://requires.io/github/sprucedev/DockCI/requirements/?branch=master)[![Tickets in Release](https://badge.waffle.io/rickycook/dockci.svg?label=ready&title=This Release)](http://waffle.io/sprucedev/dockci)
 
-# DockCI
+# DockCI Core
 DockCI is still alpha! It's certainly not feature complete.  It's heading towards MVP.
 
 ## What is DockCI?
