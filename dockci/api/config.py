@@ -68,11 +68,11 @@ class RegistryDetail(BaseDetailResource):
             base_name=base_name,
         ).first_or_404()
 
-        fields = (REGISTRY_AGENT_FIELDS
-                  if AGENT_PERMISSION.can() else
-                  REGISTRY_BASIC_FIELDS)
+        marshaler = (REGISTRY_AGENT_FIELDS
+                    if AGENT_PERMISSION.can() else
+                    REGISTRY_BASIC_FIELDS)
 
-        return marshal(registry, fields)
+        return marshal(registry, marshaler)
 
     @login_required
     @marshal_with(REGISTRY_BASIC_FIELDS)
