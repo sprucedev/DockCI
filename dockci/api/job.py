@@ -85,6 +85,7 @@ DETAIL_FIELDS = {
     'docker_client_host': fields.String(),
 
     'exit_code': fields.Integer(default=None),
+    'result': fields.String(),
 
     'git_author_name': fields.String(),
     'git_author_email': fields.String(),
@@ -104,7 +105,8 @@ JOB_NEW_PARSER.add_argument('commit',
 JOB_EDIT_PARSER = BaseRequestParser()
 JOB_EDIT_PARSER.add_argument('start_ts', type=inputs.datetime_from_iso8601)
 JOB_EDIT_PARSER.add_argument('complete_ts', type=inputs.datetime_from_iso8601)
-JOB_EDIT_PARSER.add_argument('result', choices=JobResult.__members__)
+JOB_EDIT_PARSER.add_argument('result',
+                             choices=tuple(JobResult.__members__) + (None,))
 JOB_EDIT_PARSER.add_argument('commit')
 JOB_EDIT_PARSER.add_argument('tag')
 JOB_EDIT_PARSER.add_argument('image_id')
