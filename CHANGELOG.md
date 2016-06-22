@@ -19,6 +19,7 @@
 - User management admin UI #482
 - Agent-only API to update jobs, and stages #485
 - API correctly defaults to `null` exit code, rather than 0 #486
+- Jobs list API allows filtering by tag #488
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397

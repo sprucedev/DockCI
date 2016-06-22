@@ -167,10 +167,11 @@ def filter_jobs_by_request(project):
         except KeyError:
             pass
 
-    try:
-        filter_args['branch'] = request.values['branch']
-    except KeyError:
-        pass
+    for filter_name in ('branch', 'tag'):
+        try:
+            filter_args[filter_name] = request.values[filter_name]
+        except KeyError:
+            pass
 
     return Job.filtered_query(
         query=project.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
