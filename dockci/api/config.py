@@ -69,8 +69,8 @@ class RegistryDetail(BaseDetailResource):
         ).first_or_404()
 
         marshaler = (REGISTRY_AGENT_FIELDS
-                    if AGENT_PERMISSION.can() else
-                    REGISTRY_BASIC_FIELDS)
+                     if AGENT_PERMISSION.can() else
+                     REGISTRY_BASIC_FIELDS)
 
         return marshal(registry, marshaler)
 
