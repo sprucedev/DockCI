@@ -1,5 +1,5 @@
 """ API relating to configuration """
-from flask_restful import fields, inputs, marshal_with, Resource
+from flask_restful import fields, inputs, marshal, marshal_with, Resource
 from flask_security import login_required
 
 from .base import BaseDetailResource, BaseRequestParser
@@ -7,6 +7,7 @@ from .fields import NonBlankInput
 from .util import new_edit_parsers
 from dockci.models.auth import AuthenticatedRegistry
 from dockci.server import API, DB
+from dockci.util import AGENT_PERMISSION
 
 
 REGISTRY_BASIC_FIELDS = {
@@ -17,6 +18,10 @@ REGISTRY_BASIC_FIELDS = {
     'insecure': fields.Boolean(),
     'detail': fields.Url('registry_detail'),
 }
+REGISTRY_AGENT_FIELDS = {
+    'password': fields.String(),
+}
+REGISTRY_AGENT_FIELDS.update(REGISTRY_BASIC_FIELDS)
 
 REGISTRY_SHARED_PARSER_ARGS = {
     'display_name': dict(
@@ -57,12 +62,17 @@ class RegistryDetail(BaseDetailResource):
     updating existing registries, and deleting registries
     """
     @login_required
-    @marshal_with(REGISTRY_BASIC_FIELDS)
     def get(self, base_name):
         """ Get registry details """
-        return AuthenticatedRegistry.query.filter_by(
+        registry = AuthenticatedRegistry.query.filter_by(
             base_name=base_name,
         ).first_or_404()
+
+        marshaler = (REGISTRY_AGENT_FIELDS
+                     if AGENT_PERMISSION.can() else
+                     REGISTRY_BASIC_FIELDS)
+
+        return marshal(registry, marshaler)
 
     @login_required
     @marshal_with(REGISTRY_BASIC_FIELDS)
