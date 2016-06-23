@@ -1059,8 +1059,8 @@ class Job(DB.Model, RepoFsMixin):
         )
 
     def send_external_status(self,
-                             service,
-                             api_endpoint,
+                             service=None,
+                             api_endpoint=None,
                              state=None,
                              state_msg=None,
                              context='push',
@@ -1070,6 +1070,15 @@ class Job(DB.Model, RepoFsMixin):
         state not set, is defaulted to something that makes sense, given the
         data in this model
         """
+        if service is None and self.project.is_type('github'):
+            service = 'github'
+        if service is None and self.project.is_type('gitlab'):
+            service = 'gitlab'
+        if api_endpoint is None and service == 'github':
+            api_endpoint = self.github_api_status_endpoint
+        if api_endpoint is None and service == 'gitlab':
+            api_endpoint = self.gitlab_api_status_endpoint
+
         state, state_msg = self.state_data_for(service, state, state_msg)
 
         if state_msg is not None:
