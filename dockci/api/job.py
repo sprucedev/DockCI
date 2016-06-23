@@ -217,7 +217,13 @@ class JobDetail(BaseDetailResource):
     def patch(self, project_slug, job_slug):
         """ Update a job """
         job = get_validate_job(project_slug, job_slug)
+        previous_state = job.state
         self.handle_write(job, JOB_EDIT_PARSER)
+        new_state = job.state
+
+        if new_state != previous_state and job.project.is_external:
+            job.send_external_status()
+
         return job
 
 
