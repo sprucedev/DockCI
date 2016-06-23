@@ -212,6 +212,11 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
         )
 
     @property
+    def is_external(self):
+        """ Check if the project is of any service type """
+        return is_type('github') or is_type('gitlab')
+
+    @property
     def status(self):
         """ Status of the last job for this project """
         latest_completed_job = self.latest_job(completed=True)
