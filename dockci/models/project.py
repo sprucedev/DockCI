@@ -214,7 +214,7 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
     @property
     def is_external(self):
         """ Check if the project is of any service type """
-        return is_type('github') or is_type('gitlab')
+        return self.is_type('github') or self.is_type('gitlab')
 
     @property
     def status(self):
