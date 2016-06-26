@@ -3,11 +3,12 @@ Flask RESTful fields, and WTForms input validators for validation and
 marshaling
 """
 
+import datetime
 import re
 
 from functools import reduce, wraps
 
-from flask_restful import fields
+from flask_restful import fields, inputs
 from werkzeug.routing import BuildError
 
 from dockci.util import gravatar_url
@@ -164,3 +165,20 @@ def strip(field_type):
         return field_type(value, name)
 
     return inner
+
+
+def datetime_or_now(value):
+    """ Input to parse an ISO8601 date/time, or "now"
+
+    Examples:
+
+    >>> datetime_or_now('2016-01-02T03:04:05')
+    datetime.datetime(2016, 1, 2, 3, 4, 5)
+
+    >>> datetime_or_now('now')
+    datetime.datetime(...)
+    """
+    if value == 'now':
+        return datetime.datetime.utcnow()
+
+    return inputs.datetime_from_iso8601(value)
