@@ -11,7 +11,7 @@ from flask_security import login_required
 
 from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
-from .fields import GravatarUrl, NonBlankInput, RewriteUrl
+from .fields import datetime_or_now, GravatarUrl, NonBlankInput, RewriteUrl
 from .util import DT_FORMATTER
 from dockci.models.job import Job, JobResult, JobStageTmp
 from dockci.models.project import Project
@@ -103,8 +103,8 @@ JOB_NEW_PARSER.add_argument('commit',
                             help="Git ref to check out")
 
 JOB_EDIT_PARSER = BaseRequestParser()
-JOB_EDIT_PARSER.add_argument('start_ts', type=inputs.datetime_from_iso8601)
-JOB_EDIT_PARSER.add_argument('complete_ts', type=inputs.datetime_from_iso8601)
+JOB_EDIT_PARSER.add_argument('start_ts', type=datetime_or_now)
+JOB_EDIT_PARSER.add_argument('complete_ts', type=datetime_or_now)
 JOB_EDIT_PARSER.add_argument('result',
                              choices=tuple(JobResult.__members__) + (None,))
 JOB_EDIT_PARSER.add_argument('commit')
