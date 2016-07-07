@@ -22,6 +22,7 @@
 - Jobs list API allows filtering by tag #488
 - Registry detail API gives password if requested by an agent #489
 - API to list distinct commits for jobs matching filters #493
+- Jobs list filterable by commit #494
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
