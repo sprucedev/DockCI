@@ -205,6 +205,23 @@ class JobList(BaseDetailResource):
         return job
 
 
+class JobCommitsList(Resource):
+    """ API resource to handle getting commit lists """
+    def get(self, project_slug):
+        """ List all distinct job commits for a project """
+        project = Project.query.filter_by(slug=project_slug).first_or_404()
+        base_query = filter_jobs_by_request(project).filter(
+            Job.commit.op('SIMILAR TO')(r'[0-9a-fA-F]+')
+        )
+        commit_query = base_query.from_self(Job.commit).distinct(Job.commit)
+        return {
+            'items': [
+                res_arr[0] for res_arr in commit_query.paginate().items
+            ],
+            'meta': {'total': commit_query.count()},
+        }
+
+
 class JobDetail(BaseDetailResource):
     """ API resource to handle getting job details """
     @marshal_with(DETAIL_FIELDS)
@@ -346,6 +363,11 @@ API.add_resource(
     JobList,
     '/projects/<string:project_slug>/jobs',
     endpoint='job_list',
+)
+API.add_resource(
+    JobCommitsList,
+    '/projects/<string:project_slug>/jobs/commits',
+    endpoint='job_commits_list',
 )
 API.add_resource(
     JobDetail,
