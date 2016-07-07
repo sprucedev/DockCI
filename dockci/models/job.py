@@ -811,6 +811,7 @@ class Job(DB.Model, RepoFsMixin):
                        tag=None,
                        completed=None,
                        branch=None,
+                       commit=None,
                        ):
         """
         Generator, filtering jobs matching the criteria
@@ -842,6 +843,9 @@ class Job(DB.Model, RepoFsMixin):
 
         if branch is not None:
             query = query.filter_by(git_branch=branch)
+
+        if commit is not None:
+            query = query.filter_by(commit=commit)
 
         return query
 

@@ -167,7 +167,7 @@ def filter_jobs_by_request(project):
         except KeyError:
             pass
 
-    for filter_name in ('branch', 'tag'):
+    for filter_name in ('branch', 'tag', 'commit'):
         try:
             filter_args[filter_name] = request.values[filter_name]
         except KeyError:
