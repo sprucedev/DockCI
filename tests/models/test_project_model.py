@@ -3,7 +3,6 @@ from collections import namedtuple
 import pytest
 
 from dockci.models.auth import OAuthToken
-from dockci.models.job_meta.stages import CommandJobStage
 from dockci.models.project import Project
 
 

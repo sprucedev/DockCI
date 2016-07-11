@@ -238,8 +238,11 @@ class JobDetail(BaseDetailResource):
         self.handle_write(job, JOB_EDIT_PARSER)
         new_state = job.state
 
-        if new_state != previous_state and job.project.is_external:
-            job.send_external_status()
+        if new_state != previous_state:
+            if job.project.is_external:
+                job.send_external_status()
+            if job.is_complete and job.changed_result():
+                job.send_email_notification()
 
         return job
 
@@ -385,11 +388,11 @@ API.add_resource(
     '/stages/<string:stage_slug>',
     endpoint='stage_detail',
 )
-API.add_resource(
-    ArtifactList,
-    '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
-    endpoint='artifact_list',
-)
+# API.add_resource(
+#     ArtifactList,
+#     '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
+#     endpoint='artifact_list',
+# )
 API.add_resource(
     StageStreamDetail,
     '/projects/<string:project_slug>/jobs/<string:job_slug>/stream',

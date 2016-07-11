@@ -16,10 +16,7 @@ from flask import url_for
 from .base import RepoFsMixin
 from .db_types import RegexType
 from dockci.server import CONFIG, DB, OAUTH_APPS
-from dockci.util import (ext_url_for,
-                         is_git_ancestor,
-                         is_git_hash,
-                         )
+from dockci.util import ext_url_for
 
 
 DOCKER_REPO_RE = re.compile(r'[a-z0-9-_.]+')
@@ -126,36 +123,6 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
             completed=completed,
             branch=branch,
         ).first()
-
-    def latest_job_ancestor(self,
-                            workdir,
-                            commit,
-                            passed=None,
-                            versioned=None,
-                            tag=None,
-                            completed=None,
-                            branch=None,
-                            ):
-        """
-        Find the latest job, matching the criteria, who's a git ancestor of
-        the given commit
-        """
-        from .job import Job
-
-        jobs_query = Job.filtered_query(
-            query=self.jobs.order_by(sqlalchemy.desc(Job.create_ts)),
-            passed=passed,
-            versioned=versioned,
-            tag=tag,
-            completed=completed,
-            branch=branch,
-        )
-        for job in jobs_query:
-            if not is_git_hash(job.commit):  # Skip things like 'HEAD'
-                continue
-
-            if is_git_ancestor(workdir, job.commit, commit):
-                return job
 
     def add_github_webhook(self):
         """
