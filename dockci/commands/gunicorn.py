@@ -103,7 +103,9 @@ def run(**kwargs):
     channel.exchange_declare(exchange='dockci.job', type='topic')
     channel.exchange_declare(exchange='dockci.queue', type='topic')
     channel.queue_declare(queue='dockci.agent')
-    channel.queue_bind(exchange='dockci.queue', queue='dockci.agent', routing_key='*')
+    channel.queue_bind(exchange='dockci.queue',
+                       queue='dockci.agent',
+                       routing_key='*')
     mq_conn.close()
 
     if kwargs['db_migrate']:

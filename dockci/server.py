@@ -4,7 +4,6 @@ Functions for setting up and starting the DockCI application server
 
 import logging
 import mimetypes
-import multiprocessing
 import os
 
 from contextlib import contextmanager
