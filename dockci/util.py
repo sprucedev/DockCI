@@ -134,21 +134,6 @@ def is_valid_github(secret):
     return signature == computed_signature
 
 
-@contextmanager
-def stream_write_status(handle, status, success, fail):
-    """
-    Context manager to write a status, followed by success message, or fail
-    message if yield raises an exception
-    """
-    handle.write(status.encode())
-    try:
-        yield
-        handle.write((" %s\n" % success).encode())
-    except Exception:  # pylint:disable=broad-except
-        handle.write((" %s\n" % fail).encode())
-        raise
-
-
 def login_or_github_required(func):
     """
     Decorator to either check for GitHub headers, or require a login
