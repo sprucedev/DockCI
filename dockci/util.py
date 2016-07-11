@@ -10,7 +10,6 @@ import shlex
 import socket
 import ssl
 import struct
-import subprocess
 import sys
 import json
 import datetime
@@ -171,27 +170,6 @@ def is_git_hash(value):
     Validate a git commit hash for validity
     """
     return is_hex_string(value, 40)
-
-
-def git_head_ref_name(workdir, stderr=None):
-    """ Gets the full git ref name of the HEAD ref """
-    proc = subprocess.Popen([
-            'git', 'name-rev',
-            '--name-only', '--no-undefined',
-            '--ref', 'refs/heads/*',
-            'HEAD',
-        ],
-        stdout=subprocess.PIPE,
-        stderr=stderr,
-        cwd=workdir.strpath,
-    )
-    proc.wait()
-    if proc.returncode == 0:
-        return parse_branch_from_ref(
-            proc.stdout.read().decode().strip(), strict=False,
-        )
-
-    return None
 
 
 def setup_templates(app):

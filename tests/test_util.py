@@ -8,7 +8,6 @@ import pytest
 from dockci.util import (add_to_url_path,
                          client_kwargs_from_config,
                          GenFauxDockerLog,
-                         git_head_ref_name,
                          IOFauxDockerLog,
                          parse_ref,
                          )
@@ -152,92 +151,6 @@ class TestParseRef(object):
         assert actual_type == exp_type
         assert actual_name == exp_name
 
-
-class TestGitRefNameOf(object):
-    """ Test the ``git_head_ref_name`` function """
-    @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
-    def test_master(self, tmpgitdir, branch):
-        """ Test getting ref name when single commit on master """
-        with tmpgitdir.join('file_a.txt').open('w') as handle:
-            handle.write('first file')
-
-        subprocess.check_call(['git', 'checkout', '-b', branch])
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'first'])
-
-        assert git_head_ref_name(tmpgitdir) == branch
-
-    def test_multiple_branches(self, tmpgitdir):
-        """ Test when branch is not master """
-        with tmpgitdir.join('file_a.txt').open('w') as handle:
-            handle.write('first file')
-
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'first'])
-
-        subprocess.check_call(['git', 'checkout', '-b', 'testbranch'])
-
-        with tmpgitdir.join('file_b.txt').open('w') as handle:
-            handle.write('second file')
-
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'second'])
-
-        assert git_head_ref_name(tmpgitdir) == 'testbranch'
-
-    @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
-    def test_tagged(self, tmpgitdir, branch):
-        """
-        Test when a git commit is made, tagged, then described by it's tag
-        """
-        with tmpgitdir.join('file_a.txt').open('w') as handle:
-            handle.write('first file')
-
-        subprocess.check_call(['git', 'checkout', '-b', branch])
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'first'])
-        subprocess.check_call(['git', 'tag', '-a', 'v0', '-m', 'v0 first'])
-
-        assert git_head_ref_name(tmpgitdir) == branch
-
-    @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
-    def test_detached_head(self, tmpgitdir, branch):
-        """ Test when in a detached head state """
-        with tmpgitdir.join('file_a.txt').open('w') as handle:
-            handle.write('first file')
-
-        subprocess.check_call(['git', 'checkout', '-b', branch])
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'first'])
-        first_hash = subprocess.check_output(
-            ['git', 'show', '-s', '--format=format:%H']).decode()
-        detached_output = subprocess.check_output(
-            ['git', 'checkout', first_hash],
-            stderr=subprocess.STDOUT,
-        ).decode()
-
-        assert "You are in 'detached HEAD' state" in detached_output
-        assert git_head_ref_name(tmpgitdir) == branch
-
-    @pytest.mark.parametrize('branch', ['master', 'otherbranch'])
-    def test_tagged_detached_head(self, tmpgitdir, branch):
-        """ Test when in a detached head state, where the commit is tagged """
-        with tmpgitdir.join('file_a.txt').open('w') as handle:
-            handle.write('first file')
-
-        subprocess.check_call(['git', 'checkout', '-b', branch])
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'first'])
-        subprocess.check_call(['git', 'tag', '-a', 'v0', '-m', 'v0 first'])
-        first_hash = subprocess.check_output(
-            ['git', 'show', '-s', '--format=format:%H']).decode()
-        detached_output = subprocess.check_output(
-            ['git', 'checkout', first_hash],
-            stderr=subprocess.STDOUT,
-        ).decode()
-
-        assert "You are in 'detached HEAD' state" in detached_output
-        assert git_head_ref_name(tmpgitdir) == branch
 
 class TestAddToUrlPath(object):
     """ Tests the ``add_to_url_path`` utility """
