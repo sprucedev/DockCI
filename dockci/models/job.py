@@ -253,7 +253,7 @@ class Job(DB.Model, RepoFsMixin):
         else:
             return 'queued'  # TODO check if queued or queue fail
 
-    def changed_result(self, workdir=None):
+    def changed_result(self):
         """
         Check if this job changed the result from it's ancestor. None if
         there's no result yet
@@ -261,22 +261,10 @@ class Job(DB.Model, RepoFsMixin):
         if self.result is None:
             return None
 
-        ancestor_job = self.ancestor_job
-        if not ancestor_job:
+        if not self.ancestor_job or self.ancestor_job.result is None:
             return True
 
-        if ancestor_job.result is None:
-            if workdir is None:  # Can't get a better ancestor
-                return True
-
-            ancestor_job = self.project.latest_job_ancestor(
-                workdir, self.commit, complete=True,
-            )
-
-        if not ancestor_job:
-            return True
-
-        return ancestor_job.result != self.result
+        return self.ancestor_job.result != self.result
 
     @property
     def job_output_details(self):

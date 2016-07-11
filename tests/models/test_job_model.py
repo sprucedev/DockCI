@@ -44,42 +44,7 @@ class TestChangedResult(object):
         assert job_current.changed_result() == changed
 
 
-    @pytest.mark.parametrize(
-        'prev_result,new_result,changed',
-        CHANGED_RESULT_PARAMS
-    )
-    def test_ancestor_incomplete(self,
-                                 mocker,
-                                 prev_result,
-                                 new_result,
-                                 changed):
-        job_current = Job()
-        job_ancestor_incomplete = Job()
-        job_ancestor = Job()
-        project = Project()
-
-        mocker.patch.object(job_ancestor_incomplete, 'result', new=None)
-        mocker.patch.object(
-            job_current, 'ancestor_job', new=job_ancestor_incomplete,
-        )
-
-        mocker.patch.object(job_current, 'project', new=project)
-        mocker.patch.object(job_current, 'commit', new='fake commit')
-        mocker.patch.object(job_current, 'result', new=new_result)
-        mocker.patch.object(job_ancestor, 'result', new=prev_result)
-
-        ancestor_mock = mocker.patch.object(
-            project, 'latest_job_ancestor', return_value=job_ancestor,
-        )
-
-        assert job_current.changed_result(workdir='fake workdir') == changed
-
-        ancestor_mock.assert_called_once_with(
-            'fake workdir', 'fake commit', complete=True,
-        )
-
-
-    def test_ancestor_incomplete_no_workdir(self, mocker):
+    def test_ancestor_incomplete(self, mocker):
         job_current = Job()
         job_ancestor_incomplete = Job()
 
