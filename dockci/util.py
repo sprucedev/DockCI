@@ -11,11 +11,9 @@ import socket
 import ssl
 import struct
 import sys
-import json
 import datetime
 
 from base64 import b64encode
-from contextlib import contextmanager
 from functools import wraps
 from ipaddress import ip_address
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -185,128 +183,6 @@ def setup_templates(app):
         return isinstance(val, (tuple, list))
 
 
-def bytes_str(value):
-    """
-    Turn bytes, or string value into both bytes and string
-
-    Examples:
-
-    >>> bytes_str('myval')
-    (b'myval', 'myval')
-
-    >>> bytes_str(b'myval')
-    (b'myval', 'myval')
-    """
-    v_bytes = v_str = value
-    try:
-        v_bytes = value.encode()
-    except AttributeError:
-        pass
-
-    try:
-        v_str = value.decode()
-    except AttributeError:
-        pass
-
-    return v_bytes, v_str
-
-
-def docker_ensure_image(client,
-                        service,
-                        insecure_registry=False,
-                        handle=None):
-    """
-    Ensure that an image for the service exists, pulling from repo/tag if not
-    available. If handle is given (a handle to write to), the pull output will
-    be streamed through.
-
-    Returns the image id (might be different, if repo/tag is used and doesn't
-    match the ID pulled down... This is bad, but no way around it)
-    """
-    try:
-        return client.inspect_image(service.image)['Id']
-
-    except docker.errors.APIError:
-        if handle:
-            docker_data = client.pull(service.repo_full,
-                                      service.tag,
-                                      insecure_registry=insecure_registry,
-                                      stream=True,
-                                      )
-
-        else:
-            docker_data = client.pull(service.repo_full,
-                                      service.tag,
-                                      insecure_registry=insecure_registry,
-                                      ).split('\n')
-
-        latest_id = None
-        for line in docker_data:
-            line_bytes, line_str = bytes_str(line)
-
-            if handle:
-                handle.write(line_bytes)
-
-            data = json.loads(line_str)
-            if 'id' in data:
-                latest_id = data['id']
-
-        return latest_id
-
-
-class FauxDockerLogBase(object):
-    """
-    A contextual logger to output JSON lines to a handle
-    """
-    def __init__(self):
-        self.defaults = {}
-
-    @contextmanager
-    def more_defaults(self, **kwargs):
-        """
-        Set some defaults to write to the JSON
-        """
-        if not kwargs:
-            yield
-            return
-
-        pre_defaults = self.defaults
-        self.defaults = dict(tuple(self.defaults.items()) +
-                             tuple(kwargs.items()))
-        yield
-        self.defaults = pre_defaults
-
-    def update(self, **kwargs):
-        """
-        Write a JSON line with kwargs, and defaults combined
-        """
-        with self.more_defaults(**kwargs):
-            return self.handle_line(
-                ('%s\n' % json.dumps(self.defaults)).encode()
-            )
-
-    def handle_line(self, line):
-        """ Handle outputting a line to the user """
-        raise NotImplementedError("Must override handle_line method")
-
-
-class GenFauxDockerLog(FauxDockerLogBase):
-    """ Generator for the faux Docker lines """
-    def handle_line(self, line):
-        yield line
-
-
-class IOFauxDockerLog(FauxDockerLogBase):
-    """ Writes faux Docker lines to a handle """
-    def __init__(self, handle):
-        super(IOFauxDockerLog, self).__init__()
-        self.handle = handle
-
-    def handle_line(self, line):
-        self.handle.write(line)
-        self.handle.flush()
-
-
 def tokengetter_for(oauth_app):
     """
     Flask security tokengetter for an endpoint
@@ -356,14 +232,6 @@ def fq_object_class_name(obj):
     """ Fully qualified name for an object's class """
     return '%s.%s' % (obj.__class__.__module__,
                       obj.__class__.__name__)
-
-
-def full_model_slug(model):
-    """ Get a compound slug if possible, otherwise just the slug is fine """
-    if hasattr(model, 'compound_slug'):
-        return model.compound_slug
-
-    return model.slug
 
 
 def auth_token_data_from_form(form_data, user, model):
@@ -427,21 +295,6 @@ def validate_auth_token(secret, form_data, user, model):
                                form_data.get('auth_token', None))
 
 
-def write_all(handle, lines, flush=True):
-    """ Encode, write, then flush the line """
-    if isinstance(lines, (tuple, list)):
-        for line in lines:
-            write_all(handle, line, False)
-    else:
-        if isinstance(lines, bytes):
-            handle.write(lines)
-        else:
-            handle.write(str(lines).encode())
-
-        if flush:
-            handle.flush()
-
-
 def str2bool(value):
     """ Convert a string to a boolean, accounting for english-like terms """
     value = value.lower()
@@ -452,18 +305,6 @@ def str2bool(value):
         pass
 
     return value in ('yes', 'true', 'y', 't')
-
-
-BUILT_RE = re.compile(r'Successfully built ([0-9a-f]+)')
-
-
-def built_docker_image_id(data):
-    """ Get an image ID out of the Docker stream data """
-    re_match = BUILT_RE.search(data.get('stream', ''))
-    if re_match:
-        return re_match.group(1)
-
-    return None
 
 
 def path_contained(outer_path, inner_path):
@@ -623,16 +464,6 @@ def unique_model_conflicts(klass, ignored_id=None, **fields):
         for field_name, query in queries.items()
         if query.count() > 0
     }
-
-
-def rabbit_stage_key(stage, mtype):
-    """ RabbitMQ routing key for messages """
-    return 'dockci.{project_slug}.{job_slug}.{stage_slug}.{mtype}'.format(
-        project_slug=stage.job.project.slug,
-        job_slug=stage.job.slug,
-        stage_slug=stage.slug,
-        mtype=mtype,
-    )
 
 
 def gravatar_url(email, size=None):

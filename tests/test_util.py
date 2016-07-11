@@ -7,8 +7,6 @@ import pytest
 
 from dockci.util import (add_to_url_path,
                          client_kwargs_from_config,
-                         GenFauxDockerLog,
-                         IOFauxDockerLog,
                          parse_ref,
                          )
 
@@ -165,51 +163,3 @@ class TestAddToUrlPath(object):
     def test_basic(self, in_url, in_path, exp_url):
         """ Test that some basic combinations produce expected outputs """
         assert add_to_url_path(in_url, in_path) == exp_url
-
-
-class TestGenFauxDockerLog(object):
-    """ Tests the ``GenFauxDockerLog`` class """
-    def test_defaults_and_update(self):
-        log = GenFauxDockerLog()
-        with log.more_defaults(keya='val a'):
-            lines = list(log.update(keyb='val b'))
-            assert len(lines) == 1
-            assert json.loads(lines[0].decode()) == dict(
-                keya='val a',
-                keyb='val b',
-            )
-
-    def test_no_defaults_and_update(self):
-        log = GenFauxDockerLog()
-        lines = list(log.update(keyb='val b'))
-        assert len(lines) == 1
-        assert json.loads(lines[0].decode()) == dict(
-            keyb='val b'
-        )
-
-
-class TestIOFauxDockerLog(object):
-    """ Tests the ``IOFauxDockerLog`` class """
-    def test_defaults_and_update(self):
-        handle = io.BytesIO()
-        log = IOFauxDockerLog(handle)
-        with log.more_defaults(keya='val a'):
-            log.update(keyb='val b')
-            handle.seek(0)
-            lines = handle.readlines()
-            assert len(lines) == 1
-            assert json.loads(lines[0].decode()) == dict(
-                keya='val a',
-                keyb='val b',
-            )
-
-    def test_no_defaults_and_update(self):
-        handle = io.BytesIO()
-        log = IOFauxDockerLog(handle)
-        log.update(keyb='val b')
-        handle.seek(0)
-        lines = handle.readlines()
-        assert len(lines) == 1
-        assert json.loads(lines[0].decode()) == dict(
-            keyb='val b'
-        )
