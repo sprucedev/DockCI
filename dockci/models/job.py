@@ -5,6 +5,7 @@ DockCI - CI, but with that all important Docker twist
 # TODO fewer lines somehow
 # pylint:disable=too-many-lines
 
+import json
 import logging
 import random
 import sys
@@ -897,8 +898,17 @@ class Job(DB.Model, RepoFsMixin):
         if self.start_ts:
             raise AlreadyRunError(self)
 
-        from dockci.server import APP
-        APP.worker_queue.put(self.id)
+        with pika_conn() as conn:
+            channel = conn.channel()
+            channel.basic_publish(
+                exchange='dockci.queue',
+                routing_key='new_job',
+                body=json.dumps(dict(
+                    job_slug=self.slug,
+                    project_slug=self.project.slug,
+                    command_repo=self.command_repo,
+                )),
+            )
 
     def _run_now(self, workdir=None):
         """

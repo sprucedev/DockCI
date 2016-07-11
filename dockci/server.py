@@ -173,7 +173,6 @@ def app_init():
     app_init_handlers()
     app_init_api()
     app_init_views()
-    app_init_workers()
 
 
 def get_redis_pool():
@@ -245,20 +244,6 @@ def app_init_rollbar():
     )
 
     flask.got_request_exception.connect(wrapped_report_exception, APP)
-
-
-def app_init_workers():
-    """
-    Initialize the worker job queue
-    """
-    from .workers import start_workers
-    APP.worker_queue = multiprocessing.Queue()
-
-    try:
-        start_workers()
-    except Exception:
-        rollbar.report_exc_info()
-        raise
 
 
 def app_init_oauth():
