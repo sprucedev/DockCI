@@ -28,6 +28,9 @@
   - Utility and service config now lists
   - Job patch API triggers OAuth, and email notifications
   - Many more
+- Redis host/port env vars fixed:
+  - `REDIS_PORT_6379_ADDR` to `REDIS_PORT_6379_TCP_ADDR`
+  - `REDIS_PORT_6379_PORT` to `REDIS_PORT_6379_TCP_PORT`
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397
