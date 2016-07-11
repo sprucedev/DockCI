@@ -388,11 +388,11 @@ API.add_resource(
     '/stages/<string:stage_slug>',
     endpoint='stage_detail',
 )
-API.add_resource(
-    ArtifactList,
-    '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
-    endpoint='artifact_list',
-)
+# API.add_resource(
+#     ArtifactList,
+#     '/projects/<string:project_slug>/jobs/<string:job_slug>/artifacts',
+#     endpoint='artifact_list',
+# )
 API.add_resource(
     StageStreamDetail,
     '/projects/<string:project_slug>/jobs/<string:job_slug>/stream',
