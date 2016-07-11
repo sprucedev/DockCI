@@ -10,7 +10,6 @@ from dockci.util import (add_to_url_path,
                          GenFauxDockerLog,
                          git_head_ref_name,
                          IOFauxDockerLog,
-                         is_git_ancestor,
                          parse_ref,
                          )
 
@@ -239,34 +238,6 @@ class TestGitRefNameOf(object):
 
         assert "You are in 'detached HEAD' state" in detached_output
         assert git_head_ref_name(tmpgitdir) == branch
-
-
-class TestGitAncestor(object):
-    """ Tests the is_git_ancestor utility """
-    def test_two_commits(self, tmpgitdir):
-        """
-        Ensure that a commit directly before another is correctly identified as
-        an ancestor, and that the child is identified as not an ancestor
-        """
-        with tmpgitdir.join('file_a.txt').open('w') as handle:
-            handle.write('first file')
-
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'first'])
-        first_hash = subprocess.check_output(
-            ['git', 'show', '-s', '--format=format:%H']).decode()
-
-        with tmpgitdir.join('file_b.txt').open('w') as handle:
-            handle.write('second file')
-
-        subprocess.check_call(['git', 'add', '.'])
-        subprocess.check_call(['git', 'commit', '-m', 'second'])
-        second_hash = subprocess.check_output(
-            ['git', 'show', '-s', '--format=format:%H']).decode()
-
-        assert is_git_ancestor(tmpgitdir, first_hash, second_hash)
-        assert not is_git_ancestor(tmpgitdir, second_hash, first_hash)
-
 
 class TestAddToUrlPath(object):
     """ Tests the ``add_to_url_path`` utility """

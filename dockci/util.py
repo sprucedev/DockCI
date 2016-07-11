@@ -173,24 +173,6 @@ def is_git_hash(value):
     return is_hex_string(value, 40)
 
 
-def is_git_ancestor(workdir, parent_check, child_check):
-    """
-    Figures out if the second is a child of the first.
-
-    See git merge-base --is-ancestor
-    """
-    if parent_check == child_check:
-        return False
-
-    proc = subprocess.Popen(
-        ['git', 'merge-base', '--is-ancestor', parent_check, child_check],
-        cwd=workdir.strpath,
-    )
-    proc.wait()
-
-    return proc.returncode == 0
-
-
 def git_head_ref_name(workdir, stderr=None):
     """ Gets the full git ref name of the HEAD ref """
     proc = subprocess.Popen([
