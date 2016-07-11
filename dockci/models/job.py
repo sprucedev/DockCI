@@ -612,13 +612,16 @@ class Job(DB.Model, RepoFsMixin):
         >>> Job(result=JobResult.success.value).is_complete
         True
 
-        >>> Job(result=JobResult.queued.value).is_complete
+        >>> job = Job(job_stages=[])
+        >>> job.state
+        'queued'
+        >>> job.is_complete
         False
 
-        >>> Job(result=JobResult.running.value).is_complete
-        False
-
-        >>> Job(result=None).is_complete
+        >>> job = Job(job_stages=[None])
+        >>> job.state
+        'running'
+        >>> job.is_complete
         False
         """
         return self.state in COMPLETE_STATES
