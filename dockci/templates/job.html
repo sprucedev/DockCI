@@ -52,7 +52,7 @@
   }
 </style>
 <!-- ko if: job() -->
-<!-- <div class="btn-group form-group" style="position:absolute; right: 0; z-index: 10" data-toggle="buttons" data-bind="radio: currentTab">
+{# <div class="btn-group form-group" style="position:absolute; right: 0; z-index: 10" data-toggle="buttons" data-bind="radio: currentTab">
   <label class="btn btn-default" title="Details">
     <input type="radio" name="currentTab" value="details" />
     <i class="glyphicon glyphicon-th-list"></i>
@@ -62,7 +62,7 @@
     <i class="glyphicon glyphicon-download-alt"></i>
     <span class="badge">{{ job.job_output_details | length }}</span>
   </label>
-</div> -->
+</div> #}
 <div data-bind="visible: currentTab() === 'details'">
   <div class="form-horizontal">
     <div class="form-group" data-bind="visible:job().display_repo">
@@ -123,7 +123,7 @@
     </div>
   </div>
 </div>
-<!-- <div data-bind="visible: currentTab() === 'artifacts'">
+{# <div data-bind="visible: currentTab() === 'artifacts'">
   <div class="form-horizontal">
     {% for name, details in job.job_output_details.items() %}
       <div class="form-group">
@@ -136,7 +136,7 @@
       <div class="alert alert-info">No items!</div>
     {% endfor %}
   </div>
-</div> -->
+</div> #}
 <h2>Job Log</h2>
 <div id="job-stages" data-bind="foreach:job().job_stage_slugs">
   <job-stage params="slug:$data, job:$parent.job"></job-stage>
