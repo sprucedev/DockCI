@@ -17,11 +17,13 @@ from itertools import chain
 
 import docker
 import py.path  # pylint:disable=import-error
+import rollbar
 import semver
 import sqlalchemy
 
 from docker.utils import kwargs_from_env
 from flask import url_for
+from flask_mail import Message
 
 from .base import RepoFsMixin
 from dockci.exceptions import AlreadyRunError, InvalidServiceTypeError
@@ -47,7 +49,7 @@ from dockci.models.job_meta.stages_prepare_docker import (DockerLoginStage,
                                                           PushPrepStage,
                                                           UtilStage,
                                                           )
-from dockci.server import CONFIG, DB, OAUTH_APPS
+from dockci.server import CONFIG, DB, MAIL, OAUTH_APPS, pika_conn
 from dockci.util import (add_to_url_path,
                          bytes_human_readable,
                          client_kwargs_from_config,
@@ -80,6 +82,13 @@ class JobResult(Enum):
     success = 'success'
     fail = 'fail'
     broken = 'broken'
+
+
+RESULT_NOTIFICATIONS = {
+    JobResult.success.value: 'started succeeding',
+    JobResult.fail.value: 'started failing',
+    JobResult.broken.value: 'needs attention',
+}
 
 
 PushableReasons = Enum(  # pylint:disable=invalid-name
@@ -124,6 +133,11 @@ PUSH_REASON_MESSAGES = {
     UnpushableReasons.no_branch_match:
         "branch name doesn't match branch pattern",
 }
+
+COMPLETE_STATES = (JobResult.success.value,
+                   JobResult.fail.value,
+                   JobResult.broken.value,
+                   )
 
 
 class JobStageTmp(DB.Model):  # pylint:disable=no-init
@@ -580,6 +594,33 @@ class Job(DB.Model, RepoFsMixin):
             return bad, {UnpushableReasons.bad_state}
 
         return bad, set()
+
+    @property
+    def is_complete(self):
+        """
+        Jobs are complete if they are success, fail, or broken
+
+        Examples:
+
+        >>> Job(result=JobResult.fail.value).is_complete
+        True
+
+        >>> Job(result=JobResult.broken.value).is_complete
+        True
+
+        >>> Job(result=JobResult.success.value).is_complete
+        True
+
+        >>> Job(result=JobResult.queued.value).is_complete
+        False
+
+        >>> Job(result=JobResult.running.value).is_complete
+        False
+
+        >>> Job(result=None).is_complete
+        False
+        """
+        return self.state in COMPLETE_STATES
 
     @property
     def tag_push_candidate(self):
@@ -1106,6 +1147,44 @@ class Job(DB.Model, RepoFsMixin):
             format='json',
             token=(token_data.key, token_data.secret),
         )
+
+    def send_email_notification(self):
+        """
+        Send email notification of the job result to the git author
+        and committer
+        """
+        recipients = []
+        if self.git_author_email:
+            recipients.append('%s <%s>' % (
+                self.git_author_name,
+                self.git_author_email
+            ))
+        if self.git_committer_email:
+            recipients.append('%s <%s>' % (
+                self.git_committer_name,
+                self.git_committer_email
+            ))
+
+        if recipients:
+            subject = (
+                "DockCI - {project_name} {notification}".format(
+                    project_name=self.project.name,
+                    notification=RESULT_NOTIFICATIONS[self.result],
+                )
+            )
+            email = Message(
+                recipients=recipients,
+                subject=subject,
+            )
+
+            try:
+                MAIL.send(email)
+
+            except Exception:  # pylint:disable=broad-except
+                rollbar.report_exc_info()
+                logging.getLogger('dockci.mail').exception(
+                    "Couldn't send email message"
+                )
 
     def _error_stage(self, stage_slug):
         """
