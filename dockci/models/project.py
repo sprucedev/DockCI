@@ -32,7 +32,13 @@ class Project(DB.Model, RepoFsMixin):  # pylint:disable=no-init
     repo = DB.Column(DB.String(255), nullable=False)
     name = DB.Column(DB.String(255), nullable=False)
     branch_pattern = DB.Column(RegexType(), nullable=True)
+
     utility = DB.Column(DB.Boolean(), nullable=False, index=True)
+    public = DB.Column(DB.Boolean(),
+                       default=False,
+                       server_default=sqlalchemy.sql.expression.false(),
+                       nullable=False,
+                       index=True)
 
     # TODO repo ID from repo
     github_repo_id = DB.Column(DB.String(255))
