@@ -31,6 +31,7 @@
 - Redis host/port env vars fixed:
   - `REDIS_PORT_6379_ADDR` to `REDIS_PORT_6379_TCP_ADDR`
   - `REDIS_PORT_6379_PORT` to `REDIS_PORT_6379_TCP_PORT`
+- Public projects visible by guests #498
 
 ### v0.0.10
 - Allow override of repo name in `dockci.yaml` #397

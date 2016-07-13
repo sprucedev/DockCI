@@ -6,6 +6,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
         this.display_repo   = ko.observable()
         this.branch_pattern = ko.observable()
         this.utility        = ko.observable()
+        this.public         = ko.observable()
 
         this.forcedType = ko.observable()
 
@@ -85,6 +86,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                 'github_secret': this.github_secret() || undefined,
                 'gitlab_private_token': this.gitlab_private_token() || undefined,
                 'target_registry': this.target_registry_base_name() || null,
+                'public': this.public(),
             }
             if(isNew) {
                 return $.extend(baseParams, {
@@ -119,6 +121,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
                 , 'repo': null
                 , 'display_repo': ''
                 , 'branch_pattern': ''
+                , 'public': false
                 , 'utility': false
                 , 'gitlab_base_uri': ''
                 , 'gitlab_repo_id': ''
@@ -130,6 +133,7 @@ define(['jquery', 'knockout', '../util'], function ($, ko, util) {
             this._repo(data['repo'])
             this.display_repo(data['display_repo'])
             this.branch_pattern(data['branch_pattern'])
+            this.public(data['public'])
             this.utility(data['utility'])
             this.gitlab_base_uri(data['gitlab_base_uri'])
             this.gitlab_repo_id(data['gitlab_repo_id'])

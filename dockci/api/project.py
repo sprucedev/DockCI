@@ -98,6 +98,7 @@ DETAIL_FIELDS = {
     'github_repo_id': fields.String(),
     'github_hook_id': fields.String(),
     'gitlab_repo_id': fields.String(),
+    'public': fields.Boolean(),
     'shield_text': fields.String(),
     'shield_color': fields.String(),
     'target_registry': RewriteUrl(
@@ -136,6 +137,10 @@ SHARED_PARSER_ARGS = {
         type=RegexInput(),
     ),
     'github_secret': dict(help="Shared secret to validate GitHub hooks"),
+    'public': dict(
+        help="Whether or not to allow read-only guest access",
+        type=inputs.boolean,
+    ),
 }
 
 UTILITY_ARG = dict(
@@ -228,6 +233,9 @@ class ProjectList(Resource):
 
         query = Project.query
 
+        if not current_user.is_authenticated():
+            query = query.filter_by(public=True)
+
         if opts['order'] == 'recent':
             query = (
                 query.
@@ -266,7 +274,10 @@ class ProjectDetail(BaseDetailResource):
     @marshal_with(DETAIL_FIELDS)
     def get(self, project_slug):
         """ Get project details """
-        return Project.query.filter_by(slug=project_slug).first_or_404()
+        project = Project.query.filter_by(slug=project_slug).first_or_404()
+        if not (project.public or current_user.is_authenticated()):
+            flask_restful.abort(404)
+        return project
 
     @login_required
     @marshal_with(DETAIL_FIELDS)
@@ -326,6 +337,10 @@ class ProjectBranchList(Resource):
     def get(self, project_slug):
         """ List of all branches in a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
+
+        if not (project.public or current_user.is_authenticated()):
+            flask_restful.abort(404)
+
         return [
             dict(name=job.git_branch)
             for job

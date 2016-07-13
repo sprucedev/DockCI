@@ -2,12 +2,13 @@
 import sqlalchemy
 import uuid
 
+import flask_restful
 import redis
 import redis_lock
 
 from flask import abort, request, url_for
 from flask_restful import fields, inputs, marshal_with, Resource
-from flask_security import login_required
+from flask_security import current_user, login_required
 
 from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
@@ -128,7 +129,10 @@ def get_validate_job(project_slug, job_slug):
     job_id = Job.id_from_slug(job_slug)
     job = Job.query.get_or_404(job_id)
     if job.project.slug != project_slug:
-        abort(404)
+        flask_restful.abort(404)
+
+    if not (job.project.public or current_user.is_authenticated()):
+        flask_restful.abort(404)
 
     return job
 
@@ -187,6 +191,10 @@ class JobList(BaseDetailResource):
     def get(self, project_slug):
         """ List all jobs for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
+
+        if not (project.public or current_user.is_authenticated()):
+            flask_restful.abort(404)
+
         base_query = filter_jobs_by_request(project)
         return {
             'items': base_query.paginate().items,
@@ -210,6 +218,10 @@ class JobCommitsList(Resource):
     def get(self, project_slug):
         """ List all distinct job commits for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
+
+        if not (project.public or current_user.is_authenticated()):
+            flask_restful.abort(404)
+
         base_query = filter_jobs_by_request(project).filter(
             Job.commit.op('SIMILAR TO')(r'[0-9a-fA-F]+')
         )
