@@ -51,10 +51,7 @@ def base_db_conn():
             APP.config['SQLALCHEMY_DATABASE_URI'] = DB.engine.url
             app_init()
 
-            try:
-                yield conn
-            finally:
-                conn.execute('DROP DATABASE %s' % db_name)
+            yield conn
 
 
 @pytest.yield_fixture
