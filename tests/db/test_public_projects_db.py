@@ -9,6 +9,7 @@ from dockci.server import DB
 
 
 def model_helper(request, models):
+    """ Add models, and remove after """
     for model in models:
         DB.session.add(model)
     DB.session.commit()
@@ -23,6 +24,7 @@ def model_helper(request, models):
 
 
 def clean():
+    """ Delete all projects, jobs, stages """
     JobStageTmp.query.delete()
     Job.query.delete()
     Project.query.delete()
@@ -31,6 +33,7 @@ def clean():
 
 @pytest.fixture
 def projects(request, db):
+    """ Add pub x2 and pri x2 """
     clean()
     vals = [
         Project(slug='pp-pub1', repo='', name='', utility=False, public=True),
@@ -43,6 +46,7 @@ def projects(request, db):
 
 @pytest.fixture
 def jobs(request, projects, db):
+    """ Add a job for each project """
     vals = [
         Job(project=project, commit='test', repo_fs='')
         for project in projects
@@ -52,6 +56,7 @@ def jobs(request, projects, db):
 
 @pytest.fixture
 def stages(request, jobs, db):
+    """ Add a stage for each job """
     vals = [
         JobStageTmp(job=job, slug='test')
         for job in jobs
@@ -74,13 +79,13 @@ class TestPublicProjects(object):
         ('pp-pri2', 404),
     ])
     def test_guest(self,
-                           client,
-                           jobs,
-                           url_prefix,
-                           url_fs,
-                           project_slug,
-                           exp_status,
-                           ):
+                   client,
+                   jobs,
+                   url_prefix,
+                   url_fs,
+                   project_slug,
+                   exp_status,
+                   ):
         """ Ensure only public projects accessible as guest """
         project = Project.query.filter_by(slug=project_slug)[0]
         job = project.jobs[0]
@@ -106,14 +111,14 @@ class TestPublicProjects(object):
         'pp-pub1', 'pp-pri1', 'pp-pub2', 'pp-pri2',
     ])
     def test_user(self,
-                           client,
-                           jobs,
-                           user,
-                           url_prefix,
-                           url_fs,
-                           project_slug,
-                           ):
-        """ Ensure only public projects accessible as guest """
+                  client,
+                  jobs,
+                  user,
+                  url_prefix,
+                  url_fs,
+                  project_slug,
+                  ):
+        """ Ensure all projects accessible as user """
         project = Project.query.filter_by(slug=project_slug)[0]
         job = project.jobs[0]
         stage = job.job_stages[0]
