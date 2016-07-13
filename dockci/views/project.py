@@ -44,6 +44,9 @@ def project_view(slug):
     """
     project = Project.query.filter_by(slug=slug).first_or_404()
 
+    if not project.public or current_user.is_authenticated():
+        abort(404)
+
     page_size = int(request.args.get('page_size', 20))
     page = int(request.args.get('page', 1))
 
