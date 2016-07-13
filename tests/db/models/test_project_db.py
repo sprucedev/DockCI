@@ -1,6 +1,6 @@
 import pytest
 
-from dockci.models.job import Job
+from dockci.models.job import Job, JobStageTmp
 from dockci.models.project import Project
 from dockci.server import DB
 
@@ -12,6 +12,7 @@ def create_project(slug, **kwargs):
         slug=slug,
         utility=False,
         repo='test',
+        public=True,
     )
     final_kwargs.update(kwargs)
     return Project(**final_kwargs)
@@ -29,6 +30,14 @@ def create_job(**kwargs):
 
 class TestProjectsSummary(object):
     """ Ensure ``Project.get_status_summary`` behaves as expected """
+
+    def setup_method(self, _):
+        JobStageTmp.query.delete()
+        Job.query.delete()
+    def teardown_method(self, _):
+        JobStageTmp.query.delete()
+        Job.query.delete()
+
 
     @pytest.mark.parametrize('models,p_filters,exp_s,exp_f,exp_b,exp_i', [
         (
@@ -111,6 +120,7 @@ class TestProjectsSummary(object):
             for job in jobs:
                 job.project = project
                 DB.session.add(job)
+                print('job')
 
         DB.session.commit()
 

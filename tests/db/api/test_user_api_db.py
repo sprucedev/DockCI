@@ -20,30 +20,22 @@ class TestRestSetRoles(object):
         assert [role.name for role in user.roles] == ['admin']
 
     @pytest.mark.usefixtures('db')
-    def test_add_multiple(self):
+    def test_add_multiple(self, role):
         """ Add multiple roles to a user with no roles """
-        role = Role(name='test')
-        DB.session.add(role)
-        DB.session.commit()
-
         user = User()
-        rest_set_roles(user, ['admin', 'test'])
-        assert [role.name for role in user.roles] == ['admin', 'test']
+        rest_set_roles(user, ['admin', role.name])
+        assert [role.name for role in user.roles] == ['admin', role.name]
 
     @pytest.mark.usefixtures('db')
-    def test_set_with_existing(self):
+    def test_set_with_existing(self, role, user):
         """ Set roles on a user with an existing role """
-        role = Role(name='test')
-        user = SECURITY_STATE.datastore.create_user(
-            email='test@example.com',
-        )
-        user.roles.append(Role.query.get(1))
+        user.roles.append(role)
         DB.session.add(role)
         DB.session.add(user)
         DB.session.commit()
 
-        rest_set_roles(user, ['test'])
-        assert [role.name for role in user.roles] == ['test']
+        rest_set_roles(user, [role.name])
+        assert [role.name for role in user.roles] == [role.name]
 
     @pytest.mark.usefixtures('db')
     def test_add_fake(self):
@@ -110,7 +102,6 @@ class TestUserAPI(object):
             'roles': [role.name],
         })
 
-        print(response.data)
         assert response.status_code == 401
 
         DB.session.refresh(user)

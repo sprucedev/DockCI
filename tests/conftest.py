@@ -140,6 +140,7 @@ def project(db, randid):
         name=randid,
         repo='test',
         utility=False,
+        public=True
     ), delete=True) as model:
         yield model
 
