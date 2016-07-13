@@ -120,7 +120,6 @@ class TestProjectsSummary(object):
             for job in jobs:
                 job.project = project
                 DB.session.add(job)
-                print('job')
 
         DB.session.commit()
 
