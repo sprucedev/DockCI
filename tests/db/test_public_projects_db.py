@@ -134,3 +134,35 @@ class TestPublicProjects(object):
         })
 
         assert response.status_code == 200
+
+    @pytest.mark.usefixtures('stages')
+    @pytest.mark.parametrize('url_fs', [
+        '/projects/{project_slug}',
+        '/projects/{project_slug}/jobs/{job_slug}',
+        '/projects/{project_slug}/jobs/{job_slug}/stages/{stage_slug}',
+    ])
+    @pytest.mark.parametrize('project_slug', [
+        'pp-pub1', 'pp-pri1', 'pp-pub2', 'pp-pri2',
+    ])
+    def test_agent(self,
+                   client,
+                   jobs,
+                   agent_token,
+                   url_fs,
+                   project_slug,
+                   ):
+        """ Ensure all projects accessible as user """
+        project = Project.query.filter_by(slug=project_slug)[0]
+        job = project.jobs[0]
+        stage = job.job_stages[0]
+
+        full_url = ('/api/v1%s' % url_fs).format(
+            project_slug=project.slug,
+            job_slug=job.slug,
+            stage_slug=stage.slug,
+        )
+        response = client.get(full_url, headers={
+            'x_dockci_api_key': agent_token,
+        })
+
+        assert response.status_code == 200
