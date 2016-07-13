@@ -36,10 +36,8 @@ def projects(request, db):
     """ Add pub x2 and pri x2 """
     clean()
     vals = [
-        Project(slug='pp-pub1', repo='', name='', utility=False, public=True),
-        Project(slug='pp-pri1', repo='', name='', utility=False, public=False),
-        Project(slug='pp-pub2', repo='', name='', utility=False, public=True),
-        Project(slug='pp-pri2', repo='', name='', utility=False, public=False),
+        Project(slug='pp-pub', repo='', name='', utility=False, public=True),
+        Project(slug='pp-pri', repo='', name='', utility=False, public=False),
     ]
     return model_helper(request, vals)
 
@@ -67,6 +65,7 @@ def stages(request, jobs, db):
 API_URL_FS_LIST = [
     '/api/v1/projects/{project_slug}',
     '/api/v1/projects/{project_slug}/jobs',
+    '/api/v1/projects/{project_slug}/jobs/commits',
     '/api/v1/projects/{project_slug}/jobs/{job_slug}',
     '/api/v1/projects/{project_slug}/jobs/{job_slug}/stages',
     '/api/v1/projects/{project_slug}/jobs/{job_slug}/stages/{stage_slug}',
@@ -81,10 +80,8 @@ class TestPublicProjects(object):
     @pytest.mark.usefixtures('stages')
     @pytest.mark.parametrize('url_fs', URL_FS_LIST)
     @pytest.mark.parametrize('project_slug,exp_status', [
-        ('pp-pub1', 200),
-        ('pp-pri1', 404),
-        ('pp-pub2', 200),
-        ('pp-pri2', 404),
+        ('pp-pub', 200),
+        ('pp-pri', 404),
     ])
     def test_guest(self,
                    client,
@@ -110,7 +107,7 @@ class TestPublicProjects(object):
     @pytest.mark.usefixtures('stages')
     @pytest.mark.parametrize('url_fs', URL_FS_LIST)
     @pytest.mark.parametrize('project_slug', [
-        'pp-pub1', 'pp-pri1', 'pp-pub2', 'pp-pri2',
+        'pp-pub', 'pp-pri',
     ])
     def test_user(self,
                   client,
@@ -139,7 +136,7 @@ class TestPublicProjects(object):
     @pytest.mark.usefixtures('stages')
     @pytest.mark.parametrize('url_fs', API_URL_FS_LIST)
     @pytest.mark.parametrize('project_slug', [
-        'pp-pub1', 'pp-pri1', 'pp-pub2', 'pp-pri2',
+        'pp-pub', 'pp-pri',
     ])
     def test_agent(self,
                    client,
