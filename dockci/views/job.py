@@ -33,7 +33,7 @@ def job_view(project_slug, job_slug):
     View to display a job
     """
     project = Project.query.filter_by(slug=project_slug).first_or_404()
-    if not project.public or current_user.is_authenticated():
+    if not (project.public or current_user.is_authenticated()):
         abort(404)
 
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))
@@ -154,7 +154,7 @@ def job_new_github(project, job):
 def check_output(project_slug, job_slug, filename):
     """ Ensure the job exists, and that the path is not dangerous """
     project = Project.query.filter_by(slug=project_slug).first_or_404()
-    if not project.public or current_user.is_authenticated():
+    if not (project.public or current_user.is_authenticated()):
         abort(404)
 
     job = Job.query.get_or_404(Job.id_from_slug(job_slug))

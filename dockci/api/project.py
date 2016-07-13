@@ -275,7 +275,7 @@ class ProjectDetail(BaseDetailResource):
     def get(self, project_slug):
         """ Get project details """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
-        if not project.public or current_user.is_authenticated():
+        if not (project.public or current_user.is_authenticated()):
             flask_restful.abort(404)
         return project
 
@@ -338,7 +338,7 @@ class ProjectBranchList(Resource):
         """ List of all branches in a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
 
-        if not project.public or current_user.is_authenticated():
+        if not (project.public or current_user.is_authenticated()):
             flask_restful.abort(404)
 
         return [

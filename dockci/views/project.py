@@ -2,7 +2,8 @@
 Views related to project management
 """
 
-from flask import redirect, render_template, request
+from flask import abort, redirect, render_template, request
+from flask_security import current_user
 
 from dockci.api.job import filter_jobs_by_request
 from dockci.models.project import Project
@@ -19,6 +20,9 @@ def shields_io_sanitize(text):
 def project_shield_view(slug, extension):
     """ View to give shields for each project """
     project = Project.query.filter_by(slug=slug).first_or_404()
+
+    if not (project.public or current_user.is_authenticated()):
+        abort(404)
 
     try:
         query = '?style=%s' % request.args['style']
@@ -44,7 +48,7 @@ def project_view(slug):
     """
     project = Project.query.filter_by(slug=slug).first_or_404()
 
-    if not project.public or current_user.is_authenticated():
+    if not (project.public or current_user.is_authenticated()):
         abort(404)
 
     page_size = int(request.args.get('page_size', 20))

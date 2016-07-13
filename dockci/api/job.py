@@ -8,7 +8,7 @@ import redis_lock
 
 from flask import abort, request, url_for
 from flask_restful import fields, inputs, marshal_with, Resource
-from flask_security import login_required
+from flask_security import current_user, login_required
 
 from . import fields as fields_
 from .base import BaseDetailResource, BaseRequestParser
@@ -131,7 +131,7 @@ def get_validate_job(project_slug, job_slug):
     if job.project.slug != project_slug:
         flask_restful.abort(404)
 
-    if not job.project.public or current_user.is_authenticated():
+    if not (job.project.public or current_user.is_authenticated()):
         flask_restful.abort(404)
 
     return job
@@ -192,7 +192,7 @@ class JobList(BaseDetailResource):
         """ List all jobs for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
 
-        if not project.public or current_user.is_authenticated():
+        if not (project.public or current_user.is_authenticated()):
             flask_restful.abort(404)
 
         base_query = filter_jobs_by_request(project)
@@ -219,7 +219,7 @@ class JobCommitsList(Resource):
         """ List all distinct job commits for a project """
         project = Project.query.filter_by(slug=project_slug).first_or_404()
 
-        if not project.public or current_user.is_authenticated():
+        if not (project.public or current_user.is_authenticated()):
             flask_restful.abort(404)
 
         base_query = filter_jobs_by_request(project).filter(
