@@ -16,7 +16,7 @@ Examples:
   Length of wordlist needs to match this formula
 
   >>> import math
-  >>> assert(len(WORDLIST)) == math.pow(2, (GROUP_BITS - 1) / SLUG_GROUPS) + 2
+  >>> assert len(WORDLIST) == math.pow(2, (GROUP_BITS - 1) / SLUG_GROUPS) + 2
 
   Make sure nothing changes
 
